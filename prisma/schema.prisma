@@ -1,0 +1,658 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  CUSTOMER
+  CREATOR
+  ADMIN
+}
+
+enum AdminScope {
+  SUPER_ADMIN
+  MODERATION_ADMIN
+  FINANCE_ADMIN
+  SUPPORT_ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum MembershipTier {
+  FREE
+  PRO
+}
+
+enum CreatorApplicationStatus {
+  NOT_APPLIED
+  ASSESSMENT_IN_PROGRESS
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ValidityType {
+  STANDARD_30D
+  SHORT_14D
+  ADMIN_CUSTOM
+}
+
+enum PricingType {
+  FIXED
+  QUOTE_BASED
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  CHANGES_REQUESTED
+  PUBLISHED
+  EXPIRED
+  ARCHIVED
+  SUSPENDED
+  RETAINED_SOFT_DELETED
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  PAID_AWAITING_ACCEPTANCE
+  IN_PROGRESS
+  DELIVERED
+  REVISION_REQUESTED
+  COMPLETED
+  CANCELLED
+  DISPUTED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETE
+  FAILED
+  REFUNDED
+}
+
+enum PaymentPurpose {
+  BOOKING_ESCROW
+  PRO_SUBSCRIPTION
+}
+
+enum PaymentChannel {
+  MPESA_STK
+  CARD
+}
+
+enum PayoutStatus {
+  PENDING_ESCROW
+  AVAILABLE
+  REQUESTED
+  PAID
+  REVERSED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_REFUND
+  RESOLVED_PARTIAL_SPLIT
+  RESOLVED_RELEASE_CREATOR
+  CLOSED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  FCM_PUSH
+  SMS
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum FileCategory {
+  CUSTOMER_BRIEF
+  CREATOR_DELIVERABLE
+  REVISION_ATTACHMENT
+  DISPUTE_EVIDENCE
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String
+  phone          String?
+  passwordHash   String?
+  avatarUrl      String?
+  roles          UserRole[]     @default([CUSTOMER])
+  adminScopes    AdminScope[]   @default([])
+  status         AccountStatus  @default(ACTIVE)
+  emailVerified  DateTime?
+  phoneVerified  DateTime?
+  membershipTier MembershipTier @default(FREE)
+  proExpiresAt   DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  authAccounts         AuthAccount[]
+  verificationTokens   VerificationToken[]
+  otpVerifications     OtpVerification[]
+  customerProfile      CustomerProfile?
+  creatorProfile       CreatorProfile?
+  customerBookings     Booking[]                @relation("CustomerBookings")
+  uploadedFiles        BookingFile[]
+  requestedRevisions   BookingRevision[]
+  sentMessages         BookingMessage[]
+  openedDisputes       Dispute[]                @relation("DisputeOpener")
+  subscriptions        MembershipSubscription[]
+  paymentTransactions  PaymentTransaction[]
+  notifications        NotificationOutbox[]
+  pushTokens           DevicePushToken[]
+  authoredReviews      Review[]
+  auditLogsAsActor     AdminAuditLog[]
+}
+
+model AuthAccount {
+  id                String    @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  createdAt         DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model VerificationToken {
+  id         String    @id @default(cuid())
+  userId     String?
+  identifier String
+  tokenHash  String    @unique
+  type       String    @default("EMAIL_VERIFY")
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([identifier, type])
+}
+
+model OtpVerification {
+  id          String    @id @default(cuid())
+  userId      String
+  phone       String
+  codeHash    String
+  purpose     String    @default("PHONE_VERIFY")
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  expiresAt   DateTime
+  verifiedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, phone])
+}
+
+model CustomerProfile {
+  id                      String   @id @default(cuid())
+  userId                  String   @unique
+  preferredLocale         String   @default("en-KE")
+  notificationPrefs       Json     @default("{\"email\":true,\"push\":true,\"inApp\":true,\"sms\":false}")
+  savedRequirementsPreset Json?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CreatorProfile {
+  id                        String                   @id @default(cuid())
+  userId                    String                   @unique
+  username                  String                   @unique
+  displayName               String
+  headline                  String
+  bio                       String
+  writingCategories         String[]
+  academicIntegrityAccepted Boolean                  @default(false)
+  applicationStatus         CreatorApplicationStatus @default(NOT_APPLIED)
+  assessmentScore           Float?
+  assessmentAttemptCount    Int                      @default(0)
+  cooldownUntil             DateTime?
+  isAvailable               Boolean                  @default(true)
+  autoAcceptBookings        Boolean                  @default(true)
+  ratingAverage             Float                    @default(5.0)
+  completedBookingsCount    Int                      @default(0)
+  portfolioSamples          Json?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+
+  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessmentAttempts CreatorAssessmentAttempt[]
+  listings           TaskListing[]
+  bookings           Booking[]                  @relation("CreatorBookings")
+  earningsLedger     CreatorEarningsLedger[]
+  payouts            CreatorPayout[]
+  reviewsReceived    Review[]
+}
+
+model AssessmentConfig {
+  id                   String   @id @default(cuid())
+  title                String
+  promptText           String
+  minWords             Int      @default(350)
+  maxWords             Int      @default(600)
+  durationMinutes      Int      @default(45)
+  passScoreThreshold   Float    @default(75)
+  reviewScoreThreshold Float    @default(60)
+  cooldownDays         Int      @default(14)
+  rubricWeights        Json
+  isActive             Boolean  @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  attempts CreatorAssessmentAttempt[]
+}
+
+model CreatorAssessmentAttempt {
+  id               String                   @id @default(cuid())
+  creatorProfileId String
+  configId         String
+  startedAt        DateTime                 @default(now())
+  submittedAt      DateTime?
+  responseText     String?
+  wordCount        Int                      @default(0)
+  grammarScore     Float?
+  coherenceScore   Float?
+  instructionScore Float?
+  originalityScore Float?
+  toneScore        Float?
+  researchScore    Float?
+  totalScore       Float?
+  autoDecision     CreatorApplicationStatus @default(ASSESSMENT_IN_PROGRESS)
+  reviewerAdminId  String?
+  reviewNote       String?
+  createdAt        DateTime                 @default(now())
+
+  creatorProfile CreatorProfile   @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade)
+  config         AssessmentConfig @relation(fields: [configId], references: [id])
+
+  @@index([creatorProfileId, createdAt])
+}
+
+model Category {
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  name               String   @unique
+  description        String
+  sortOrder          Int      @default(0)
+  isActive           Boolean  @default(true)
+  requirementsSchema Json     @default("[]")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  listings TaskListing[]
+}
+
+model TaskListing {
+  id                       String        @id @default(cuid())
+  slug                     String        @unique
+  title                    String
+  shortDescription         String
+  fullDescription          String
+  serviceType              String
+  categoryId               String
+  creatorId                String?
+  createdByAdmin           Boolean       @default(false)
+  pricingType              PricingType   @default(FIXED)
+  basePrice                Float
+  currency                 String        @default("KES")
+  serviceFeePctOverride    Float?
+  deliveryTurnaroundDays   Int           @default(3)
+  maxRevisions             Int           @default(2)
+  manualAcceptanceRequired Boolean       @default(false)
+  validityType             ValidityType  @default(STANDARD_30D)
+  validUntil               DateTime?
+  archiveExpiresAt         DateTime?
+  proEarlyAccessUntil      DateTime?
+  deliverablesSummary      String[]
+  requirementsConfig       Json          @default("[]")
+  revisionPolicy           String
+  cancellationPolicy       String
+  status                   ListingStatus @default(DRAFT)
+  moderationNote           String?
+  publishedAt              DateTime?
+  createdAt                DateTime      @default(now())
+  updatedAt                DateTime      @updatedAt
+
+  category Category        @relation(fields: [categoryId], references: [id])
+  creator  CreatorProfile? @relation(fields: [creatorId], references: [id])
+  bookings Booking[]
+  reviews  Review[]
+
+  @@index([status, validUntil])
+  @@index([categoryId, status])
+  @@index([creatorId])
+}
+
+model Booking {
+  id                     String        @id @default(cuid())
+  bookingRef             String        @unique
+  taskId                 String
+  customerId             String
+  creatorId              String?
+  taskTitleSnapshot      String
+  currency               String        @default("KES")
+  listedPrice            Float
+  extraCharges           Float         @default(0)
+  serviceFee             Float
+  proDiscount            Float         @default(0)
+  totalPayable           Float
+  creatorNetAmount       Float
+  requirementsResponses  Json
+  agreedDeliveryDeadline DateTime
+  status                 BookingStatus @default(PENDING_PAYMENT)
+  revisionCount          Int           @default(0)
+  maxRevisions           Int           @default(2)
+  deliveredAt            DateTime?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  cancellationReason     String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  task        TaskListing            @relation(fields: [taskId], references: [id])
+  customer    User                   @relation("CustomerBookings", fields: [customerId], references: [id])
+  creator     CreatorProfile?        @relation("CreatorBookings", fields: [creatorId], references: [id])
+  files       BookingFile[]
+  revisions   BookingRevision[]
+  messages    BookingMessage[]
+  dispute     Dispute?
+  payments    PaymentTransaction[]
+  refunds     RefundRecord[]
+  ledgerEntry CreatorEarningsLedger?
+  review      Review?
+
+  @@index([customerId, status])
+  @@index([creatorId, status])
+}
+
+model BookingFile {
+  id           String       @id @default(cuid())
+  bookingId    String
+  uploaderId   String
+  fileCategory FileCategory
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String       @unique
+  createdAt    DateTime     @default(now())
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  uploader User    @relation(fields: [uploaderId], references: [id])
+
+  @@index([bookingId])
+}
+
+model BookingRevision {
+  id             String    @id @default(cuid())
+  bookingId      String
+  requestedById  String
+  revisionNumber Int
+  reason         String
+  checklist      Json      @default("[]")
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  booking     Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  requestedBy User    @relation(fields: [requestedById], references: [id])
+
+  @@index([bookingId])
+}
+
+model BookingMessage {
+  id              String    @id @default(cuid())
+  bookingId       String
+  senderId        String
+  body            String
+  isSystemMessage Boolean   @default(false)
+  readAt          DateTime?
+  createdAt       DateTime  @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@index([bookingId, createdAt])
+}
+
+model Dispute {
+  id                   String        @id @default(cuid())
+  bookingId            String        @unique
+  openedById           String
+  reason               String
+  details              String
+  status               DisputeStatus @default(OPEN)
+  resolutionNote       String?
+  refundAmount         Float?
+  creatorReleaseAmount Float?
+  resolvedByAdminId    String?
+  resolvedAt           DateTime?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  openedBy User    @relation("DisputeOpener", fields: [openedById], references: [id])
+}
+
+model MembershipSubscription {
+  id                 String         @id @default(cuid())
+  userId             String
+  tier               MembershipTier @default(PRO)
+  planInterval       String         @default("MONTHLY")
+  amount             Float
+  currency           String         @default("KES")
+  status             String         @default("PENDING")
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  autoRenew          Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  user     User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments PaymentTransaction[]
+
+  @@index([userId, status])
+}
+
+model PaymentTransaction {
+  id                 String         @id @default(cuid())
+  bookingId          String?
+  subscriptionId     String?
+  userId             String
+  purpose            PaymentPurpose
+  channel            PaymentChannel @default(MPESA_STK)
+  apiRef             String         @unique
+  providerInvoiceId  String?        @unique
+  providerTrackingId String?
+  phone              String?
+  currency           String         @default("KES")
+  amount             Float
+  status             PaymentStatus  @default(PENDING)
+  rawWebhookPayload  Json?
+  paidAt             DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  booking      Booking?                @relation(fields: [bookingId], references: [id])
+  subscription MembershipSubscription? @relation(fields: [subscriptionId], references: [id])
+  user         User                    @relation(fields: [userId], references: [id])
+  refunds      RefundRecord[]
+
+  @@index([bookingId])
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model RefundRecord {
+  id                 String   @id @default(cuid())
+  transactionId      String
+  bookingId          String?
+  amount             Float
+  currency           String   @default("KES")
+  reason             String
+  status             String   @default("COMPLETED")
+  processedByAdminId String
+  providerRefundRef  String?
+  processedAt        DateTime @default(now())
+  createdAt          DateTime @default(now())
+
+  transaction PaymentTransaction @relation(fields: [transactionId], references: [id])
+  booking     Booking?           @relation(fields: [bookingId], references: [id])
+}
+
+model CreatorEarningsLedger {
+  id          String       @id @default(cuid())
+  creatorId   String
+  bookingId   String       @unique
+  grossAmount Float
+  platformFee Float
+  netAmount   Float
+  currency    String       @default("KES")
+  status      PayoutStatus @default(PENDING_ESCROW)
+  availableAt DateTime?
+  payoutId    String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  creator CreatorProfile @relation(fields: [creatorId], references: [id])
+  booking Booking        @relation(fields: [bookingId], references: [id])
+  payout  CreatorPayout? @relation(fields: [payoutId], references: [id])
+
+  @@index([creatorId, status])
+}
+
+model CreatorPayout {
+  id               String       @id @default(cuid())
+  creatorId        String
+  amount           Float
+  currency         String       @default("KES")
+  destinationPhone String
+  status           PayoutStatus @default(REQUESTED)
+  providerRef      String?
+  requestedAt      DateTime     @default(now())
+  paidAt           DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  creator CreatorProfile          @relation(fields: [creatorId], references: [id])
+  entries CreatorEarningsLedger[]
+
+  @@index([creatorId, status])
+}
+
+model NotificationOutbox {
+  id            String              @id @default(cuid())
+  userId        String
+  channel       NotificationChannel
+  eventType     String
+  title         String
+  body          String
+  linkUrl       String?
+  payload       Json                @default("{}")
+  status        NotificationStatus  @default(PENDING)
+  attempts      Int                 @default(0)
+  maxAttempts   Int                 @default(5)
+  lastError     String?
+  readAt        DateTime?
+  nextAttemptAt DateTime            @default(now())
+  sentAt        DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel, readAt])
+  @@index([status, nextAttemptAt])
+}
+
+model DevicePushToken {
+  id         String   @id @default(cuid())
+  userId     String
+  token      String   @unique
+  platform   String   @default("WEB")
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  bookingId  String   @unique
+  taskId     String
+  customerId String
+  creatorId  String
+  rating     Int
+  comment    String
+  isPublic   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  booking  Booking        @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  task     TaskListing    @relation(fields: [taskId], references: [id])
+  customer User           @relation(fields: [customerId], references: [id])
+  creator  CreatorProfile @relation(fields: [creatorId], references: [id])
+
+  @@index([taskId])
+  @@index([creatorId])
+}
+
+model PlatformConfig {
+  id                      String   @id @default("global")
+  standardServiceFeePct   Float    @default(10)
+  proFeeDiscountPct       Float    @default(50)
+  proMonthlyPrice         Float    @default(2500)
+  proAnnualPrice          Float    @default(24000)
+  currency                String   @default("KES")
+  archiveRecoveryDays     Int      @default(14)
+  defaultRevisionLimit    Int      @default(2)
+  proEarlyAccessHours     Int      @default(24)
+  announcementBanner      String?
+  academicIntegrityPolicy String
+  revisionPolicyText      String
+  cancellationPolicyText  String
+  updatedAt               DateTime @updatedAt
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  actorAdminId String
+  action       String
+  targetType   String
+  targetId     String
+  reason       String
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  actorAdmin User @relation(fields: [actorAdminId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}

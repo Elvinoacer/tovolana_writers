@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/listings-lifecycle",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/notifications-outbox",
+      "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/deadline-alerts",
+      "schedule": "0 */4 * * *"
+    }
+  ]
+}

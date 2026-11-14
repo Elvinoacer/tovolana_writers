@@ -1,0 +1,15 @@
+{
+  "project": "Online Writing Platform",
+  "vercelProfile": "hydraomondi-2352",
+  "hubPageId": "41628ab3-9d40-8112-9c6d-c012796b09fb",
+  "hubUrl": "https://app.notion.com/p/Online-Writing-Platform-Engineering-Command-Center-Screen-Tracker-41628ab39d4081129c6dc012796b09fb",
+  "databases": {
+    "modules": "91b62173-fa39-47f2-aa18-8450cd8ab304",
+    "models": "41828ab3-9d40-8116-9641-f0382f53e0b6",
+    "endpoints": "41828ab3-9d40-81a6-9dff-eace5ec0904f",
+    "journeys": "41828ab3-9d40-81c8-aea7-eda72d702100",
+    "keys": "41828ab3-9d40-813c-afb3-d3d7e1680cfa",
+    "releases": "41828ab3-9d40-8104-9197-f35dfa51c54d"
+  },
+  "consolidatedAt": "2026-11-14T09:38:01.482Z"
+}

@@ -1,0 +1,233 @@
+"use client";
+
+import React, { Suspense, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { CheckCircle2, MailCheck, Smartphone } from "lucide-react";
+import { useAuth } from "@/components/AuthContext";
+
+function VerifyCenterInner() {
+  const searchParams = useSearchParams();
+  const initialToken = searchParams.get("token") || "";
+  const { user, refresh } = useAuth();
+
+  const [emailToken, setEmailToken] = useState(initialToken);
+  const [emailStatus, setEmailStatus] = useState("");
+  const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
+  const phone = phoneOverride ?? user?.phone ?? "0712345678";
+  const setPhone = (val: string) => setPhoneOverride(val);
+  const [otpCode, setOtpCode] = useState("");
+  const [otpPreview, setOtpPreview] = useState("");
+  const [phoneStatus, setPhoneStatus] = useState("");
+
+  async function verifyEmailNow(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailStatus("Verifying...");
+    const res = await fetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token: emailToken }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setEmailStatus(json.error?.message || "Invalid verification token.");
+      return;
+    }
+    setEmailStatus("Email verified cleanly!");
+    await refresh();
+  }
+
+  async function resendEmailToken() {
+    setEmailStatus("Generating new token...");
+    const res = await fetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setEmailStatus(json.error?.message || "Could not send token.");
+      return;
+    }
+    if (json.data?.verificationPreviewToken) {
+      setEmailToken(json.data.verificationPreviewToken);
+    }
+    setEmailStatus("Verification email queued in outbox.");
+  }
+
+  async function sendPhoneOtp() {
+    setPhoneStatus("Sending 6-digit OTP...");
+    const res = await fetch("/api/auth/otp/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setPhoneStatus(json.error?.message || "Could not dispatch OTP.");
+      return;
+    }
+    if (json.data?.sandboxOtpPreview) {
+      setOtpPreview(json.data.sandboxOtpPreview);
+    }
+    setPhoneStatus(`OTP dispatched to ${json.data.phone} (expires in 10m).`);
+  }
+
+  async function verifyPhoneCode(e: React.FormEvent) {
+    e.preventDefault();
+    setPhoneStatus("Checking OTP...");
+    const res = await fetch("/api/auth/otp/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code: otpCode }),
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setPhoneStatus(json.error?.message || "OTP verification failed.");
+      return;
+    }
+    setPhoneStatus("Phone number verified cleanly!");
+    await refresh();
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
+      <div>
+        <p className="text-xs font-tech uppercase tracking-wider text-[#1e3a8a]">
+          Identity Verification Center (Screen 2.2)
+        </p>
+        <h1 className="font-editorial text-3xl font-semibold mt-1">
+          Dual-Channel Email &amp; Phone OTP Verification
+        </h1>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="editorial-card p-6 bg-white space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
+              <MailCheck className="w-5 h-5 text-[#1e3a8a]" />
+              Email Verification
+            </h2>
+            {user?.emailVerified && (
+              <span className="inline-flex items-center gap-1 text-xs text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Verified
+              </span>
+            )}
+          </div>
+          <form onSubmit={verifyEmailNow} className="space-y-3">
+            <input
+              type="text"
+              value={emailToken}
+              onChange={(e) => setEmailToken(e.target.value)}
+              placeholder="Paste email verification token"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+            />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="flex-1 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554]"
+              >
+                Verify Email Token
+              </button>
+              {user && (
+                <button
+                  type="button"
+                  onClick={resendEmailToken}
+                  className="px-3 py-2.5 rounded-lg border border-[#e6e0d4] text-xs font-semibold hover:bg-stone-50"
+                >
+                  Generate Token
+                </button>
+              )}
+            </div>
+          </form>
+          {emailStatus && (
+            <p className="text-xs font-medium text-stone-700">{emailStatus}</p>
+          )}
+        </div>
+
+        <div className="editorial-card p-6 bg-white space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
+              <Smartphone className="w-5 h-5 text-teal-700" />
+              Phone SMS OTP
+            </h2>
+            {user?.phoneVerified && (
+              <span className="inline-flex items-center gap-1 text-xs text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Verified
+              </span>
+            )}
+          </div>
+          {!user ? (
+            <p className="text-xs text-stone-600">
+              <Link href="/auth" className="text-[#1e3a8a] underline">
+                Sign in first
+              </Link>{" "}
+              to request and verify your phone OTP.
+            </p>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="0712345678"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                />
+                <button
+                  type="button"
+                  onClick={sendPhoneOtp}
+                  className="px-3.5 py-2 rounded-lg bg-teal-800 text-white text-xs font-semibold hover:bg-teal-900"
+                >
+                  Send OTP
+                </button>
+              </div>
+              {otpPreview && (
+                <p className="text-xs font-tech bg-amber-50 border border-amber-200 p-2 rounded text-amber-900">
+                  Sandbox OTP Preview: <strong>{otpPreview}</strong>
+                </p>
+              )}
+              <form onSubmit={verifyPhoneCode} className="flex gap-2">
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  placeholder="6-digit code"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-lg bg-[#111827] text-white text-xs font-semibold"
+                >
+                  Verify Code
+                </button>
+              </form>
+              {phoneStatus && (
+                <p className="text-xs font-medium text-stone-700">
+                  {phoneStatus}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function VerifyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-12 text-center text-sm text-stone-500">
+          Loading verification controls...
+        </div>
+      }
+    >
+      <VerifyCenterInner />
+    </Suspense>
+  );
+}

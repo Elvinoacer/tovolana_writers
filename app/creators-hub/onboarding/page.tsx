@@ -1,5 +1,7 @@
 "use client";
 
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -139,171 +141,220 @@ export default function CreatorOnboardingPage() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      <div className="editorial-card p-5 bg-teal-50/60 border-teal-200 flex items-start gap-3">
-        <ShieldCheck className="w-5 h-5 text-[#0f766e] shrink-0 mt-0.5" />
-        <div className="text-xs text-teal-950 space-y-1">
-          <p className="font-semibold text-sm">
-            Capability-First Vetting (No Certificate or National ID Gatekeeping)
-          </p>
-          <p>
-            You do <strong>not</strong> need to upload academic certificates or
-            identity scans to join. Complete your public writer profile below,
-            accept the originality pledge, and immediately prove your craft in
-            our automated 6-criteria writing assessment.
-          </p>
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
+      <div className="editorial-card p-5 bg-teal-50/70 border-teal-200 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-xl bg-teal-100 text-[#0f766e] flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+          <div className="text-xs text-teal-950">
+            <p className="font-semibold text-sm">
+              Craft-First Vetting — Zero ID Cards or Degree Uploads
+            </p>
+            <p className="text-teal-800 mt-0.5">
+              Publish your writer profile, accept the originality pledge, and unlock Creator privileges immediately by passing the 6-criteria assessment.
+            </p>
+          </div>
         </div>
+        <span className="font-tech text-[11px] px-3 py-1 rounded-full bg-white border border-teal-200 text-[#0f766e] font-semibold">
+          STEP 1 OF 2
+        </span>
       </div>
 
-      <div className="editorial-card p-6 sm:p-8 space-y-6">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-[#0f766e]">
-            <Sparkles className="w-4 h-4" />
-            <span>STEP 1 OF 2 · CREATOR PROFILE SETUP</span>
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+        <div className="lg:col-span-3 editorial-card p-6 sm:p-8 bg-white space-y-6">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-tech uppercase tracking-wider font-semibold text-[#0f766e]">
+              <Sparkles className="w-4 h-4" />
+              <span>Writer Studio Profile</span>
+            </div>
+            <h1 className="text-3xl font-editorial font-semibold mt-1">
+              Set Up Your Writer Profile
+            </h1>
           </div>
-          <h1 className="text-3xl font-editorial font-semibold mt-1">
-            Set Up Your Writer Profile
-          </h1>
+
+          {error && (
+            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  Creator Handle
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={3}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="wanjiku_writes"
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={2}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                Specialist Headline
+              </label>
+              <input
+                type="text"
+                required
+                minLength={6}
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="e.g. Policy Research Analyst & Business Proposal Specialist"
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                Bio &amp; Methodology
+              </label>
+              <textarea
+                required
+                minLength={20}
+                rows={4}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="Describe your research rigor, citation standards, and core specialties..."
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500">
+                Writing Disciplines
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {(categories.length > 0
+                  ? categories.map((c) => c.name)
+                  : [
+                      "Academic Writing",
+                      "Essays and Assignments",
+                      "Research Papers",
+                      "Articles and Blog Writing",
+                      "Business Writing and Proposals",
+                      "Editing and Proofreading",
+                    ]
+                ).map((name) => {
+                  const active = selectedCategories.includes(name);
+                  return (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => toggleCategory(name)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                        active
+                          ? "bg-[#0f766e] text-white border-[#0f766e] shadow-xs"
+                          : "bg-[#faf7f2] text-stone-700 border-[#e6e0d4] hover:bg-white"
+                      }`}
+                    >
+                      {active && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
+                      {name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer text-xs text-stone-700">
+              <input
+                type="checkbox"
+                checked={pledgeAccepted}
+                onChange={(e) => setPledgeAccepted(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <strong>Originality Pledge:</strong> Every deliverable I submit is original human-authored writing without plagiarism or fabricated citations.
+              </span>
+            </label>
+
+            <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
+              <Link
+                href="/creators-hub/status"
+                className="text-xs font-semibold text-[#0f766e] hover:underline"
+              >
+                Check existing status →
+              </Link>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
+              >
+                {submitting ? "Saving..." : "Launch Live Assessment"}
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
         </div>
 
-        {error && (
-          <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
-            {error}
+        {/* Live Writer Profile Card Preview */}
+        <aside className="lg:col-span-2 editorial-card p-6 bg-white space-y-5 sticky top-24">
+          <div className="flex items-center justify-between text-[11px] font-tech uppercase text-stone-500">
+            <span>Live Public Preview</span>
+            <span className="text-[#0f766e] font-semibold">Vetted Writer Card</span>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Creator Handle (URL username)
-              </label>
-              <input
-                type="text"
-                required
-                minLength={3}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. wanjiku_writes"
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm font-tech"
+          <div className="p-5 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-4">
+            <div className="flex items-center gap-3.5">
+              <CreatorAvatar
+                name={displayName || "Creator Name"}
+                username={username || "creator"}
+                available
+                size="lg"
               />
+              <div className="min-w-0">
+                <p className="font-editorial text-xl font-semibold text-[#111827] truncate">
+                  {displayName || "Your Display Name"}
+                </p>
+                <p className="font-tech text-xs text-stone-500 truncate">
+                  @{username || "your_handle"}
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Public Display Name
-              </label>
-              <input
-                type="text"
-                required
-                minLength={2}
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
-              />
-            </div>
-          </div>
+            <p className="text-sm font-medium text-[#111827]">
+              {headline || "Your specialist editorial headline appears here"}
+            </p>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Specialist Headline
-            </label>
-            <input
-              type="text"
-              required
-              minLength={6}
-              value={headline}
-              onChange={(e) => setHeadline(e.target.value)}
-              placeholder="e.g. Policy Research Analyst & Business Proposal Specialist"
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
-            />
-          </div>
+            <p className="text-xs text-stone-600 line-clamp-4">
+              {bio || "Summarize your citation mastery, discipline depth, and research clarity so clients can hire with confidence."}
+            </p>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Professional Bio & Writing Approach
-            </label>
-            <textarea
-              required
-              minLength={20}
-              rows={4}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Describe your research methodology, domain strengths, referencing standards, and commitment to clear communication..."
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">
-              Writing Categories
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {(categories.length > 0
-                ? categories.map((c) => c.name)
-                : [
-                    "Academic Writing",
-                    "Essays and Assignments",
-                    "Research Papers",
-                    "Articles and Blog Writing",
-                    "Business Writing and Proposals",
-                    "Editing and Proofreading",
-                  ]
-              ).map((name) => {
-                const active = selectedCategories.includes(name);
-                return (
-                  <button
-                    key={name}
-                    type="button"
-                    onClick={() => toggleCategory(name)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                      active
-                        ? "bg-[#0f766e] text-white border-[#0f766e]"
-                        : "bg-white text-stone-700 border-[#e6e0d4] hover:bg-stone-50"
-                    }`}
+            {selectedCategories.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {selectedCategories.map((cat) => (
+                  <span
+                    key={cat}
+                    className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white border border-[#e6e0d4] text-[#0f766e]"
                   >
-                    {active && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
-                    {name}
-                  </button>
-                );
-              })}
-            </div>
+                    {cat}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-
-          <label className="flex items-start gap-3 p-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer text-xs text-stone-700">
-            <input
-              type="checkbox"
-              checked={pledgeAccepted}
-              onChange={(e) => setPledgeAccepted(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>
-              <strong>Originality & Integrity Pledge:</strong> I pledge to submit
-              original human-authored work written specifically for the prompt
-              without undisclosed plagiarism, fabricated citations, or hidden
-              subcontracting.
-            </span>
-          </label>
-
-          <div className="flex items-center justify-between pt-2">
-            <Link
-              href="/creators-hub/status"
-              className="text-xs text-stone-600 hover:underline"
-            >
-              Check existing application status →
-            </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900 disabled:opacity-50"
-            >
-              {submitting
-                ? "Saving Profile..."
-                : "Save Profile & Launch Live Assessment"}
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </form>
+        </aside>
       </div>
     </main>
   );

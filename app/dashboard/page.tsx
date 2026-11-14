@@ -1,5 +1,11 @@
 "use client";
 
+import { CustomerShell } from "@/components/CustomerShell";
+import {
+  CreatorAvatar,
+  EscrowStepVisualizer,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -19,7 +25,6 @@ import { useAuth } from "@/components/AuthContext";
 import {
   BookingDeadlineTag,
   ListingValidityTag,
-  ProBadge,
   StatusPill,
   formatKes,
   formatShortDate,
@@ -201,91 +206,93 @@ export default function CustomerDashboardPage() {
   });
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h1 className="text-3xl font-editorial font-semibold text-[#111827]">
-              Welcome back, {user.name}
-            </h1>
-            {isPro ? (
-              <ProBadge label="Pro Member" />
-            ) : (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-stone-200 text-stone-700">
-                Free Plan
-              </span>
-            )}
-          </div>
-          <p className="text-sm text-stone-600 mt-1">
-            Monitor booking milestones, escrow status, revisions, and messages
-            with vetted Tovolana Creators.
-          </p>
+    <CustomerShell
+      title={`Welcome back, ${user.name.split(" ")[0]}`}
+      subtitle="Escrow milestones, deliverables, and creator messages in one view."
+    >
+      {/* Quick Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setFilter(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                filter === tab.id
+                  ? "bg-[#111827] text-white shadow-xs"
+                  : "bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={loadData}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#e6e0d4] bg-white text-xs font-medium text-stone-700 hover:bg-stone-50"
+            className="btn-ghost px-3.5 py-2 text-xs gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Refresh
+            Sync
           </button>
           <Link
             href="/explore"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-medium hover:bg-[#172554]"
+            className="btn-primary px-4 py-2 text-xs gap-1.5"
           >
             <PlusCircle className="w-4 h-4" />
-            Book New Service
+            New Booking
           </Link>
         </div>
       </div>
 
-      {/* Membership & Verification Notices */}
+      {/* Action Notices */}
       {(!user.phoneVerified || !isPro) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {!isPro && (
-            <div className="editorial-card p-5 bg-gradient-to-r from-amber-50/80 to-white border-amber-200 flex items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <Crown className="w-6 h-6 text-amber-700 shrink-0 mt-0.5" />
+            <div className="editorial-card p-4 bg-gradient-to-r from-amber-50/90 to-white border-amber-200 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                  <Crown className="w-4 h-4" />
+                </div>
                 <div>
-                  <h2 className="font-semibold text-sm text-amber-950">
-                    Save 50% on Service Fees with Pro Membership
-                  </h2>
-                  <p className="text-xs text-amber-800 mt-0.5">
-                    Free plans can book any service anytime. Pro cuts the
-                    platform fee in half and unlocks 48h early access.
+                  <p className="font-semibold text-sm text-amber-950">
+                    Cut Service Fees by 50%
+                  </p>
+                  <p className="text-xs text-amber-800">
+                    Pro drops fees to 5% + unlocks 48h early access.
                   </p>
                 </div>
               </div>
               <Link
                 href="/dashboard/membership"
-                className="shrink-0 px-3.5 py-2 rounded-lg bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800"
+                className="shrink-0 px-3.5 py-2 rounded-xl bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800 transition-colors"
               >
-                Upgrade
+                Go Pro
               </Link>
             </div>
           )}
 
           {!user.phoneVerified && (
-            <div className="editorial-card p-5 bg-blue-50/50 border-blue-200 flex items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-[#1e3a8a] shrink-0 mt-0.5" />
+            <div className="editorial-card p-4 bg-blue-50/50 border-blue-200 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#1e3a8a] flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
                 <div>
-                  <h2 className="font-semibold text-sm text-[#111827]">
-                    Verify your Phone Number for SMS & M-Pesa Alerts
-                  </h2>
-                  <p className="text-xs text-stone-600 mt-0.5">
-                    Confirm your Kenyan mobile number via OTP for faster M-Pesa
-                    STK prompts and deadline reminders.
+                  <p className="font-semibold text-sm text-[#111827]">
+                    Verify M-Pesa Phone
+                  </p>
+                  <p className="text-xs text-stone-600">
+                    Enable instant STK prompts & SMS deadline alerts.
                   </p>
                 </div>
               </div>
               <Link
                 href="/auth/verify"
-                className="shrink-0 px-3.5 py-2 rounded-lg border border-blue-300 bg-white text-[#1e3a8a] text-xs font-semibold hover:bg-blue-50"
+                className="shrink-0 px-3.5 py-2 rounded-xl border border-blue-300 bg-white text-[#1e3a8a] text-xs font-semibold hover:bg-blue-50 transition-colors"
               >
-                Verify Phone
+                Verify OTP
               </Link>
             </div>
           )}
@@ -294,93 +301,76 @@ export default function CustomerDashboardPage() {
 
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-medium text-stone-500">
             <span>Active Work</span>
             <BookOpen className="w-4 h-4 text-[#1e3a8a]" />
           </div>
-          <p className="text-2xl font-tech font-bold text-[#111827] mt-2">
+          <p className="text-3xl font-tech font-bold text-[#111827]">
             {activeCount}
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
-            In progress or awaiting acceptance
-          </p>
+          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
+            <div className="h-full bg-[#1e3a8a] rounded-full w-2/3" />
+          </div>
         </div>
 
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Delivered for Review</span>
+            <span>Ready for Review</span>
             <FileText className="w-4 h-4 text-indigo-700" />
           </div>
-          <p className="text-2xl font-tech font-bold text-indigo-900 mt-2">
+          <p className="text-3xl font-tech font-bold text-indigo-900">
             {deliveredCount}
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Ready to approve or request revision
-          </p>
+          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
+            <div className="h-full bg-indigo-600 rounded-full w-1/2" />
+          </div>
         </div>
 
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Pending Payment</span>
+            <span>Awaiting Escrow</span>
             <Clock className="w-4 h-4 text-amber-700" />
           </div>
-          <p className="text-2xl font-tech font-bold text-amber-800 mt-2">
+          <p className="text-3xl font-tech font-bold text-amber-800">
             {pendingPayCount}
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Requires IntaSend escrow funding
-          </p>
+          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
+            <div className="h-full bg-amber-500 rounded-full w-1/3" />
+          </div>
         </div>
 
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 space-y-2">
           <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Completed Bookings</span>
+            <span>Completed</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-700" />
           </div>
-          <p className="text-2xl font-tech font-bold text-emerald-800 mt-2">
+          <p className="text-3xl font-tech font-bold text-emerald-800">
             {completedCount}
           </p>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Archived with verified deliverables
-          </p>
+          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
+            <div className="h-full bg-emerald-600 rounded-full w-full" />
+          </div>
         </div>
       </div>
 
       {/* Main Content + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex flex-wrap gap-1.5">
-              {FILTER_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setFilter(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                    filter === tab.id
-                      ? "bg-[#1e3a8a] text-white"
-                      : "bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {filtered.length === 0 ? (
-            <div className="editorial-card p-10 text-center space-y-3">
-              <FileText className="w-9 h-9 text-stone-400 mx-auto" />
-              <h3 className="font-editorial text-lg font-medium text-[#111827]">
-                No bookings in this view yet
-              </h3>
-              <p className="text-sm text-stone-600 max-w-md mx-auto">
-                Explore transparent writing services with clear upfront KES
-                pricing, deliverables, and protected delivery timelines.
-              </p>
+            <div className="editorial-card p-10 text-center space-y-4">
+              <FileText className="w-10 h-10 text-stone-400 mx-auto" />
+              <div className="space-y-1">
+                <h3 className="font-editorial text-xl font-semibold text-[#111827]">
+                  No bookings here yet
+                </h3>
+                <p className="text-xs text-stone-600">
+                  Browse fixed-price writing services with protected delivery deadlines.
+                </p>
+              </div>
               <Link
                 href="/explore"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-medium"
+                className="btn-primary inline-flex items-center gap-1.5 px-5 py-2.5 text-sm"
               >
                 Explore Services
                 <ArrowRight className="w-4 h-4" />
@@ -396,72 +386,76 @@ export default function CustomerDashboardPage() {
                 return (
                   <div
                     key={booking.id}
-                    className="editorial-card p-5 space-y-3 hover:border-[#1e3a8a]/40 transition-colors"
+                    className="editorial-card-interactive p-5 space-y-4 bg-white"
                   >
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-tech text-xs px-2 py-0.5 rounded bg-stone-100 text-stone-700 border border-stone-200">
-                            {booking.bookingRef}
-                          </span>
-                          <StatusPill status={booking.status} />
-                          <span className="text-xs text-stone-500">
-                            Booked {formatShortDate(booking.createdAt)}
-                          </span>
-                        </div>
-                        <Link
-                          href={`/dashboard/bookings/${booking.bookingRef}`}
-                          className="block mt-1.5 font-editorial text-lg font-semibold text-[#111827] hover:text-[#1e3a8a]"
-                        >
-                          {booking.taskTitleSnapshot}
-                        </Link>
-                        <p className="text-xs text-stone-600 mt-0.5">
-                          Creator:{" "}
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <CreatorAvatar
+                          name={booking.creator.displayName}
+                          username={booking.creator.username}
+                          size="md"
+                        />
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-tech text-[11px] px-2 py-0.5 rounded-md bg-[#faf7f2] text-stone-700 border border-[#e6e0d4]">
+                              {booking.bookingRef}
+                            </span>
+                            <StatusPill status={booking.status} />
+                            <span className="text-[11px] text-stone-500">
+                              {formatShortDate(booking.createdAt)}
+                            </span>
+                          </div>
                           <Link
-                            href={`/creators/${booking.creator.username}`}
-                            className="font-medium text-[#0f766e] hover:underline"
+                            href={`/dashboard/bookings/${booking.bookingRef}`}
+                            className="block font-editorial text-lg font-semibold text-[#111827] hover:text-[#1e3a8a]"
                           >
-                            {booking.creator.displayName}
-                          </Link>{" "}
-                          · Revisions used: {booking.revisionCount}/
-                          {booking.maxRevisions}
-                        </p>
+                            {booking.taskTitleSnapshot}
+                          </Link>
+                          <p className="text-xs text-stone-600">
+                            <Link
+                              href={`/creators/${booking.creator.username}`}
+                              className="font-semibold text-[#0f766e] hover:underline"
+                            >
+                              {booking.creator.displayName}
+                            </Link>
+                            {" · "}
+                            Revisions {booking.revisionCount}/{booking.maxRevisions}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="text-left sm:text-right shrink-0">
-                        <p className="font-tech text-base font-bold text-[#111827]">
+                        <p className="font-tech text-lg font-bold text-[#111827]">
                           {formatKes(booking.totalPayable, booking.currency)}
                         </p>
-                        <p className="text-[11px] text-stone-500">
+                        <p className="text-[11px] font-tech text-stone-500">
                           Fee {formatKes(booking.serviceFee)}
                           {booking.proDiscount > 0
-                            ? ` (Saved ${formatKes(booking.proDiscount)} Pro)`
+                            ? ` (-${formatKes(booking.proDiscount)} Pro)`
                             : ""}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                    <EscrowStepVisualizer status={booking.status} compact />
+
+                    <div className="flex flex-wrap items-center gap-2">
                       <BookingDeadlineTag
                         deadline={booking.agreedDeliveryDeadline}
                         status={booking.status}
                       />
-                      <ListingValidityTag
-                        validUntil={booking.task.validUntil}
-                      />
+                      <ListingValidityTag validUntil={booking.task.validUntil} />
                     </div>
 
                     {listingExpired && (
-                      <p className="text-xs text-teal-800 bg-teal-50 border border-teal-200 rounded-md px-3 py-1.5">
-                        Public listing expired after booking confirmation — your
-                        confirmed booking and delivery deadline remain fully
-                        protected.
+                      <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-1.5 font-medium">
+                        Public listing expired after confirmation — your booking &amp; deadline remain fully protected.
                       </p>
                     )}
 
-                    <div className="pt-2 border-t border-[#e6e0d4] flex items-center justify-between gap-3">
-                      <span className="text-xs text-stone-500">
-                        Payment:{" "}
+                    <div className="pt-3 border-t border-[#e6e0d4] flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-tech text-stone-500 uppercase">
+                        Escrow:{" "}
                         {(booking.payments?.[0]?.status ?? "PENDING").replace(
                           /_/g,
                           " "
@@ -469,10 +463,10 @@ export default function CustomerDashboardPage() {
                       </span>
                       <Link
                         href={`/dashboard/bookings/${booking.bookingRef}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[#1e3a8a] hover:underline"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-semibold text-[#1e3a8a] hover:bg-blue-50 transition-colors"
                       >
                         {booking.status === "PENDING_PAYMENT"
-                          ? "Complete Escrow Payment"
+                          ? "Fund Escrow"
                           : booking.status === "DELIVERED"
                             ? "Review Delivery"
                             : "Open Workspace"}
@@ -486,9 +480,9 @@ export default function CustomerDashboardPage() {
           )}
         </div>
 
-        {/* Right Sidebar: Account & Notifications */}
+        {/* Alerts Sidebar */}
         <aside className="space-y-4">
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-5 space-y-3 bg-white">
             <div className="flex items-center justify-between">
               <h2 className="font-editorial text-base font-semibold flex items-center gap-2">
                 <Bell className="w-4 h-4 text-[#1e3a8a]" />
@@ -496,25 +490,24 @@ export default function CustomerDashboardPage() {
               </h2>
               <Link
                 href="/dashboard/settings"
-                className="text-xs text-[#1e3a8a] hover:underline"
+                className="text-xs font-semibold text-[#1e3a8a] hover:underline"
               >
-                Preferences
+                Channels
               </Link>
             </div>
             {notifications.length === 0 ? (
-              <p className="text-xs text-stone-500 py-3">
-                No notifications yet. Payment receipts, deliveries, and
-                revisions will appear here.
+              <p className="text-xs text-stone-500 py-4 text-center">
+                Receipts, deliveries, and revision updates appear here.
               </p>
             ) : (
-              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+              <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
                 {notifications.slice(0, 6).map((n) => (
                   <Link
                     key={n.id}
                     href={n.linkUrl || "/dashboard"}
-                    className={`block p-3 rounded-lg border text-xs transition-colors ${
+                    className={`block p-3 rounded-xl border text-xs transition-colors ${
                       n.readAt
-                        ? "bg-white border-[#e6e0d4]"
+                        ? "bg-[#faf7f2] border-[#e6e0d4]"
                         : "bg-blue-50/50 border-blue-200"
                     }`}
                   >
@@ -527,37 +520,8 @@ export default function CustomerDashboardPage() {
               </div>
             )}
           </div>
-
-          <div className="editorial-card p-5 space-y-3">
-            <h2 className="font-editorial text-base font-semibold">
-              Quick Links
-            </h2>
-            <div className="grid grid-cols-1 gap-2 text-sm">
-              <Link
-                href="/dashboard/membership"
-                className="px-3 py-2 rounded-lg border border-[#e6e0d4] hover:bg-stone-50 flex items-center justify-between"
-              >
-                <span>Membership & Billing</span>
-                <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-              </Link>
-              <Link
-                href="/dashboard/settings"
-                className="px-3 py-2 rounded-lg border border-[#e6e0d4] hover:bg-stone-50 flex items-center justify-between"
-              >
-                <span>Account & Security</span>
-                <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-              </Link>
-              <Link
-                href="/creators-hub/join"
-                className="px-3 py-2 rounded-lg border border-[#e6e0d4] hover:bg-stone-50 flex items-center justify-between"
-              >
-                <span>Creators Hub & Assessment</span>
-                <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-              </Link>
-            </div>
-          </div>
         </aside>
       </div>
-    </main>
+    </CustomerShell>
   );
 }

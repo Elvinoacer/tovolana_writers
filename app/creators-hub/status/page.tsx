@@ -1,5 +1,8 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+import { ScoreRing } from "@/components/ui/EditorialVisuals";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -131,124 +134,154 @@ export default function CreatorStatusPage() {
       ]
     : [];
 
-  return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <div className="editorial-card p-6 sm:p-8 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <span className="text-xs font-tech text-stone-500">
-              @{profile.username}
-            </span>
-            <h1 className="text-3xl font-editorial font-semibold mt-0.5">
-              Creator Assessment Status
-            </h1>
-          </div>
-          <StatusPill status={profile.applicationStatus} />
-        </div>
+  const statusTone =
+    profile.applicationStatus === "APPROVED"
+      ? "emerald"
+      : profile.applicationStatus === "UNDER_REVIEW"
+        ? "gold"
+        : "rose";
 
-        {profile.applicationStatus === "APPROVED" && (
-          <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-4 flex-wrap">
-            <div className="flex items-start gap-2.5 text-sm text-emerald-950">
-              <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+  return (
+    <CreatorShell
+      requireApproved={false}
+      title="Creator Assessment Status"
+      subtitle={`@${profile.username} · Automated 6-criteria writing evaluation`}
+    >
+      <div className="max-w-4xl space-y-6">
+        <div className="editorial-card p-6 sm:p-8 bg-white space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-tech text-stone-500">
+                  @{profile.username}
+                </span>
+                <StatusPill status={profile.applicationStatus} />
+              </div>
+              <h2 className="text-2xl font-editorial font-semibold">
+                {profile.applicationStatus === "APPROVED"
+                  ? "Vetted & Ready to Publish"
+                  : profile.applicationStatus === "UNDER_REVIEW"
+                    ? "Queued for Calibration Review"
+                    : "Retake Available"}
+              </h2>
+            </div>
+
+            {latest && (
+              <ScoreRing
+                score={latest.totalScore ?? profile.assessmentScore ?? 0}
+                size={96}
+                strokeWidth={8}
+                sublabel="Composite Score"
+                tone={statusTone}
+              />
+            )}
+          </div>
+
+          {profile.applicationStatus === "APPROVED" && (
+            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-2.5 text-sm text-emerald-950">
+                <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold">
+                    Creators Hub Unlocked
+                  </p>
+                  <p className="text-xs text-emerald-800 mt-0.5">
+                    Create task drafts, accept funded bookings, and withdraw via M-Pesa B2C.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/creators-hub"
+                className="btn-creator px-4 py-2 text-xs"
+              >
+                Open Studio
+              </Link>
+            </div>
+          )}
+
+          {profile.applicationStatus === "UNDER_REVIEW" && (
+            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-950">
+              <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold">
-                  Approved! Creators Hub Permissions Unlocked
+                <p className="font-semibold text-sm">
+                  Borderline Score — Admin Calibration Queue
                 </p>
-                <p className="text-xs text-emerald-800 mt-0.5">
-                  You can now publish writing task drafts, submit listings for
-                  admin review, accept customer bookings, and withdraw earnings.
+                <p className="mt-0.5">
+                  A senior moderator reviews borderline drafts within 24h.
                 </p>
               </div>
             </div>
-            <Link
-              href="/creators-hub"
-              className="px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold hover:bg-teal-900"
-            >
-              Open Creators Hub
-            </Link>
-          </div>
-        )}
+          )}
 
-        {profile.applicationStatus === "UNDER_REVIEW" && (
-          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-950">
-            <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-sm">
-                Borderline Score — Queued for Administrator Calibration Review
-              </p>
-              <p className="mt-0.5">
-                Our moderation team reviews borderline submissions within 24
-                hours and notifies you once a decision is finalized.
-              </p>
+          {profile.applicationStatus === "REJECTED" && (
+            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-4 flex-wrap text-xs text-rose-900">
+              <div>
+                <p className="font-semibold text-sm">
+                  Below Threshold ({profile.assessmentScore ?? 0}/100)
+                </p>
+                <p className="mt-0.5">
+                  {profile.cooldownUntil
+                    ? `Retake opens ${formatShortDate(profile.cooldownUntil)}.`
+                    : "Retake window is open now."}
+                </p>
+              </div>
+              {(!profile.cooldownUntil ||
+                new Date(profile.cooldownUntil) <= new Date()) && (
+                <Link
+                  href="/creators-hub/assessment/live"
+                  className="btn-creator px-4 py-2 text-xs gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Retake Exam
+                </Link>
+              )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {profile.applicationStatus === "REJECTED" && (
-          <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-4 flex-wrap text-xs text-rose-900">
-            <div>
-              <p className="font-semibold text-sm">
-                Did Not Meet Threshold ({profile.assessmentScore ?? 0}/100)
-              </p>
-              <p className="mt-0.5">
-                {profile.cooldownUntil
-                  ? `Next assessment retake available after ${formatShortDate(profile.cooldownUntil)}.`
-                  : "You may retake the timed assessment now."}
-              </p>
+        {latest && (
+          <div className="editorial-card p-6 sm:p-8 bg-white space-y-5">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
+                <Award className="w-5 h-5 text-[#0f766e]" />
+                6-Criteria Breakdown
+              </h2>
+              <span className="font-tech text-xl font-bold text-[#0f766e]">
+                {latest.totalScore ?? "Pending"}/100
+              </span>
             </div>
-            {(!profile.cooldownUntil ||
-              new Date(profile.cooldownUntil) <= new Date()) && (
-              <Link
-                href="/creators-hub/assessment/live"
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0f766e] text-white font-semibold"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                Retake Assessment
-              </Link>
+
+            {latest.reviewNote && (
+              <p className="text-sm text-stone-700 bg-[#faf7f2] p-3.5 rounded-xl border border-[#e6e0d4]">
+                {latest.reviewNote}
+              </p>
             )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {criteria.map((c) => {
+                const val = Math.round(c.score ?? 0);
+                return (
+                  <div
+                    key={c.label}
+                    className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-2"
+                  >
+                    <div className="flex justify-between text-xs font-semibold">
+                      <span>{c.label}</span>
+                      <span className="font-tech text-[#0f766e]">{val}%</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-stone-200 overflow-hidden">
+                      <div
+                        className="h-full bg-[#0f766e] rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(0, val))}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </div>
-
-      {latest && (
-        <div className="editorial-card p-6 sm:p-8 space-y-5">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
-              <Award className="w-5 h-5 text-[#0f766e]" />
-              Latest Evaluation Breakdown
-            </h2>
-            <span className="font-tech text-xl font-bold text-[#0f766e]">
-              {latest.totalScore ?? "Pending"}/100
-            </span>
-          </div>
-
-          {latest.reviewNote && (
-            <p className="text-sm text-stone-700 bg-[#faf7f2] p-3.5 rounded-lg border border-[#e6e0d4]">
-              {latest.reviewNote}
-            </p>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {criteria.map((c) => {
-              const val = Math.round(c.score ?? 0);
-              return (
-                <div key={c.label} className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span>{c.label}</span>
-                    <span className="font-tech font-bold">{val}%</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-stone-200 overflow-hidden">
-                    <div
-                      className="h-full bg-[#0f766e] rounded-full"
-                      style={{ width: `${Math.min(100, Math.max(0, val))}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-    </main>
+    </CreatorShell>
   );
 }

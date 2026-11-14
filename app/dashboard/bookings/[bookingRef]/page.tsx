@@ -1,5 +1,11 @@
 "use client";
 
+import { CustomerShell } from "@/components/CustomerShell";
+import {
+  CreatorAvatar,
+  EscrowStepVisualizer,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -101,14 +107,6 @@ interface BookingWorkspaceData {
     comment: string | null;
   } | null;
 }
-
-const TIMELINE_STEPS = [
-  "Booked",
-  "Escrow Funded",
-  "In Progress",
-  "Delivered",
-  "Completed",
-];
 
 function getStepIndex(status: string): number {
   switch (status) {
@@ -354,38 +352,42 @@ export default function CustomerBookingWorkspacePage({
     booking.revisionCount < booking.maxRevisions;
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <CustomerShell
+      title={booking.taskTitleSnapshot}
+      subtitle={`Booking ${booking.bookingRef} · Escrow ${formatKes(booking.totalPayable, booking.currency)}`}
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             href="/dashboard"
-            className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#111827] mb-2"
+            className="btn-ghost px-3 py-1.5 text-xs gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            All Customer Bookings
+            All Bookings
           </Link>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="font-tech text-xs px-2.5 py-0.5 rounded bg-stone-100 border border-stone-200">
-              {booking.bookingRef}
-            </span>
-            <StatusPill status={booking.status} />
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-editorial font-semibold mt-1.5">
-            {booking.taskTitleSnapshot}
-          </h1>
-          <p className="text-xs text-stone-600 mt-1">
-            Creator:{" "}
+          <span className="font-tech text-xs px-2.5 py-1 rounded-lg bg-white border border-[#e6e0d4]">
+            {booking.bookingRef}
+          </span>
+          <StatusPill status={booking.status} />
+          <div className="inline-flex items-center gap-2 pl-1">
+            <CreatorAvatar
+              name={booking.creator.displayName}
+              username={booking.creator.username}
+              size="sm"
+            />
             <Link
               href={`/creators/${booking.creator.username}`}
-              className="text-[#0f766e] font-semibold hover:underline"
+              className="text-xs font-semibold text-[#0f766e] hover:underline"
             >
               {booking.creator.displayName}
-            </Link>{" "}
-            · Booked {formatShortDate(booking.createdAt)}
-          </p>
+            </Link>
+            <span className="text-xs text-stone-500">
+              · {formatShortDate(booking.createdAt)}
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <BookingDeadlineTag
             deadline={booking.agreedDeliveryDeadline}
             status={booking.status}
@@ -393,7 +395,7 @@ export default function CustomerBookingWorkspacePage({
           <ListingValidityTag validUntil={booking.task.validUntil} />
           <button
             onClick={loadBooking}
-            className="inline-flex items-center gap-1 px-3 py-1 rounded-md border border-[#e6e0d4] bg-white text-xs text-stone-700 hover:bg-stone-50"
+            className="btn-ghost px-3 py-1 text-xs gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Sync
@@ -401,57 +403,41 @@ export default function CustomerBookingWorkspacePage({
         </div>
       </div>
 
-      {/* Progress Stepper */}
-      <div className="editorial-card p-4 overflow-x-auto">
-        <div className="grid grid-cols-5 gap-2 min-w-[540px]">
-          {TIMELINE_STEPS.map((label, idx) => {
-            const done = idx <= activeStep;
-            return (
-              <div key={label} className="flex items-center gap-2">
-                <span
-                  className={`w-6 h-6 rounded-full text-xs font-tech flex items-center justify-center shrink-0 ${
-                    done
-                      ? "bg-[#1e3a8a] text-white"
-                      : "bg-stone-200 text-stone-600"
-                  }`}
-                >
-                  {idx + 1}
-                </span>
-                <span
-                  className={`text-xs font-medium ${
-                    done ? "text-[#111827]" : "text-stone-400"
-                  }`}
-                >
-                  {label}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+      {/* Live Escrow Stage Stepper */}
+      <div
+        className="editorial-card p-5 bg-white"
+        aria-label={`Stage ${activeStep + 1} of 5`}
+      >
+        <EscrowStepVisualizer status={booking.status} />
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
           {notice}
         </div>
       )}
 
       {/* Pending Payment Banner */}
       {booking.status === "PENDING_PAYMENT" && (
-        <div className="editorial-card p-6 bg-amber-50/60 border-amber-200 space-y-4">
-          <h2 className="font-editorial text-lg font-semibold text-amber-950">
-            Escrow Funding Required ({formatKes(booking.totalPayable, booking.currency)})
-          </h2>
+        <div className="editorial-card p-6 bg-amber-50/70 border-amber-200 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="font-editorial text-xl font-semibold text-amber-950">
+              Fund Escrow ({formatKes(booking.totalPayable, booking.currency)})
+            </h2>
+            <span className="text-xs font-tech text-amber-900 bg-white px-2.5 py-1 rounded-full border border-amber-200">
+              IntaSend Protected
+            </span>
+          </div>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex gap-2">
               <button
                 onClick={() => setPayChannel("MPESA_STK")}
-                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   payChannel === "MPESA_STK"
                     ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                     : "bg-white text-stone-700 border-[#e6e0d4]"
@@ -462,7 +448,7 @@ export default function CustomerBookingWorkspacePage({
               </button>
               <button
                 onClick={() => setPayChannel("CARD")}
-                className={`px-3 py-2 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   payChannel === "CARD"
                     ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                     : "bg-white text-stone-700 border-[#e6e0d4]"
@@ -478,21 +464,21 @@ export default function CustomerBookingWorkspacePage({
                 value={payPhone}
                 onChange={(e) => setPayPhone(e.target.value)}
                 placeholder="+254712345678"
-                className="px-3 py-2 rounded-lg border border-[#e6e0d4] bg-white text-xs font-tech"
+                className="px-3.5 py-2 rounded-xl border border-[#e6e0d4] bg-white text-xs font-tech"
               />
             )}
             <button
               onClick={handleInitiateCheckout}
-              className="px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554]"
+              className="btn-primary px-4 py-2 text-xs"
             >
               Initiate Escrow Payment
             </button>
             {(pendingApiRef || booking.payments.length > 0) && (
               <button
                 onClick={handleSimulateComplete}
-                className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800"
+                className="px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 transition-colors"
               >
-                Simulate Sandbox Webhook Complete
+                Simulate Webhook Complete
               </button>
             )}
           </div>
@@ -501,72 +487,69 @@ export default function CustomerBookingWorkspacePage({
 
       {/* Delivery Acceptance Panel */}
       {booking.status === "DELIVERED" && (
-        <div className="editorial-card p-6 border-indigo-200 bg-indigo-50/40 space-y-4">
+        <div className="editorial-card p-6 border-indigo-200 bg-indigo-50/50 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="font-editorial text-xl font-semibold text-indigo-950">
-                Work Delivered — Review Deliverables
+                Deliverables Submitted — Ready for Review
               </h2>
-              <p className="text-sm text-indigo-900/80 mt-0.5">
-                Your Creator has submitted the completed deliverables in the File
-                Exchange Vault and messaging log below.
+              <p className="text-xs text-indigo-900/80 mt-0.5">
+                Inspect files below, then approve to release escrow or request a revision.
               </p>
             </div>
             {canRequestRevision ? (
               <Link
                 href={`/dashboard/bookings/${booking.bookingRef}/revision`}
-                className="shrink-0 px-4 py-2 rounded-lg border border-orange-300 bg-white text-orange-800 text-xs font-semibold hover:bg-orange-50"
+                className="shrink-0 px-4 py-2 rounded-xl border border-orange-300 bg-white text-orange-800 text-xs font-semibold hover:bg-orange-50"
               >
-                Request Revision ({booking.revisionCount}/{booking.maxRevisions}{" "}
-                used)
+                Request Revision ({booking.revisionCount}/{booking.maxRevisions})
               </Link>
             ) : (
-              <span className="text-xs text-stone-600">
-                Revision quota used ({booking.revisionCount}/
-                {booking.maxRevisions})
+              <span className="text-xs font-tech text-stone-600">
+                Revisions {booking.revisionCount}/{booking.maxRevisions}
               </span>
             )}
           </div>
 
-          <div className="p-4 rounded-lg bg-white border border-indigo-100 space-y-3">
-            <p className="text-xs font-semibold text-stone-700">
-              Approve Delivery & Rate Creator (Releases Escrow)
-            </p>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setRating(s)}
-                  className="p-1"
-                >
-                  <Star
-                    className={`w-5 h-5 ${
-                      s <= rating
-                        ? "fill-amber-400 text-amber-500"
-                        : "text-stone-300"
-                    }`}
-                  />
-                </button>
-              ))}
-              <span className="text-xs text-stone-500 ml-2">{rating}/5 stars</span>
+          <div className="p-4 rounded-2xl bg-white border border-indigo-100 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <p className="text-xs font-semibold text-stone-700">
+                Rate Creator &amp; Release Escrow
+              </p>
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setRating(s)}
+                    className="p-1"
+                  >
+                    <Star
+                      className={`w-5 h-5 ${
+                        s <= rating
+                          ? "fill-amber-400 text-amber-500"
+                          : "text-stone-300"
+                      }`}
+                    />
+                  </button>
+                ))}
+                <span className="text-xs font-tech text-stone-600 ml-1.5">{rating}/5</span>
+              </div>
             </div>
             <textarea
               rows={2}
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
-              placeholder="Optional public feedback on writing quality and timeliness..."
-              className="w-full rounded-lg border border-[#e6e0d4] px-3 py-2 text-xs"
+              placeholder="Optional public feedback on quality & timeliness..."
+              className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2 text-xs"
             />
             <button
               disabled={completing}
               onClick={handleCompleteBooking}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50 transition-colors"
             >
               <CheckCircle2 className="w-4 h-4" />
-              {completing
-                ? "Approving..."
-                : "Approve Final Delivery & Release Escrow"}
+              {completing ? "Approving..." : "Approve Delivery & Release Escrow"}
             </button>
           </div>
         </div>
@@ -576,12 +559,12 @@ export default function CustomerBookingWorkspacePage({
         <div className="editorial-card p-5 border-rose-200 bg-rose-50/60 space-y-1.5">
           <div className="flex items-center gap-2 text-rose-900 font-semibold text-sm">
             <ShieldAlert className="w-4 h-4" />
-            Dispute Case ({booking.dispute.status}) — {booking.dispute.reason}
+            Dispute ({booking.dispute.status}) — {booking.dispute.reason}
           </div>
           <p className="text-xs text-rose-800">{booking.dispute.details}</p>
           {booking.dispute.resolutionNote && (
-            <p className="text-xs font-medium text-emerald-900 bg-white/80 p-2 rounded border border-emerald-200">
-              Admin Resolution: {booking.dispute.resolutionNote}
+            <p className="text-xs font-medium text-emerald-900 bg-white/80 p-2.5 rounded-lg border border-emerald-200">
+              Tribunal Note: {booking.dispute.resolutionNote}
             </p>
           )}
         </div>
@@ -590,15 +573,15 @@ export default function CustomerBookingWorkspacePage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* File Vault */}
-          <div className="editorial-card p-5 space-y-4">
+          <div className="editorial-card p-5 bg-white space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
                 <FileText className="w-4 h-4 text-[#1e3a8a]" />
-                Secure File Exchange Vault
+                Secure File Vault
               </h2>
-              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1e3a8a] text-white text-xs font-medium cursor-pointer hover:bg-[#172554]">
+              <label className="btn-primary px-3.5 py-1.5 text-xs gap-1.5 cursor-pointer">
                 <Upload className="w-3.5 h-3.5" />
-                {uploading ? "Uploading..." : "Upload Brief / Reference"}
+                {uploading ? "Uploading..." : "Upload Brief"}
                 <input
                   type="file"
                   className="hidden"
@@ -608,29 +591,28 @@ export default function CustomerBookingWorkspacePage({
             </div>
 
             {booking.files.length === 0 ? (
-              <p className="text-xs text-stone-500 py-3">
+              <p className="text-xs text-stone-500 py-4 text-center">
                 No files uploaded yet.
               </p>
             ) : (
-              <div className="divide-y divide-[#e6e0d4]">
+              <div className="grid grid-cols-1 gap-2.5">
                 {booking.files.map((f) => (
                   <div
                     key={f.id}
-                    className="py-2.5 flex items-center justify-between gap-3"
+                    className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
                   >
-                    <div>
-                      <p className="text-sm font-medium text-[#111827]">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-[#111827] truncate">
                         {f.fileName}
                       </p>
                       <p className="text-[11px] text-stone-500">
-                        {f.fileCategory.replace(/_/g, " ")} · Uploaded by{" "}
-                        {f.uploader.name} ·{" "}
+                        {f.fileCategory.replace(/_/g, " ")} · {f.uploader.name} ·{" "}
                         {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
                       </p>
                     </div>
                     <a
                       href={`/api/files/${f.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e6e0d4] text-xs font-medium text-[#1e3a8a] hover:bg-stone-50"
+                      className="btn-ghost px-3 py-1.5 text-xs gap-1 shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download
@@ -642,19 +624,19 @@ export default function CustomerBookingWorkspacePage({
           </div>
 
           {/* Messaging Thread */}
-          <div className="editorial-card p-5 space-y-4">
+          <div className="editorial-card p-5 bg-white space-y-4">
             <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-[#1e3a8a]" />
-              Workspace Messaging Thread
+              Workspace Thread
             </h2>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
               {booking.messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`p-3 rounded-lg text-sm ${
+                  className={`p-3 rounded-xl text-sm ${
                     m.isSystemMessage
-                      ? "bg-stone-100 border border-stone-200 text-stone-700 text-xs"
+                      ? "bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 text-xs"
                       : m.sender.id === user?.id
                         ? "bg-blue-50 border border-blue-200 ml-6"
                         : "bg-white border border-[#e6e0d4] mr-6"
@@ -662,7 +644,7 @@ export default function CustomerBookingWorkspacePage({
                 >
                   <div className="flex items-center justify-between text-[11px] text-stone-500 mb-1">
                     <span className="font-semibold text-stone-700">
-                      {m.isSystemMessage ? "System Milestone" : m.sender.name}
+                      {m.isSystemMessage ? "Milestone" : m.sender.name}
                     </span>
                     <span>{formatShortDate(m.createdAt)}</span>
                   </div>
@@ -676,13 +658,13 @@ export default function CustomerBookingWorkspacePage({
                 type="text"
                 value={msgText}
                 onChange={(e) => setMsgText(e.target.value)}
-                placeholder="Write a message or clarification to your Creator..."
-                className="flex-1 rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+                placeholder="Message your Creator..."
+                className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
               />
               <button
                 type="submit"
                 disabled={sendingMsg || !msgText.trim()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554] disabled:opacity-50"
+                className="btn-primary px-4 py-2.5 text-xs gap-1.5 disabled:opacity-50"
               >
                 <Send className="w-3.5 h-3.5" />
                 Send
@@ -693,9 +675,9 @@ export default function CustomerBookingWorkspacePage({
 
         {/* Right Sidebar: Brief & Financials */}
         <aside className="space-y-5">
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-5 bg-white space-y-3">
             <h2 className="font-editorial text-base font-semibold">
-              Submitted Requirements Brief
+              Requirements Brief
             </h2>
             <dl className="space-y-2 text-xs">
               {Object.entries(booking.requirementsResponses || {}).map(
@@ -716,9 +698,9 @@ export default function CustomerBookingWorkspacePage({
             </dl>
           </div>
 
-          <div className="editorial-card p-5 space-y-3 text-xs">
+          <div className="editorial-card p-5 bg-white space-y-3 text-xs">
             <h2 className="font-editorial text-base font-semibold">
-              Escrow & Policy Record
+              Escrow Ledger
             </h2>
             <div className="flex justify-between">
               <span className="text-stone-600">Listed Price</span>
@@ -756,13 +738,13 @@ export default function CustomerBookingWorkspacePage({
                   className="inline-flex items-center gap-1.5 text-rose-700 hover:underline font-medium"
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  Cancel Booking / Open Dispute
+                  Cancel / Dispute
                 </Link>
               </div>
             )}
           </div>
         </aside>
       </div>
-    </main>
+    </CustomerShell>
   );
 }

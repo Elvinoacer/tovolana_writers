@@ -3,32 +3,38 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
+  ArrowRight,
   CalendarClock,
   CheckCircle2,
   ClipboardList,
   Clock,
   Crown,
   FileText,
+  Layers,
   RefreshCw,
   ShieldAlert,
   Star,
-  UserCheck,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { calculateBookingPricing, isUserProActive } from "@/lib/pricing";
-
-function isStillValidUntil(validUntil: Date | null): boolean {
-  if (!validUntil) return true;
-  return validUntil.getTime() > new Date().getTime();
-}
 import {
   formatKes,
   ListingValidityTag,
   StatusPill,
 } from "@/components/ui/Badges";
+import {
+  CategoryCoverArt,
+  CreatorAvatar,
+  ScoreRing,
+} from "@/components/ui/EditorialVisuals";
 
 export const dynamic = "force-dynamic";
+
+function isStillValidUntil(validUntil: Date | null): boolean {
+  if (!validUntil) return true;
+  return validUntil.getTime() > new Date().getTime();
+}
 
 interface RequirementField {
   key: string;
@@ -107,67 +113,103 @@ export default async function TaskDetailPage({
     : `/auth?callbackUrl=${encodeURIComponent(`/book/${task.id}`)}`;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
       <Link
         href="/explore"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-[#1e3a8a]"
+        className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#1e3a8a]"
       >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Marketplace Directory
+        <ArrowLeft className="w-3.5 h-3.5" />
+        All Services
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Full Service Spec */}
+        {/* Left: Visual Scope & Spec */}
         <div className="lg:col-span-8 space-y-6">
-          <div className="editorial-card p-6 sm:p-8 space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-[#f2ede3] text-stone-900 border border-[#e6e0d4]">
-                {task.category.name}
-              </span>
-              <span className="px-3 py-1 rounded-full text-xs font-tech bg-stone-100 text-stone-700">
-                {task.serviceType}
-              </span>
-              <StatusPill status={task.status} />
-            </div>
-
-            <h1 className="font-editorial text-2xl sm:text-3xl font-semibold text-[#111827] leading-tight">
-              {task.title}
-            </h1>
-
-            <p className="text-base text-stone-700 leading-relaxed">
-              {task.shortDescription}
-            </p>
-
-            <div className="flex flex-wrap items-center gap-3 pt-2">
-              <ListingValidityTag
-                validUntil={task.validUntil}
-                validityType={task.validityType}
-              />
-              <div className="inline-flex items-center gap-1.5 text-xs bg-blue-50 text-blue-900 border border-blue-200 px-2.5 py-1 rounded-md font-tech">
-                <Clock className="w-3.5 h-3.5" />
-                Delivery Turnaround:{" "}
-                <strong>{task.deliveryTurnaroundDays} days from confirmation</strong>
+          <div className="editorial-card overflow-hidden bg-white">
+            <CategoryCoverArt
+              slug={task.category.slug}
+              name={task.category.name}
+              heightClass="h-36 sm:h-44"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-tech bg-white/15 text-white backdrop-blur-xs">
+                    {task.serviceType}
+                  </span>
+                  <StatusPill status={task.status} />
+                </div>
+                <span className="text-xs font-tech text-white/85">
+                  {task.pricingType === "QUOTE_BASED" ? "Custom Quote" : "Fixed Scope"}
+                </span>
               </div>
-            </div>
+            </CategoryCoverArt>
 
-            <div className="prose max-w-none pt-4 border-t border-[#e6e0d4] text-sm text-stone-700 whitespace-pre-line leading-relaxed">
-              {task.fullDescription}
+            <div className="p-6 sm:p-8 space-y-6">
+              <div className="space-y-2">
+                <h1 className="font-editorial text-2xl sm:text-4xl font-semibold text-[#111827] leading-tight">
+                  {task.title}
+                </h1>
+                <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
+                  {task.shortDescription}
+                </p>
+              </div>
+
+              {/* Visual 4-Tile Spec Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
+                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-[#1e3a8a]" />
+                    Turnaround
+                  </p>
+                  <p className="font-tech text-base font-bold text-[#111827] mt-1">
+                    {task.deliveryTurnaroundDays} Days
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
+                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
+                    <RefreshCw className="w-3 h-3 text-[#0f766e]" />
+                    Revisions
+                  </p>
+                  <p className="font-tech text-base font-bold text-[#111827] mt-1">
+                    {task.maxRevisions} Included
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
+                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-amber-700" />
+                    Model
+                  </p>
+                  <p className="font-tech text-sm font-bold text-[#111827] mt-1">
+                    {task.pricingType === "QUOTE_BASED" ? "Custom" : "Fixed"}
+                  </p>
+                </div>
+                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center">
+                  <ListingValidityTag
+                    validUntil={task.validUntil}
+                    validityType={task.validityType}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-[#e6e0d4] text-sm text-stone-700 whitespace-pre-line leading-relaxed">
+                {task.fullDescription}
+              </div>
             </div>
           </div>
 
           {/* Deliverables */}
-          <div className="editorial-card p-6 space-y-3">
+          <div className="editorial-card p-6 space-y-4">
             <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
               <FileText className="w-5 h-5 text-[#1e3a8a]" />
-              Guaranteed Deliverables
+              Deliverables
             </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {task.deliverablesSummary.map((item, idx) => (
                 <li
                   key={idx}
-                  className="flex items-start gap-2 text-sm text-stone-700 bg-[#faf7f2] p-3 rounded-lg border border-[#e6e0d4]"
+                  className="flex items-start gap-2.5 text-sm text-stone-800 bg-[#faf7f2] p-3.5 rounded-xl border border-[#e6e0d4]"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-teal-700 shrink-0 mt-0.5" />
+                  <CheckCircle2 className="w-4 h-4 text-[#0f766e] shrink-0 mt-0.5" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -175,53 +217,56 @@ export default async function TaskDetailPage({
           </div>
 
           {/* Customer Requirements Preview */}
-          <div className="editorial-card p-6 space-y-3">
+          <div className="editorial-card p-6 space-y-4">
             <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-[#1e3a8a]" />
-              What You Will Provide at Booking
+              Brief Requirements
             </h2>
-            <p className="text-xs text-stone-600">
-              Preview all required specifications before committing funds.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {reqFields.map((field) => (
                 <div
                   key={field.key}
-                  className="p-3 rounded-lg bg-[#faf7f2] border border-[#e6e0d4]"
+                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-2"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-stone-900">
+                  <div>
+                    <span className="text-xs font-semibold text-stone-900 block">
                       {field.label}
                     </span>
-                    <span className="text-[10px] font-tech uppercase px-1.5 py-0.5 rounded bg-stone-200 text-stone-700">
-                      {field.required ? "Required" : "Optional"}
-                    </span>
+                    {field.options && (
+                      <span className="text-[11px] text-stone-500">
+                        {field.options.slice(0, 3).join(" · ")}
+                      </span>
+                    )}
                   </div>
-                  {field.options && (
-                    <p className="text-[11px] text-stone-500 mt-1">
-                      Options: {field.options.join(", ")}
-                    </p>
-                  )}
+                  <span
+                    className={`text-[10px] font-tech uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                      field.required
+                        ? "bg-blue-50 text-[#1e3a8a] border border-blue-200"
+                        : "bg-stone-200 text-stone-700"
+                    }`}
+                  >
+                    {field.required ? "Required" : "Optional"}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Revision & Cancellation Policies */}
+          {/* Policies Split */}
           <div className="editorial-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <h3 className="font-semibold text-sm flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-[#1e3a8a]" />
-                Revision Policy ({task.maxRevisions} rounds max)
+                <RefreshCw className="w-4 h-4 text-[#0f766e]" />
+                Revision Guarantee ({task.maxRevisions}x)
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
                 {task.revisionPolicy}
               </p>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <ShieldAlert className="w-4 h-4 text-amber-700" />
-                Booking &amp; Cancellation Rules
+                Escrow &amp; Cancellation
               </h3>
               <p className="text-xs text-stone-600 leading-relaxed">
                 {task.cancellationPolicy}
@@ -229,63 +274,77 @@ export default async function TaskDetailPage({
             </div>
           </div>
 
-          {/* Creator Bio */}
+          {/* Creator Bio Card */}
           {task.creator && (
-            <div className="editorial-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-teal-700" />
-                  <span className="font-editorial text-lg font-semibold">
-                    {task.creator.displayName}
-                  </span>
-                  <span className="text-xs text-stone-500 font-tech">
-                    @{task.creator.username}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-600">{task.creator.headline}</p>
-                <div className="flex items-center gap-4 text-xs font-tech text-stone-700 pt-1">
-                  <span className="inline-flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                    {task.creator.ratingAverage.toFixed(1)} rating
-                  </span>
-                  <span>
-                    {task.creator.completedBookingsCount} completed bookings
-                  </span>
-                  <span>
-                    Assessment score: {task.creator.assessmentScore ?? 90}/100
-                  </span>
+            <div className="editorial-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+              <div className="flex items-center gap-4">
+                <CreatorAvatar
+                  name={task.creator.displayName}
+                  username={task.creator.username}
+                  available={task.creator.isAvailable}
+                  size="lg"
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-editorial text-lg font-semibold">
+                      {task.creator.displayName}
+                    </span>
+                    <span className="text-xs text-stone-500 font-tech">
+                      @{task.creator.username}
+                    </span>
+                  </div>
+                  <p className="text-xs text-stone-600">
+                    {task.creator.headline}
+                  </p>
+                  <div className="flex items-center gap-3 text-xs font-tech text-stone-700 pt-1">
+                    <span className="inline-flex items-center gap-1">
+                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                      {task.creator.ratingAverage.toFixed(1)}
+                    </span>
+                    <span>{task.creator.completedBookingsCount} orders</span>
+                  </div>
                 </div>
               </div>
-              <Link
-                href={`/creators/${task.creator.username}`}
-                className="px-4 py-2 rounded-lg border border-[#e6e0d4] text-xs font-semibold hover:bg-stone-50 shrink-0 text-center"
-              >
-                View Creator Profile
-              </Link>
+
+              <div className="flex items-center gap-4">
+                <ScoreRing
+                  score={task.creator.assessmentScore ?? 90}
+                  size={68}
+                  sublabel="Rubric"
+                />
+                <Link
+                  href={`/creators/${task.creator.username}`}
+                  className="btn-ghost px-4 py-2 text-xs shrink-0"
+                >
+                  Portfolio
+                </Link>
+              </div>
             </div>
           )}
 
-          {/* Reviews */}
+          {/* Verified Reviews */}
           {task.reviews.length > 0 && (
             <div className="editorial-card p-6 space-y-4">
               <h2 className="font-editorial text-xl font-semibold">
-                Verified Customer Reviews ({task.reviews.length})
+                Verified Reviews ({task.reviews.length})
               </h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {task.reviews.map((rev) => (
                   <div
                     key={rev.id}
-                    className="p-4 rounded-lg bg-[#faf7f2] border border-[#e6e0d4]"
+                    className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]"
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-semibold text-stone-900">
                         {rev.customer.name}
                       </span>
                       <span className="text-xs font-tech text-amber-700">
-                        {"★".repeat(rev.rating)} ({rev.rating}/5)
+                        ★ {rev.rating}.0
                       </span>
                     </div>
-                    <p className="text-sm text-stone-700 mt-1">{rev.comment}</p>
+                    <p className="text-xs text-stone-700 mt-1.5 leading-relaxed">
+                      {rev.comment}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -293,37 +352,43 @@ export default async function TaskDetailPage({
           )}
         </div>
 
-        {/* Right: Transparent Pricing Ledger & Book CTA */}
+        {/* Right Sticky Escrow Fee Ledger */}
         <aside className="lg:col-span-4 space-y-4 sticky top-24">
           <div className="editorial-card p-6 space-y-5 bg-white">
             <div className="flex items-center justify-between border-b border-[#e6e0d4] pb-3">
-              <span className="text-xs font-tech uppercase tracking-wider text-stone-500">
-                Upfront Checkout Ledger
+              <span className="text-[11px] font-tech uppercase tracking-wider text-stone-500">
+                Upfront Fee Ledger
               </span>
-              <span className="text-xs font-semibold text-[#1e3a8a]">
-                {userIsPro ? "Pro Rate Applied" : "Standard Free Rate"}
+              <span
+                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                  userIsPro
+                    ? "bg-amber-100 text-amber-900"
+                    : "bg-blue-50 text-[#1e3a8a]"
+                }`}
+              >
+                {userIsPro ? "Pro Rate" : "Free Rate"}
               </span>
             </div>
 
             <div className="space-y-2.5 text-sm">
               <div className="flex justify-between text-stone-700">
-                <span>Listed Service Price</span>
+                <span>Listed Scope</span>
                 <span className="font-tech font-medium">
                   {formatKes(activePricing.listedPrice, task.currency)}
                 </span>
               </div>
               <div className="flex justify-between text-stone-700">
-                <span>Platform Service Fee ({feePct}%)</span>
+                <span>Service Fee ({feePct}%)</span>
                 <span className="font-tech">
                   {formatKes(activePricing.rawServiceFee, task.currency)}
                 </span>
               </div>
               {userIsPro && (
-                <div className="flex justify-between text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded">
-                  <span className="inline-flex items-center gap-1 text-xs font-medium">
-                    <Crown className="w-3.5 h-3.5" /> Pro Discount ({proDiscountPct}% off fee)
+                <div className="flex justify-between text-amber-800 bg-amber-50 px-3 py-2 rounded-xl">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold">
+                    <Crown className="w-3.5 h-3.5" /> Pro Discount (-{proDiscountPct}%)
                   </span>
-                  <span className="font-tech text-xs font-semibold">
+                  <span className="font-tech text-xs font-bold">
                     -{formatKes(activePricing.proDiscount, task.currency)}
                   </span>
                 </div>
@@ -337,46 +402,33 @@ export default async function TaskDetailPage({
             </div>
 
             {!userIsPro && (
-              <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-950 space-y-1">
+              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 space-y-1">
                 <p className="font-semibold flex items-center gap-1">
                   <Crown className="w-3.5 h-3.5 text-amber-700" />
-                  Save {formatKes(proPricing.proDiscount, task.currency)} on this booking with Pro
+                  Save {formatKes(proPricing.proDiscount, task.currency)} with Pro
                 </p>
-                <p className="text-amber-900/80">
-                  Total as a Pro member:{" "}
-                  <strong className="font-tech">
-                    {formatKes(proPricing.totalPayable, task.currency)}
-                  </strong>
-                  . Free plans still have full booking access.
+                <p className="text-amber-900/80 font-tech">
+                  Pro Total: {formatKes(proPricing.totalPayable, task.currency)}
                 </p>
               </div>
             )}
 
-            <div className="p-3 rounded-lg bg-blue-50/60 border border-blue-200 text-xs text-blue-950 space-y-1">
-              <div className="flex items-center gap-1.5 font-semibold">
-                <CalendarClock className="w-3.5 h-3.5 text-[#1e3a8a]" />
-                Separate Deadlines Guarantee
-              </div>
-              <p className="text-blue-900/80">
-                Once booked, your{" "}
-                <strong>{task.deliveryTurnaroundDays}-day delivery deadline</strong>{" "}
-                is locked even if this listing&apos;s public validity date arrives earlier.
-              </p>
+            <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 flex items-start gap-2">
+              <CalendarClock className="w-4 h-4 text-[#1e3a8a] shrink-0 mt-0.5" />
+              <span>
+                <strong>{task.deliveryTurnaroundDays}-day delivery clock</strong>{" "}
+                stays protected even after listing validity ends.
+              </span>
             </div>
 
             {isPublished ? (
-              <Link
-                href={bookHref}
-                className="block w-full py-3.5 px-4 rounded-xl bg-[#1e3a8a] text-white font-semibold text-sm text-center hover:bg-[#172554] transition-colors shadow-sm"
-              >
-                {user
-                  ? "Proceed to Booking & Requirements"
-                  : "Sign In / Join to Book This Task"}
+              <Link href={bookHref} className="btn-primary w-full py-3.5 text-sm">
+                <span>{user ? "Book This Service" : "Sign In to Book"}</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <div className="p-3 rounded-lg bg-stone-100 border border-stone-300 text-xs text-stone-700 text-center">
-                This listing is currently <strong>{task.status}</strong> and is
-                closed for new bookings. Existing confirmed bookings remain active.
+              <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-300 text-xs text-stone-700 text-center">
+                Status: <strong>{task.status}</strong> — closed to new bookings.
               </div>
             )}
           </div>

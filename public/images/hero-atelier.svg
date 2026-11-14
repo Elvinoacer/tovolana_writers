@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" fill="none">
+  <defs>
+    <linearGradient id="paperGrad" x1="0" y1="0" x2="640" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FAF7F2"/>
+      <stop offset="100%" stop-color="#F2EDE3"/>
+    </linearGradient>
+    <linearGradient id="oxfordGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1E3A8A"/>
+      <stop offset="100%" stop-color="#172554"/>
+    </linearGradient>
+    <linearGradient id="emeraldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0F766E"/>
+      <stop offset="100%" stop-color="#115E59"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#B45309"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#111827" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="640" height="480" rx="28" fill="url(#paperGrad)"/>
+
+  <!-- Subtle architectural grid dots -->
+  <g fill="#D6CFC2" opacity="0.6">
+    <circle cx="48" cy="48" r="2"/><circle cx="88" cy="48" r="2"/><circle cx="128" cy="48" r="2"/><circle cx="168" cy="48" r="2"/><circle cx="208" cy="48" r="2"/>
+    <circle cx="48" cy="88" r="2"/><circle cx="88" cy="88" r="2"/><circle cx="128" cy="88" r="2"/><circle cx="168" cy="88" r="2"/><circle cx="208" cy="88" r="2"/>
+    <circle cx="48" cy="128" r="2"/><circle cx="88" cy="128" r="2"/><circle cx="128" cy="128" r="2"/><circle cx="168" cy="128" r="2"/><circle cx="208" cy="128" r="2"/>
+    <circle cx="440" cy="360" r="2"/><circle cx="480" cy="360" r="2"/><circle cx="520" cy="360" r="2"/><circle cx="560" cy="360" r="2"/><circle cx="600" cy="360" r="2"/>
+    <circle cx="440" cy="400" r="2"/><circle cx="480" cy="400" r="2"/><circle cx="520" cy="400" r="2"/><circle cx="560" cy="400" r="2"/><circle cx="600" cy="400" r="2"/>
+    <circle cx="440" cy="440" r="2"/><circle cx="480" cy="440" r="2"/><circle cx="520" cy="440" r="2"/><circle cx="560" cy="440" r="2"/><circle cx="600" cy="440" r="2"/>
+  </g>
+
+  <!-- Soft ambient aura circles -->
+  <circle cx="510" cy="110" r="95" fill="#EFF6FF" stroke="#DBEAFE" stroke-width="1.5"/>
+  <circle cx="125" cy="370" r="85" fill="#F0FDFA" stroke="#CCFBF1" stroke-width="1.5"/>
+
+  <!-- Central Manuscript Desk Sheet -->
+  <g filter="url(#cardShadow)">
+    <rect x="115" y="54" width="385" height="355" rx="20" fill="#FFFFFF" stroke="#E6E0D4" stroke-width="1.5"/>
+  </g>
+
+  <!-- Manuscript header strip -->
+  <rect x="115" y="54" width="385" height="58" rx="20" fill="#1E3A8A"/>
+  <rect x="115" y="92" width="385" height="20" fill="#1E3A8A"/>
+  <circle cx="146" cy="83" r="11" fill="#FFFFFF" fill-opacity="0.16"/>
+  <path d="M142 87 L150 79 M147 78 L151 82" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+  <rect x="168" y="75" width="132" height="7" rx="3.5" fill="#FFFFFF" fill-opacity="0.9"/>
+  <rect x="168" y="88" width="84" height="5" rx="2.5" fill="#93C5FD" fill-opacity="0.8"/>
+  <rect x="394" y="73" width="84" height="20" rx="10" fill="#FEF3C7"/>
+  <text x="436" y="86.5" font-family="monospace" font-size="10" font-weight="700" fill="#B45309" text-anchor="middle">ESCROW ON</text>
+
+  <!-- Structured Editorial Lines & Citation Margin -->
+  <rect x="145" y="136" width="180" height="10" rx="5" fill="#111827"/>
+  <rect x="145" y="158" width="310" height="6" rx="3" fill="#E5E7EB"/>
+  <rect x="145" y="172" width="286" height="6" rx="3" fill="#E5E7EB"/>
+  <rect x="145" y="186" width="248" height="6" rx="3" fill="#E5E7EB"/>
+
+  <!-- Highlighted APA / Peer Verification block -->
+  <rect x="145" y="210" width="320" height="64" rx="12" fill="#FAF7F2" stroke="#E6E0D4" stroke-width="1.2"/>
+  <rect x="161" y="226" width="4" height="32" rx="2" fill="#0F766E"/>
+  <rect x="175" y="227" width="142" height="7" rx="3.5" fill="#111827" opacity="0.85"/>
+  <rect x="175" y="242" width="220" height="5" rx="2.5" fill="#6B7280" opacity="0.5"/>
+  <rect x="175" y="253" width="168" height="5" rx="2.5" fill="#6B7280" opacity="0.4"/>
+  <circle cx="439" cy="242" r="14" fill="#F0FDFA" stroke="#0F766E" stroke-width="1.5"/>
+  <path d="M433 242 L437 246 L445 237" stroke="#0F766E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Bottom Deliverable Pills -->
+  <rect x="145" y="294" width="96" height="26" rx="8" fill="#EFF6FF" stroke="#BFDBFE"/>
+  <text x="193" y="311" font-family="sans-serif" font-size="10.5" font-weight="600" fill="#1E3A8A" text-anchor="middle">Turnaround 3d</text>
+  <rect x="251" y="294" width="104" height="26" rx="8" fill="#F0FDFA" stroke="#99F6E4"/>
+  <text x="303" y="311" font-family="sans-serif" font-size="10.5" font-weight="600" fill="#0F766E" text-anchor="middle">2 Revisions Inc.</text>
+  <rect x="365" y="294" width="100" height="26" rx="8" fill="#FEF3C7" stroke="#FDE68A"/>
+  <text x="415" y="311" font-family="sans-serif" font-size="10.5" font-weight="600" fill="#B45309" text-anchor="middle">Pro -50% Fee</text>
+
+  <!-- Price Footer Bar inside Manuscript -->
+  <rect x="145" y="338" width="320" height="48" rx="12" fill="#111827"/>
+  <text x="163" y="357" font-family="sans-serif" font-size="9.5" fill="#9CA3AF">UPFRONT ESCROW TOTAL</text>
+  <text x="163" y="375" font-family="monospace" font-size="15" font-weight="700" fill="#FFFFFF">KES 4,950</text>
+  <rect x="372" y="349" width="80" height="26" rx="8" fill="#0F766E"/>
+  <text x="412" y="366" font-family="sans-serif" font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">Book Now</text>
+
+  <!-- Floating Right Top Metric Card: 6-Criteria Score Ring -->
+  <g filter="url(#cardShadow)">
+    <rect x="448" y="42" width="160" height="148" rx="18" fill="#FFFFFF" stroke="#E6E0D4" stroke-width="1.5"/>
+    <circle cx="528" cy="100" r="34" stroke="#E5E7EB" stroke-width="7"/>
+    <circle cx="528" cy="100" r="34" stroke="url(#emeraldGrad)" stroke-width="7" stroke-dasharray="198 220" stroke-linecap="round" transform="rotate(-90 528 100)"/>
+    <text x="528" y="104" font-family="monospace" font-size="16" font-weight="700" fill="#111827" text-anchor="middle">94%</text>
+    <text x="528" y="156" font-family="sans-serif" font-size="11" font-weight="700" fill="#111827" text-anchor="middle">Creator Rubric</text>
+    <text x="528" y="172" font-family="sans-serif" font-size="9.5" fill="#0F766E" text-anchor="middle">Vetted Craft · No ID Gate</text>
+  </g>
+
+  <!-- Floating Left Bottom Card: IntaSend M-Pesa Verified -->
+  <g filter="url(#cardShadow)">
+    <rect x="32" y="294" width="196" height="118" rx="18" fill="#FFFFFF" stroke="#E6E0D4" stroke-width="1.5"/>
+    <rect x="48" y="310" width="32" height="32" rx="9" fill="url(#goldGrad)"/>
+    <path d="M59 326 L63 330 L70 321" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="90" y="323" font-family="sans-serif" font-size="11.5" font-weight="700" fill="#111827">IntaSend Escrow</text>
+    <text x="90" y="338" font-family="sans-serif" font-size="9.5" fill="#6B7280">M-Pesa STK &amp; Card Lock</text>
+    <rect x="48" y="356" width="164" height="38" rx="10" fill="#FAF7F2" stroke="#E6E0D4"/>
+    <text x="60" y="372" font-family="sans-serif" font-size="9" fill="#6B7280">DELIVERY DEADLINE LOCKED</text>
+    <text x="60" y="386" font-family="monospace" font-size="11" font-weight="700" fill="#1E3A8A">72h Guaranteed</text>
+  </g>
+</svg>

@@ -1,5 +1,8 @@
 "use client";
 
+import { CustomerShell } from "@/components/CustomerShell";
+import { InteractiveFeeCalculator } from "@/components/InteractiveFeeCalculator";
+
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -193,87 +196,86 @@ export default function CustomerMembershipPage() {
   const annualPrice = config?.proAnnualPrice ?? 24000;
 
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-editorial font-semibold">
-            Membership & Billing
-          </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            Free plans can book every public listing. Upgrade to Pro for{" "}
-            {config?.proFeeDiscountPct ?? 50}% off service fees and{" "}
-            {config?.proEarlyAccessHours ?? 48}h early task access.
-          </p>
-        </div>
-        {isPro ? (
-          <ProBadge label={`Active until ${formatShortDate(user.proExpiresAt)}`} />
-        ) : (
-          <span className="px-3 py-1 rounded-full text-xs font-medium bg-stone-200 text-stone-700">
-            Current Tier: Free Plan
-          </span>
-        )}
-      </div>
-
+    <CustomerShell
+      title="Membership & Billing"
+      subtitle={`Free bookings stay open forever. Pro saves ${config?.proFeeDiscountPct ?? 50}% on fees + ${config?.proEarlyAccessHours ?? 48}h early task access.`}
+    >
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
           {notice}
         </div>
       )}
 
+      {/* Visual Interactive Fee Calculator */}
+      <InteractiveFeeCalculator
+        standardFeePct={10}
+        proDiscountPct={config?.proFeeDiscountPct ?? 50}
+        monthlyProPrice={monthlyPrice}
+        currency={config?.currency || "KES"}
+      />
+
       {/* Upgrade Card */}
-      <div className="editorial-card p-6 sm:p-8 space-y-6">
-        <div className="flex items-center gap-2 text-amber-800 text-xs font-semibold">
-          <Sparkles className="w-4 h-4" />
-          <span>TOVOLANA PRO SUBSCRIPTION</span>
+      <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-2 text-amber-800 text-xs font-tech uppercase tracking-wider font-semibold">
+            <Sparkles className="w-4 h-4" />
+            <span>Tovolana Pro Subscription</span>
+          </div>
+          {isPro ? (
+            <ProBadge label={`Active until ${formatShortDate(user.proExpiresAt)}`} />
+          ) : (
+            <span className="px-3 py-1 rounded-full text-xs font-tech bg-stone-100 text-stone-700 border border-[#e6e0d4]">
+              Current: Free Plan
+            </span>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
             type="button"
             onClick={() => setInterval("MONTHLY")}
-            className={`p-5 rounded-xl border text-left transition-all ${
+            className={`p-5 rounded-2xl border text-left transition-all ${
               interval === "MONTHLY"
                 ? "border-amber-700 bg-amber-50/70 ring-2 ring-amber-700/20"
-                : "border-[#e6e0d4] bg-white"
+                : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
             }`}
           >
             <p className="text-xs font-semibold text-stone-500">Monthly</p>
-            <p className="font-tech text-2xl font-bold text-[#111827] mt-1">
+            <p className="font-tech text-3xl font-bold text-[#111827] mt-1">
               {formatKes(monthlyPrice, config?.currency || "KES")}
               <span className="text-xs font-normal text-stone-500"> / mo</span>
             </p>
             <p className="text-xs text-stone-600 mt-1">
-              30 days of 50% service fee discount & early task discovery.
+              30 days · 50% fee discount + early access.
             </p>
           </button>
 
           <button
             type="button"
             onClick={() => setInterval("ANNUAL")}
-            className={`p-5 rounded-xl border text-left transition-all ${
+            className={`p-5 rounded-2xl border text-left transition-all ${
               interval === "ANNUAL"
                 ? "border-amber-700 bg-amber-50/70 ring-2 ring-amber-700/20"
-                : "border-[#e6e0d4] bg-white"
+                : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
             }`}
           >
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold text-stone-500">Annual</p>
-              <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold">
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
                 Save 2 Months
               </span>
             </div>
-            <p className="font-tech text-2xl font-bold text-[#111827] mt-1">
+            <p className="font-tech text-3xl font-bold text-[#111827] mt-1">
               {formatKes(annualPrice, config?.currency || "KES")}
               <span className="text-xs font-normal text-stone-500"> / yr</span>
             </p>
             <p className="text-xs text-stone-600 mt-1">
-              Full 365-day Pro privileges for regular research & business
-              clients.
+              365 days · Best value for regular briefs.
             </p>
           </button>
         </div>
@@ -283,7 +285,7 @@ export default function CustomerMembershipPage() {
             <button
               type="button"
               onClick={() => setChannel("MPESA_STK")}
-              className={`flex-1 px-3 py-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-3 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                 channel === "MPESA_STK"
                   ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                   : "bg-white text-stone-700 border-[#e6e0d4]"
@@ -295,7 +297,7 @@ export default function CustomerMembershipPage() {
             <button
               type="button"
               onClick={() => setChannel("CARD")}
-              className={`flex-1 px-3 py-2.5 rounded-lg border text-xs font-semibold flex items-center justify-center gap-1.5 ${
+              className={`flex-1 px-3 py-2.5 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                 channel === "CARD"
                   ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
                   : "bg-white text-stone-700 border-[#e6e0d4]"
@@ -312,7 +314,7 @@ export default function CustomerMembershipPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+254712345678"
-              className="rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+              className="rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
             />
           )}
 
@@ -320,32 +322,30 @@ export default function CustomerMembershipPage() {
             type="button"
             disabled={busy}
             onClick={handleSubscribe}
-            className="px-5 py-2.5 rounded-lg bg-amber-700 text-white text-sm font-semibold hover:bg-amber-800 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-xl bg-amber-700 text-white text-sm font-semibold hover:bg-amber-800 disabled:opacity-50 transition-colors"
           >
             {busy
               ? "Processing..."
               : isPro
                 ? `Extend Pro (${interval === "ANNUAL" ? "Annual" : "Monthly"})`
-                : `Upgrade to Pro (${formatKes(
+                : `Upgrade (${formatKes(
                     interval === "ANNUAL" ? annualPrice : monthlyPrice
                   )})`}
           </button>
         </div>
 
         {pendingApiRef && (
-          <div className="p-4 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 flex-wrap">
+          <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 flex-wrap">
             <div className="text-xs">
               <p className="font-semibold text-amber-950">
                 Pending IntaSend Ref: <code>{pendingApiRef}</code>
               </p>
-              <p className="text-amber-800">
-                Confirm payment immediately using Sandbox Webhook Simulator:
-              </p>
+              <p className="text-amber-800">Sandbox STK / Checkout simulation ready.</p>
             </div>
             <button
               disabled={busy}
               onClick={handleSimulateWebhookComplete}
-              className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800"
+              className="px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800"
             >
               Simulate Webhook Complete
             </button>
@@ -355,7 +355,7 @@ export default function CustomerMembershipPage() {
 
       {/* Subscriptions & Billing History */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="editorial-card p-5 space-y-3">
+        <div className="editorial-card p-5 space-y-3 bg-white">
           <h2 className="font-editorial text-lg font-semibold">
             Subscription Records
           </h2>
@@ -366,7 +366,7 @@ export default function CustomerMembershipPage() {
               {subscriptions.map((sub) => (
                 <div
                   key={sub.id}
-                  className="p-3.5 rounded-lg border border-[#e6e0d4] bg-[#faf7f2] space-y-2 text-xs"
+                  className="p-3.5 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] space-y-2 text-xs"
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-semibold">
@@ -376,7 +376,7 @@ export default function CustomerMembershipPage() {
                     <StatusPill status={sub.status} />
                   </div>
                   <div className="flex items-center justify-between text-stone-600">
-                    <span>Expires: {formatShortDate(sub.expiresAt)}</span>
+                    <span>Expires {formatShortDate(sub.expiresAt)}</span>
                     <label className="inline-flex items-center gap-1.5 cursor-pointer">
                       <input
                         type="checkbox"
@@ -394,9 +394,9 @@ export default function CustomerMembershipPage() {
           )}
         </div>
 
-        <div className="editorial-card p-5 space-y-3">
+        <div className="editorial-card p-5 space-y-3 bg-white">
           <h2 className="font-editorial text-lg font-semibold">
-            Membership Payment Receipts
+            Payment Receipts
           </h2>
           {transactions.length === 0 ? (
             <p className="text-xs text-stone-500">No receipts yet.</p>
@@ -405,7 +405,7 @@ export default function CustomerMembershipPage() {
               {transactions.map((tx) => (
                 <div
                   key={tx.id}
-                  className="p-3 rounded-lg border border-[#e6e0d4] flex items-center justify-between text-xs"
+                  className="p-3 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] flex items-center justify-between text-xs"
                 >
                   <div>
                     <p className="font-tech font-medium">{tx.apiRef}</p>
@@ -428,11 +428,8 @@ export default function CustomerMembershipPage() {
 
       <div className="text-xs text-stone-500 flex items-center gap-2">
         <CheckCircle2 className="w-4 h-4 text-emerald-700" />
-        <span>
-          Free plan access guarantee: canceling Pro never prevents you from
-          placing standard bookings on Tovolana Writers.
-        </span>
+        <span>Free plan bookings stay available regardless of Pro status.</span>
       </div>
-    </main>
+    </CustomerShell>
   );
 }

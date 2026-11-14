@@ -2,9 +2,20 @@
 
 import React, { Suspense, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CheckCircle2, Crown, KeyRound, Mail, Shield, Sparkles, UserCheck } from "lucide-react";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Crown,
+  KeyRound,
+  Mail,
+  Shield,
+  Sparkles,
+  UserCheck,
+} from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
 function AuthFormInner() {
   const router = useRouter();
@@ -75,43 +86,38 @@ function AuthFormInner() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-reveal">
+      {/* Left Auth Studio Card */}
       <div className="lg:col-span-7 editorial-card p-6 sm:p-8 bg-white space-y-6">
-        <div className="space-y-1">
-          <p className="text-xs font-tech uppercase tracking-wider text-[#1e3a8a]">
-            Authentication &amp; Identity (Screen 2.1)
-          </p>
-          <h1 className="font-editorial text-2xl sm:text-3xl font-semibold">
+        <div className="space-y-1.5">
+          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold text-[#111827]">
             {mode === "login"
-              ? "Sign in to Tovolana Writers"
-              : "Create your Tovolana account"}
+              ? "Welcome back"
+              : "One account for every role"}
           </h1>
           <p className="text-sm text-stone-600">
-            One account unlocks Customer bookings, Pro membership, and Creators
-            Hub publishing.
+            Book vetted services, manage Pro perks, or join the Creators Hub.
           </p>
         </div>
 
         {callbackUrl !== "/dashboard" && (
-          <div className="p-3.5 rounded-lg bg-blue-50 border border-blue-200 text-xs text-blue-950 flex items-center gap-2">
+          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-[#1e3a8a] shrink-0" />
             <span>
-              After authentication, you will return directly to:{" "}
-              <strong className="font-tech">{callbackUrl}</strong>
+              Returning to: <strong className="font-tech">{callbackUrl}</strong>
             </span>
           </div>
         )}
 
         {error && (
-          <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-800">
+          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
             {error}
           </div>
         )}
 
-        {/* Google OAuth Button */}
         <a
           href={`/api/auth/google?callbackUrl=${encodeURIComponent(callbackUrl)}`}
-          className="w-full py-3 px-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] hover:bg-stone-100 transition-colors flex items-center justify-center gap-2.5 text-sm font-semibold text-[#111827]"
+          className="btn-ghost w-full py-3 px-4 text-sm"
         >
           <svg
             aria-hidden="true"
@@ -140,19 +146,19 @@ function AuthFormInner() {
 
         <div className="relative flex py-1 items-center">
           <div className="flex-grow border-t border-[#e6e0d4]" />
-          <span className="flex-shrink mx-4 text-xs text-stone-400 uppercase font-tech">
-            or use email &amp; password
+          <span className="flex-shrink mx-4 text-[11px] text-stone-400 uppercase font-tech">
+            or email &amp; password
           </span>
           <div className="flex-grow border-t border-[#e6e0d4]" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 bg-[#f2ede3] p-1 rounded-lg">
+        <div className="grid grid-cols-2 gap-1.5 bg-[#f2ede3] p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setMode("login")}
-            className={`py-2 rounded-md text-xs font-semibold transition-colors ${
+            className={`py-2 rounded-lg text-xs font-semibold transition-all ${
               mode === "login"
-                ? "bg-white text-[#111827] shadow-sm"
+                ? "bg-white text-[#111827] shadow-xs"
                 : "text-stone-600"
             }`}
           >
@@ -161,9 +167,9 @@ function AuthFormInner() {
           <button
             type="button"
             onClick={() => setMode("register")}
-            className={`py-2 rounded-md text-xs font-semibold transition-colors ${
+            className={`py-2 rounded-lg text-xs font-semibold transition-all ${
               mode === "register"
-                ? "bg-white text-[#111827] shadow-sm"
+                ? "bg-white text-[#111827] shadow-xs"
                 : "text-stone-600"
             }`}
           >
@@ -173,7 +179,7 @@ function AuthFormInner() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {mode === "register" && (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
                   Full Name
@@ -183,23 +189,23 @@ function AuthFormInner() {
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Amina Wanjiku"
-                  className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                  placeholder="Amina Wanjiku"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
                 />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Kenyan Phone (Optional, for M-Pesa &amp; OTP)
+                  Phone (M-Pesa / OTP)
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="0712345678 or 254712345678"
-                  className="w-full px-3.5 py-2.5 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                  placeholder="0712345678"
+                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
                 />
               </div>
-            </>
+            </div>
           )}
 
           <div>
@@ -207,14 +213,14 @@ function AuthFormInner() {
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
               />
             </div>
           </div>
@@ -224,7 +230,7 @@ function AuthFormInner() {
               Password
             </label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+              <KeyRound className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
               <input
                 type="password"
                 required
@@ -232,7 +238,7 @@ function AuthFormInner() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 8 characters"
-                className="w-full pl-9 pr-3.5 py-2.5 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
               />
             </div>
           </div>
@@ -240,130 +246,113 @@ function AuthFormInner() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554] transition-colors disabled:opacity-60 inline-flex items-center justify-center gap-2"
+            className="btn-primary w-full py-3 text-sm disabled:opacity-60"
           >
-            {loading
-              ? "Authenticating..."
-              : mode === "login"
-                ? "Sign In with Email"
-                : "Create Account & Continue"}
+            <span>
+              {loading
+                ? "Authenticating..."
+                : mode === "login"
+                  ? "Sign In"
+                  : "Create Account"}
+            </span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <p className="text-xs text-stone-500 text-center">
-          Need to confirm your email or verify phone OTP?{" "}
-          <Link href="/auth/verify" className="text-[#1e3a8a] hover:underline">
-            Open Verification Center
+        <div className="pt-1 text-center">
+          <Link
+            href="/auth/verify"
+            className="text-xs font-medium text-[#1e3a8a] hover:underline"
+          >
+            Open Email &amp; Phone OTP Verification Center
           </Link>
-        </p>
+        </div>
       </div>
 
-      {/* Quick Seeded Demo Personas for Instant Verification */}
-      <aside className="lg:col-span-5 editorial-card p-6 bg-[#faf7f2] space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-amber-600" />
-          <h2 className="font-editorial text-lg font-semibold">
-            Seeded Persona Quick Sign-In
-          </h2>
+      {/* Right Visual Showcase + Seeded Demo Persona Switcher */}
+      <aside className="lg:col-span-5 space-y-5">
+        <div className="editorial-card overflow-hidden bg-white p-2">
+          <Image
+            src="/images/auth-editorial.svg"
+            alt="Tovolana unified passport roles showcase"
+            width={560}
+            height={440}
+            priority
+            className="w-full h-auto rounded-xl"
+          />
         </div>
-        <p className="text-xs text-stone-600 leading-relaxed">
-          Test any operational role against live PostgreSQL data (password{" "}
-          <code className="font-tech bg-white px-1 py-0.5 rounded border">
-            Password123!
-          </code>
-          ):
-        </p>
 
-        <div className="space-y-2">
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() =>
-              loginAsDemo("free.customer@tovolana.com", "/dashboard")
-            }
-            className="w-full p-3 rounded-xl bg-white border border-[#e6e0d4] hover:border-[#1e3a8a] text-left transition-colors flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-semibold">Brian Kiprop — Free Customer</p>
-              <p className="text-[11px] text-stone-500 font-tech">
-                free.customer@tovolana.com
-              </p>
-            </div>
-            <span className="text-[11px] px-2 py-0.5 rounded bg-stone-100">
-              FREE
+        <div className="editorial-card p-5 bg-[#faf7f2] space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111827]">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              Instant Demo Accounts
             </span>
-          </button>
+            <code className="font-tech text-[11px] bg-white px-2 py-0.5 rounded border border-[#e6e0d4]">
+              Password123!
+            </code>
+          </div>
 
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() =>
-              loginAsDemo("pro.customer@tovolana.com", "/dashboard")
-            }
-            className="w-full p-3 rounded-xl bg-white border border-[#e6e0d4] hover:border-amber-500 text-left transition-colors flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-semibold">Grace Wambui — Pro Customer</p>
-              <p className="text-[11px] text-stone-500 font-tech">
-                pro.customer@tovolana.com
-              </p>
-            </div>
-            <Crown className="w-4 h-4 text-amber-600" />
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => loginAsDemo("creator@tovolana.com", "/creators-hub")}
-            className="w-full p-3 rounded-xl bg-white border border-[#e6e0d4] hover:border-teal-600 text-left transition-colors flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-semibold">Amara Njoroge — Vetted Creator</p>
-              <p className="text-[11px] text-stone-500 font-tech">
-                creator@tovolana.com
-              </p>
-            </div>
-            <UserCheck className="w-4 h-4 text-teal-700" />
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() =>
-              loginAsDemo("applicant@tovolana.com", "/creators-hub/onboarding")
-            }
-            className="w-full p-3 rounded-xl bg-white border border-[#e6e0d4] hover:border-[#1e3a8a] text-left transition-colors flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-semibold">
-                Faith Chebet — Assessment Candidate
-              </p>
-              <p className="text-[11px] text-stone-500 font-tech">
-                applicant@tovolana.com
-              </p>
-            </div>
-            <span className="text-[11px] text-amber-700 font-medium">
-              UNDER REVIEW
-            </span>
-          </button>
-
-          <button
-            type="button"
-            disabled={loading}
-            onClick={() => loginAsDemo("admin@tovolana.com", "/admin")}
-            className="w-full p-3 rounded-xl bg-amber-50 border border-amber-300 hover:bg-amber-100 text-left transition-colors flex items-center justify-between"
-          >
-            <div>
-              <p className="text-xs font-semibold text-amber-950">
-                Wanjiku Omondi — Platform Administrator
-              </p>
-              <p className="text-[11px] text-amber-800 font-tech">
-                admin@tovolana.com
-              </p>
-            </div>
-            <Shield className="w-4 h-4 text-amber-800" />
-          </button>
+          <div className="space-y-2">
+            {[
+              {
+                email: "free.customer@tovolana.com",
+                target: "/dashboard",
+                name: "Brian Kiprop",
+                role: "Free Customer",
+                badge: <span className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-stone-100">FREE</span>,
+              },
+              {
+                email: "pro.customer@tovolana.com",
+                target: "/dashboard",
+                name: "Grace Wambui",
+                role: "Pro Subscriber",
+                badge: <Crown className="w-4 h-4 text-amber-600" />,
+              },
+              {
+                email: "creator@tovolana.com",
+                target: "/creators-hub",
+                name: "Amara Njoroge",
+                role: "Vetted Creator",
+                badge: <UserCheck className="w-4 h-4 text-[#0f766e]" />,
+              },
+              {
+                email: "applicant@tovolana.com",
+                target: "/creators-hub/onboarding",
+                name: "Faith Chebet",
+                role: "Assessment Candidate",
+                badge: <span className="text-[10px] font-tech text-amber-700 font-semibold">APPLICANT</span>,
+              },
+              {
+                email: "admin@tovolana.com",
+                target: "/admin",
+                name: "Wanjiku Omondi",
+                role: "Super Administrator",
+                badge: <Shield className="w-4 h-4 text-[#1e3a8a]" />,
+              },
+            ].map((p) => (
+              <button
+                key={p.email}
+                type="button"
+                disabled={loading}
+                onClick={() => loginAsDemo(p.email, p.target)}
+                className="w-full p-2.5 rounded-xl bg-white border border-[#e6e0d4] hover:border-[#1e3a8a] text-left transition-colors flex items-center justify-between gap-2"
+              >
+                <span className="flex items-center gap-2.5 min-w-0">
+                  <CreatorAvatar name={p.name} size="sm" />
+                  <span className="min-w-0">
+                    <span className="text-xs font-semibold text-[#111827] block truncate">
+                      {p.name}
+                    </span>
+                    <span className="text-[11px] text-stone-500 block truncate">
+                      {p.role}
+                    </span>
+                  </span>
+                </span>
+                {p.badge}
+              </button>
+            ))}
+          </div>
         </div>
       </aside>
     </div>
@@ -375,7 +364,7 @@ export default function AuthPage() {
     <Suspense
       fallback={
         <div className="max-w-3xl mx-auto p-12 text-center text-sm text-stone-500">
-          Loading authentication workspace...
+          Loading studio...
         </div>
       }
     >

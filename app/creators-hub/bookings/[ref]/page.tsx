@@ -1,5 +1,11 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+import {
+  CreatorAvatar,
+  EscrowStepVisualizer,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -249,32 +255,29 @@ export default function CreatorOrderWorkspacePage({
     booking.status === "IN_PROGRESS" || booking.status === "REVISION_REQUESTED";
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <CreatorShell
+      title={booking.taskTitleSnapshot}
+      subtitle={`Order ${booking.bookingRef} · Client ${booking.customer.name} · ${formatKes(booking.listedPrice, booking.currency)}`}
+    >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3 flex-wrap">
           <Link
             href="/creators-hub"
-            className="inline-flex items-center gap-1.5 text-xs text-stone-600 hover:text-[#111827] mb-2"
+            className="btn-ghost px-3 py-1.5 text-xs gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to Creators Hub
+            All Orders
           </Link>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-tech text-xs px-2 py-0.5 rounded bg-stone-100 border border-stone-200">
-              {booking.bookingRef}
+          <span className="font-tech text-xs px-2.5 py-1 rounded-lg bg-white border border-[#e6e0d4]">
+            {booking.bookingRef}
+          </span>
+          <StatusPill status={booking.status} />
+          <div className="inline-flex items-center gap-2 pl-1">
+            <CreatorAvatar name={booking.customer.name} size="sm" />
+            <span className="text-xs font-semibold text-[#111827]">
+              {booking.customer.name}
             </span>
-            <StatusPill status={booking.status} />
           </div>
-          <h1 className="text-2xl font-editorial font-semibold mt-1">
-            {booking.taskTitleSnapshot}
-          </h1>
-          <p className="text-xs text-stone-600 mt-0.5">
-            Client: {booking.customer.name} · Contract Value:{" "}
-            <strong className="font-tech">
-              {formatKes(booking.listedPrice, booking.currency)}
-            </strong>{" "}
-            (Locked)
-          </p>
         </div>
 
         <BookingDeadlineTag
@@ -283,13 +286,18 @@ export default function CreatorOrderWorkspacePage({
         />
       </div>
 
+      {/* Escrow Stage Pipeline */}
+      <div className="editorial-card p-5 bg-white">
+        <EscrowStepVisualizer status={booking.status} />
+      </div>
+
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
           {notice}
         </div>
       )}
@@ -298,23 +306,22 @@ export default function CreatorOrderWorkspacePage({
         <div className="editorial-card p-5 bg-amber-50/70 border-amber-200 flex items-center justify-between gap-4 flex-wrap">
           <div className="text-sm">
             <p className="font-semibold text-amber-950">
-              Customer Escrow Funded — Manual Acceptance Required
+              Customer Escrow Funded — Acceptance Required
             </p>
             <p className="text-xs text-amber-800 mt-0.5">
-              Review the brief and accept to begin active delivery, or decline
-              before work begins.
+              Review the brief below and accept to start active delivery.
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => handleAccept("ACCEPT")}
-              className="px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold"
+              className="btn-creator px-4 py-2 text-xs"
             >
               Accept Booking
             </button>
             <button
               onClick={() => handleAccept("DECLINE")}
-              className="px-4 py-2 rounded-lg border border-rose-300 bg-white text-rose-700 text-xs font-semibold"
+              className="px-4 py-2 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50"
             >
               Decline
             </button>
@@ -325,8 +332,7 @@ export default function CreatorOrderWorkspacePage({
       {booking.revisions.length > 0 && (
         <div className="editorial-card p-5 border-orange-200 bg-orange-50/50 space-y-2">
           <h2 className="font-editorial text-base font-semibold text-orange-950">
-            Revision Instructions ({booking.revisionCount}/
-            {booking.maxRevisions})
+            Revision Checklist ({booking.revisionCount}/{booking.maxRevisions})
           </h2>
           {booking.revisions.map((r) => (
             <div key={r.id} className="text-xs space-y-1">
@@ -352,22 +358,22 @@ export default function CreatorOrderWorkspacePage({
           {canDeliver && (
             <form
               onSubmit={handleSubmitDelivery}
-              className="editorial-card p-6 space-y-4 border-teal-200 bg-teal-50/30"
+              className="editorial-card p-6 space-y-4 border-teal-200 bg-teal-50/40"
             >
               <h2 className="font-editorial text-lg font-semibold flex items-center gap-2 text-[#0f766e]">
                 <CheckCircle2 className="w-5 h-5" />
-                Submit Completed Work
+                Submit Final Deliverable
               </h2>
 
               <div>
-                <label className="block text-xs font-medium mb-1">
-                  1. Upload Final Manuscript / Deliverable File
+                <label className="block text-xs font-semibold mb-1.5">
+                  1. Upload Manuscript (.pdf, .docx, .md)
                 </label>
-                <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-teal-400 bg-white text-xs font-medium text-teal-900 cursor-pointer hover:bg-teal-50">
+                <label className="flex items-center justify-center gap-2 px-4 py-4 rounded-2xl border-2 border-dashed border-teal-400 bg-white text-xs font-semibold text-teal-900 cursor-pointer hover:bg-teal-50 transition-colors">
                   <Upload className="w-4 h-4" />
                   {uploading
                     ? "Uploading Deliverable..."
-                    : "Upload Deliverable File (.pdf, .docx, .md)"}
+                    : "Choose or Drop Deliverable File"}
                   <input
                     type="file"
                     className="hidden"
@@ -377,8 +383,8 @@ export default function CreatorOrderWorkspacePage({
               </div>
 
               <div>
-                <label className="block text-xs font-medium mb-1">
-                  2. Delivery Notes & Key Highlights for Customer
+                <label className="block text-xs font-semibold mb-1.5">
+                  2. Delivery Highlights
                 </label>
                 <textarea
                   rows={4}
@@ -386,41 +392,41 @@ export default function CreatorOrderWorkspacePage({
                   minLength={10}
                   value={deliverySummary}
                   onChange={(e) => setDeliverySummary(e.target.value)}
-                  placeholder="Summarize sections covered, referencing applied, word count delivered, and any guidance for review..."
-                  className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  placeholder="Summarize sections completed, word count, and citation format..."
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={submittingDelivery}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900 disabled:opacity-50"
+                className="btn-creator px-5 py-2.5 text-sm gap-2 disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
                 {submittingDelivery
-                  ? "Submitting Delivery..."
+                  ? "Submitting..."
                   : "Deliver to Customer"}
               </button>
             </form>
           )}
 
           {/* Files */}
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-5 bg-white space-y-3">
             <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
               <FileText className="w-4 h-4 text-[#0f766e]" />
-              Order Files & Reference Materials
+              Order Files
             </h2>
             {booking.files.length === 0 ? (
               <p className="text-xs text-stone-500">No attachments yet.</p>
             ) : (
-              <div className="divide-y divide-[#e6e0d4]">
+              <div className="space-y-2.5 text-xs">
                 {booking.files.map((f) => (
                   <div
                     key={f.id}
-                    className="py-2.5 flex items-center justify-between text-xs"
+                    className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
                   >
-                    <div>
-                      <p className="font-medium text-sm">{f.fileName}</p>
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{f.fileName}</p>
                       <p className="text-stone-500">
                         {f.fileCategory.replace(/_/g, " ")} ·{" "}
                         {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
@@ -428,7 +434,7 @@ export default function CreatorOrderWorkspacePage({
                     </div>
                     <a
                       href={`/api/files/${f.id}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e6e0d4] text-[#0f766e] font-semibold"
+                      className="btn-ghost px-3 py-1.5 text-xs text-[#0f766e] gap-1 shrink-0"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Download
@@ -440,18 +446,18 @@ export default function CreatorOrderWorkspacePage({
           </div>
 
           {/* Messages */}
-          <div className="editorial-card p-5 space-y-4">
+          <div className="editorial-card p-5 bg-white space-y-4">
             <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
               <MessageSquare className="w-4 h-4 text-[#0f766e]" />
-              Client Communication
+              Client Thread
             </h2>
             <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
               {booking.messages.map((m) => (
                 <div
                   key={m.id}
-                  className={`p-3 rounded-lg text-sm ${
+                  className={`p-3 rounded-xl text-sm ${
                     m.isSystemMessage
-                      ? "bg-stone-100 border border-stone-200 text-xs text-stone-600"
+                      ? "bg-[#faf7f2] border border-[#e6e0d4] text-xs text-stone-600"
                       : m.sender.id === user?.id
                         ? "bg-teal-50 border border-teal-200 ml-6"
                         : "bg-white border border-[#e6e0d4] mr-6"
@@ -459,7 +465,7 @@ export default function CreatorOrderWorkspacePage({
                 >
                   <div className="flex justify-between text-[11px] text-stone-500 mb-1">
                     <span className="font-semibold text-stone-700">
-                      {m.isSystemMessage ? "System" : m.sender.name}
+                      {m.isSystemMessage ? "Milestone" : m.sender.name}
                     </span>
                     <span>{formatShortDate(m.createdAt)}</span>
                   </div>
@@ -472,12 +478,12 @@ export default function CreatorOrderWorkspacePage({
                 type="text"
                 value={msgText}
                 onChange={(e) => setMsgText(e.target.value)}
-                placeholder="Ask a clarifying question or update the client..."
-                className="flex-1 rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+                placeholder="Clarify or update the client..."
+                className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
               />
               <button
                 type="submit"
-                className="px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold"
+                className="btn-creator px-4 py-2.5 text-xs"
               >
                 Send
               </button>
@@ -487,7 +493,7 @@ export default function CreatorOrderWorkspacePage({
 
         {/* Right Brief Summary */}
         <aside className="space-y-4">
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-5 bg-white space-y-3">
             <h2 className="font-editorial text-base font-semibold flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
               Customer Brief
@@ -495,7 +501,7 @@ export default function CreatorOrderWorkspacePage({
             <dl className="space-y-2 text-xs">
               {Object.entries(booking.requirementsResponses || {}).map(
                 ([k, v]) => (
-                  <div key={k} className="border-b border-[#e6e0d4] pb-2">
+                  <div key={k} className="border-b border-[#e6e0d4] pb-2 last:border-0">
                     <dt className="text-stone-500 capitalize">{k}</dt>
                     <dd className="font-medium mt-0.5 whitespace-pre-wrap">
                       {String(v)}
@@ -507,6 +513,6 @@ export default function CreatorOrderWorkspacePage({
           </div>
         </aside>
       </div>
-    </main>
+    </CreatorShell>
   );
 }

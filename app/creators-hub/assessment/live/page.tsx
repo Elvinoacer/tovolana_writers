@@ -1,5 +1,7 @@
 "use client";
 
+import { ScoreRing } from "@/components/ui/EditorialVisuals";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -186,46 +188,63 @@ export default function LiveAssessmentStudioPage() {
     );
   }
 
+  const totalSecsRemaining = mins * 60 + secs;
+  const maxSeconds = Math.max(60, (config.durationMinutes || 45) * 60);
+  const wordPct = Math.min(
+    100,
+    Math.round((wordCount / Math.max(1, config.maxWords)) * 100)
+  );
+  const inWordBand =
+    wordCount >= config.minWords && wordCount <= config.maxWords;
+
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <div className="editorial-card p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-reveal">
+      <div className="editorial-card p-5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-semibold text-[#0f766e] uppercase tracking-wide flex items-center gap-1.5">
+          <span className="text-[11px] font-tech font-semibold text-[#0f766e] uppercase tracking-wider flex items-center gap-1.5">
             <Feather className="w-3.5 h-3.5" />
-            Automated 6-Criteria Writing Evaluation
+            Zen Vetting Studio · 6-Criteria Exam
           </span>
-          <h1 className="text-2xl font-editorial font-semibold mt-0.5">
+          <h1 className="text-2xl font-editorial font-semibold mt-0.5 text-[#111827]">
             {config.title}
           </h1>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <span className="block text-[11px] text-stone-500">
-              Word Target
-            </span>
-            <span
-              className={`font-tech text-sm font-bold ${
-                wordCount >= config.minWords && wordCount <= config.maxWords
-                  ? "text-emerald-700"
-                  : "text-amber-700"
-              }`}
-            >
-              {wordCount} / {config.minWords}–{config.maxWords}
-            </span>
+        <div className="flex items-center gap-5">
+          <div className="space-y-1 min-w-[140px]">
+            <div className="flex justify-between text-[11px] font-tech">
+              <span className="text-stone-500">Words</span>
+              <span
+                className={`font-bold ${
+                  inWordBand ? "text-emerald-700" : "text-amber-700"
+                }`}
+              >
+                {wordCount} / {config.minWords}–{config.maxWords}
+              </span>
+            </div>
+            <div className="h-2 rounded-full bg-[#f2ede3] overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  inWordBand ? "bg-[#0f766e]" : "bg-amber-600"
+                }`}
+                style={{ width: `${wordPct}%` }}
+              />
+            </div>
           </div>
 
-          <div className="px-3.5 py-2 rounded-lg bg-[#111827] text-white font-tech text-sm flex items-center gap-2">
-            <Clock className="w-4 h-4 text-amber-400" />
-            <span>
-              {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")}
-            </span>
-          </div>
+          <ScoreRing
+            score={totalSecsRemaining}
+            max={maxSeconds}
+            size={64}
+            strokeWidth={5}
+            label={`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`}
+            tone={mins < 5 ? "rose" : "emerald"}
+          />
         </div>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
@@ -233,11 +252,11 @@ export default function LiveAssessmentStudioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <form
           onSubmit={handleSubmit}
-          className="lg:col-span-2 editorial-card p-6 space-y-4"
+          className="lg:col-span-2 editorial-card p-6 sm:p-7 bg-white space-y-5"
         >
-          <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5">
-            <p className="text-xs font-semibold uppercase tracking-wide text-[#0f766e]">
-              Assessment Prompt
+          <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5">
+            <p className="text-[11px] font-tech font-semibold uppercase tracking-wider text-[#0f766e]">
+              Live Evaluation Prompt
             </p>
             <p className="text-sm text-[#111827] leading-relaxed">
               {config.promptText}
@@ -245,49 +264,52 @@ export default function LiveAssessmentStudioPage() {
           </div>
 
           <textarea
-            rows={16}
+            rows={17}
             required
             value={responseText}
             onChange={(e) => setResponseText(e.target.value)}
-            placeholder="Write a clear, well-structured executive response addressing every requirement of the prompt..."
-            className="w-full rounded-xl border border-[#e6e0d4] bg-white p-4 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#0f766e]/25"
+            placeholder="Compose a crisp, structured response addressing every dimension of the prompt..."
+            className="w-full rounded-2xl border border-[#e6e0d4] bg-[#faf7f2]/40 p-5 text-sm leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e]/25 transition-colors"
           />
 
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <p className="text-xs text-stone-500">
-              Instant pass score: {config.passScoreThreshold}/100 · Manual
-              review band: {config.reviewScoreThreshold}–
-              {config.passScoreThreshold - 1}
-            </p>
+            <div className="flex items-center gap-2 text-xs font-tech text-stone-500">
+              <Clock className="w-3.5 h-3.5 text-[#0f766e]" />
+              <span>
+                Instant Unlock ≥{config.passScoreThreshold}/100 · Review Band{" "}
+                {config.reviewScoreThreshold}–{config.passScoreThreshold - 1}
+              </span>
+            </div>
             <button
               type="submit"
               disabled={submitting || wordCount < 30}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900 disabled:opacity-50"
+              className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              {submitting ? "Evaluating Response..." : "Submit for Evaluation"}
+              {submitting ? "Evaluating Craft..." : "Submit Assessment"}
             </button>
           </div>
         </form>
 
         <aside className="space-y-4">
-          <div className="editorial-card p-5 space-y-3">
-            <h2 className="font-editorial text-base font-semibold flex items-center gap-2">
+          <div className="editorial-card p-5 bg-white space-y-4 sticky top-24">
+            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
               <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
               6-Criteria Rubric
             </h2>
-            <ul className="space-y-2 text-xs text-stone-700">
+            <div className="space-y-2">
               {RUBRIC_CRITERIA.map((c) => (
-                <li key={c} className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-[#0f766e] shrink-0" />
+                <div
+                  key={c}
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-medium text-[#111827]"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-[#0f766e] shrink-0" />
                   <span>{c}</span>
-                </li>
+                </div>
               ))}
-            </ul>
+            </div>
             <p className="text-[11px] text-stone-500 pt-2 border-t border-[#e6e0d4]">
-              Scoring {config.passScoreThreshold}+ automatically adds Creator
-              Hub capabilities to your current account — no ID verification
-              delay.
+              Scoring {config.passScoreThreshold}+ adds Creator Hub permissions to your existing account immediately.
             </p>
           </div>
         </aside>

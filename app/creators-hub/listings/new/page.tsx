@@ -1,5 +1,9 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+import { CategoryCoverArt } from "@/components/ui/EditorialVisuals";
+import { formatKes as fmtKes } from "@/components/ui/Badges";
+
 import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -170,289 +174,329 @@ function ListingEditorInner() {
     );
   }
 
+  const selectedCat = categories.find((c) => c.id === categoryId);
+  const catName = selectedCat?.name || "Writing Service";
+  const catSlug = catName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const numericPrice = Math.max(0, Number(basePrice) || 0);
+
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <Link
-        href="/creators-hub/listings"
-        className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-[#111827]"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to My Listings
-      </Link>
+    <CreatorShell
+      title={editSlug ? "Edit Service Listing" : "Create Writing Service"}
+      subtitle={
+        isAdmin
+          ? "Administrator direct publish or save as draft."
+          : "Submit for Administrator moderation review or save as draft."
+      }
+    >
+      <div className="space-y-5">
+        <Link
+          href="/creators-hub/listings"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#111827]"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to My Listings
+        </Link>
 
-      <div className="editorial-card p-6 sm:p-8 space-y-6">
-        <div>
-          <h1 className="text-3xl font-editorial font-semibold">
-            {editSlug ? "Edit Service Listing" : "Create Writing Service Listing"}
-          </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            {isAdmin
-              ? "As an Administrator, you may publish directly or save as a draft."
-              : "Creator-authored listings save as Drafts or submit into Administrator review before appearing publicly."}
-          </p>
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+          <div className="lg:col-span-2 editorial-card p-6 sm:p-8 bg-white space-y-6">
+            {error && (
+              <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+                {error}
+              </div>
+            )}
 
-        {error && (
-          <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
-            {error}
-          </div>
-        )}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  Task / Service Title
+                </label>
+                <input
+                  type="text"
+                  required
+                  minLength={6}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="e.g. MBA Case Study & Financial Ratio Analysis (2,500 Words)"
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Task / Service Title
-            </label>
-            <input
-              type="text"
-              required
-              minLength={6}
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. MBA Case Study & Financial Ratio Analysis (2,500 Words)"
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
-            />
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                    Category
+                  </label>
+                  <select
+                    value={categoryId}
+                    onChange={(e) => setCategoryId(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  >
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                    Service Type
+                  </label>
+                  <input
+                    type="text"
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Category</label>
-              <select
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Service Type
-              </label>
-              <input
-                type="text"
-                value={serviceType}
-                onChange={(e) => setServiceType(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
-              />
-            </div>
-          </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  Short Marketplace Pitch
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={shortDescription}
+                  onChange={(e) => setShortDescription(e.target.value)}
+                  placeholder="Concise summary displayed on discovery cards."
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Short Marketplace Pitch (1–2 sentences)
-            </label>
-            <input
-              type="text"
-              required
-              value={shortDescription}
-              onChange={(e) => setShortDescription(e.target.value)}
-              placeholder="Clear summary displayed on discovery cards."
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
-            />
-          </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  Full Scope &amp; Methodology
+                </label>
+                <textarea
+                  rows={5}
+                  required
+                  value={fullDescription}
+                  onChange={(e) => setFullDescription(e.target.value)}
+                  placeholder="Detail deliverables, citation style, research depth, and boundaries..."
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Full Scope & Methodology Description
-            </label>
-            <textarea
-              rows={5}
-              required
-              value={fullDescription}
-              onChange={(e) => setFullDescription(e.target.value)}
-              placeholder="Detail exactly what the customer receives, formatting conventions, research rigor, and exclusions..."
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
-            />
-          </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Price (KES)
+                  </label>
+                  <input
+                    type="number"
+                    min={100}
+                    value={basePrice}
+                    onChange={(e) => setBasePrice(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Pricing Mode
+                  </label>
+                  <select
+                    value={pricingType}
+                    onChange={(e) =>
+                      setPricingType(e.target.value as "FIXED" | "QUOTE_BASED")
+                    }
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="FIXED">Fixed</option>
+                    <option value="QUOTE_BASED">Quote Based</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Turnaround (d)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={90}
+                    value={deliveryTurnaroundDays}
+                    onChange={(e) => setDeliveryTurnaroundDays(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Revisions
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={10}
+                    value={maxRevisions}
+                    onChange={(e) => setMaxRevisions(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                  />
+                </div>
+              </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Listed Price (KES)
-              </label>
-              <input
-                type="number"
-                min={100}
-                value={basePrice}
-                onChange={(e) => setBasePrice(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Pricing Mode
-              </label>
-              <select
-                value={pricingType}
-                onChange={(e) =>
-                  setPricingType(e.target.value as "FIXED" | "QUOTE_BASED")
-                }
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
-              >
-                <option value="FIXED">Fixed Price</option>
-                <option value="QUOTE_BASED">Quote Based</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Turnaround (Days)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={90}
-                value={deliveryTurnaroundDays}
-                onChange={(e) => setDeliveryTurnaroundDays(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Included Revisions
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={10}
-                value={maxRevisions}
-                onChange={(e) => setMaxRevisions(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
-              />
-            </div>
-          </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Listing Validity Window
+                  </label>
+                  <select
+                    value={validityType}
+                    onChange={(e) =>
+                      setValidityType(
+                        e.target.value as "STANDARD_30D" | "SHORT_14D"
+                      )
+                    }
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="STANDARD_30D">Standard 30 Days</option>
+                    <option value="SHORT_14D">Short Campaign 14 Days</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] text-xs cursor-pointer mt-4 sm:mt-0">
+                  <input
+                    type="checkbox"
+                    checked={manualAcceptanceRequired}
+                    onChange={(e) => setManualAcceptanceRequired(e.target.checked)}
+                  />
+                  <span>Require manual acceptance on orders</span>
+                </label>
+              </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Listing Discovery Validity Window
-              </label>
-              <select
-                value={validityType}
-                onChange={(e) =>
-                  setValidityType(
-                    e.target.value as "STANDARD_30D" | "SHORT_14D"
-                  )
-                }
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
-              >
-                <option value="STANDARD_30D">Standard 30 Days</option>
-                <option value="SHORT_14D">Short Campaign 14 Days</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-2.5 p-3 rounded-lg border border-[#e6e0d4] bg-[#faf7f2] text-xs cursor-pointer mt-4 sm:mt-0">
-              <input
-                type="checkbox"
-                checked={manualAcceptanceRequired}
-                onChange={(e) => setManualAcceptanceRequired(e.target.checked)}
-              />
-              <span>Require manual Creator acceptance on new bookings</span>
-            </label>
-          </div>
-
-          {/* Deliverables */}
-          <div className="space-y-2">
-            <label className="block text-sm font-medium">Deliverables</label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={newDeliverable}
-                onChange={(e) => setNewDeliverable(e.target.value)}
-                placeholder="Add deliverable item..."
-                className="flex-1 rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!newDeliverable.trim()) return;
-                  setDeliverables((p) => [...p, newDeliverable.trim()]);
-                  setNewDeliverable("");
-                }}
-                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-[#e6e0d4] bg-white text-xs font-semibold"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                Add
-              </button>
-            </div>
-            <ul className="space-y-1.5">
-              {deliverables.map((d, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between px-3 py-1.5 rounded bg-stone-50 border border-[#e6e0d4] text-xs"
-                >
-                  <span>{d}</span>
+              {/* Deliverables */}
+              <div className="space-y-2">
+                <label className="block text-sm font-medium">Deliverables</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDeliverable}
+                    onChange={(e) => setNewDeliverable(e.target.value)}
+                    placeholder="Add deliverable..."
+                    className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                  />
                   <button
                     type="button"
-                    onClick={() =>
-                      setDeliverables((p) => p.filter((_, idx) => idx !== i))
-                    }
-                    className="text-stone-400 hover:text-rose-700"
+                    onClick={() => {
+                      if (!newDeliverable.trim()) return;
+                      setDeliverables((p) => [...p, newDeliverable.trim()]);
+                      setNewDeliverable("");
+                    }}
+                    className="btn-ghost px-3 py-2 text-xs gap-1"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Plus className="w-3.5 h-3.5" />
+                    Add
                   </button>
-                </li>
-              ))}
-            </ul>
+                </div>
+                <ul className="space-y-1.5">
+                  {deliverables.map((d, i) => (
+                    <li
+                      key={i}
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs"
+                    >
+                      <span>{d}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDeliverables((p) => p.filter((_, idx) => idx !== i))
+                        }
+                        className="text-stone-400 hover:text-rose-700"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Revision Policy
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={revisionPolicy}
+                    onChange={(e) => setRevisionPolicy(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">
+                    Cancellation Policy
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={cancellationPolicy}
+                    onChange={(e) => setCancellationPolicy(e.target.value)}
+                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap justify-end gap-3 pt-3 border-t border-[#e6e0d4]">
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() => saveListing("DRAFT")}
+                  className="btn-ghost px-4 py-2.5 text-sm gap-1.5"
+                >
+                  <Save className="w-4 h-4" />
+                  Save Draft
+                </button>
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={() =>
+                    saveListing(isAdmin ? "PUBLISH_DIRECT" : "SUBMIT_REVIEW")
+                  }
+                  className="btn-creator px-5 py-2.5 text-sm gap-1.5 disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4" />
+                  {saving
+                    ? "Saving..."
+                    : isAdmin
+                      ? "Publish Directly"
+                      : "Submit for Review"}
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Revision Policy
-              </label>
-              <textarea
-                rows={3}
-                value={revisionPolicy}
-                onChange={(e) => setRevisionPolicy(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
-              />
+          {/* Live Marketplace Card Preview */}
+          <aside className="editorial-card overflow-hidden bg-white sticky top-24">
+            <CategoryCoverArt slug={catSlug} name={catName} heightClass="h-24" />
+            <div className="p-5 space-y-4">
+              <div className="flex items-center justify-between text-[11px] font-tech uppercase text-stone-500">
+                <span>Live Card Preview</span>
+                <span className="text-[#0f766e] font-semibold">
+                  {deliveryTurnaroundDays || 3}d turnaround
+                </span>
+              </div>
+              <h3 className="font-editorial text-lg font-semibold text-[#111827] leading-snug">
+                {title || "Your Writing Service Headline"}
+              </h3>
+              <p className="text-xs text-stone-600 line-clamp-3">
+                {shortDescription || "Your short pitch summarizes deliverables cleanly for customers."}
+              </p>
+              <div className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-stone-600">Listed Rate</span>
+                  <span className="font-tech font-bold text-[#111827]">
+                    {fmtKes(numericPrice, "KES")}
+                  </span>
+                </div>
+                <div className="flex justify-between text-[#0f766e] font-semibold">
+                  <span>Pro Client Saves 50% Fee</span>
+                  <span className="font-tech">
+                    +{fmtKes(Math.round(numericPrice * 0.05), "KES")} margin edge
+                  </span>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Cancellation Policy
-              </label>
-              <textarea
-                rows={3}
-                value={cancellationPolicy}
-                onChange={(e) => setCancellationPolicy(e.target.value)}
-                className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-3 pt-3 border-t border-[#e6e0d4]">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => saveListing("DRAFT")}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-[#e6e0d4] bg-white text-sm font-medium text-stone-700 hover:bg-stone-50"
-            >
-              <Save className="w-4 h-4" />
-              Save as Draft
-            </button>
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() =>
-                saveListing(isAdmin ? "PUBLISH_DIRECT" : "SUBMIT_REVIEW")
-              }
-              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900 disabled:opacity-50"
-            >
-              <Send className="w-4 h-4" />
-              {saving
-                ? "Saving..."
-                : isAdmin
-                  ? "Publish Directly (Admin)"
-                  : "Submit for Admin Review"}
-            </button>
-          </div>
+          </aside>
         </div>
       </div>
-    </main>
+    </CreatorShell>
   );
 }
 

@@ -1,8 +1,8 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
-  Award,
   CheckCircle2,
   ClipboardCheck,
   FileText,
@@ -11,8 +11,18 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { ScoreRing } from "@/components/ui/EditorialVisuals";
 
 export const dynamic = "force-dynamic";
+
+const RUBRIC_RINGS = [
+  { label: "Grammar & Mechanics", pct: 25, tone: "emerald" as const },
+  { label: "Coherence & Flow", pct: 20, tone: "blue" as const },
+  { label: "Brief Adherence", pct: 20, tone: "emerald" as const },
+  { label: "Originality", pct: 15, tone: "gold" as const },
+  { label: "Tone & Format", pct: 10, tone: "blue" as const },
+  { label: "Research Accuracy", pct: 10, tone: "gold" as const },
+];
 
 export default async function CreatorsHubJoinPage() {
   const [user, assessmentConfig] = await Promise.all([
@@ -27,122 +37,137 @@ export default async function CreatorsHubJoinPage() {
     : `/auth?callbackUrl=${encodeURIComponent("/creators-hub/onboarding")}`;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
-      <div className="editorial-card p-8 sm:p-10 bg-white grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        <div className="lg:col-span-8 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12 animate-reveal">
+      {/* Studio Hero */}
+      <div className="editorial-card p-6 sm:p-10 bg-white ink-grid-bg grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="lg:col-span-6 space-y-5">
+          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200 text-xs font-semibold">
             <Sparkles className="w-3.5 h-3.5" />
-            Creators Hub Entry (Screen 1.6) · Zero Paperwork Barrier
-          </div>
-          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold text-[#111827] leading-tight">
-            Prove your writing craft once. Publish scoped services on your existing account.
+            Zero ID Cards · Zero Certificate Uploads
+          </span>
+
+          <h1 className="font-editorial text-3xl sm:text-5xl font-semibold text-[#111827] leading-[1.08]">
+            Qualify by writing craft. Publish on one account.
           </h1>
-          <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-2xl">
-            No separate login required. Joining the Creators Hub upgrades your
-            active Tovolana account after passing an automated{" "}
-            {assessmentConfig?.durationMinutes ?? 45}-minute, 6-criteria writing
-            evaluation.{" "}
-            <strong>
-              No government ID or academic certificates are required.
-            </strong>
+
+          <p className="text-sm sm:text-base text-stone-600 leading-relaxed max-w-xl">
+            Complete your writer profile and pass a{" "}
+            <strong className="text-[#111827]">
+              {assessmentConfig?.durationMinutes ?? 45}-minute
+            </strong>{" "}
+            6-criteria writing check (score &ge;{" "}
+            {assessmentConfig?.passScoreThreshold ?? 75}%) to unlock Creators
+            Hub immediately.
           </p>
-          <div className="pt-2 flex flex-wrap gap-3">
-            <Link
-              href={ctaHref}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-teal-800 text-white text-sm font-semibold hover:bg-teal-900 transition-colors"
-            >
-              {user?.roles.includes("CREATOR")
-                ? "Open Creators Hub"
-                : "Start Creator Assessment Onboarding"}
+
+          <div className="flex flex-wrap gap-3 pt-1">
+            <Link href={ctaHref} className="btn-creator px-6 py-3 text-sm">
+              <span>
+                {user?.roles.includes("CREATOR")
+                  ? "Open Creators Studio"
+                  : "Start Writer Assessment"}
+              </span>
               <ArrowRight className="w-4 h-4" />
             </Link>
-            <Link
-              href="/policies#integrity"
-              className="px-5 py-3 rounded-xl border border-[#e6e0d4] text-sm font-semibold hover:bg-stone-50"
-            >
-              Read Academic Integrity Charter
+            <Link href="/policies#integrity" className="btn-ghost px-5 py-3 text-sm">
+              Integrity Charter
             </Link>
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-3 bg-[#faf7f2] p-5 rounded-xl border border-[#e6e0d4]">
-          <p className="text-xs font-tech uppercase tracking-wider text-stone-500">
-            Active Assessment Rubric
-          </p>
-          <div className="space-y-2 text-xs">
-            {[
-              ["Grammar & Mechanics", "25%"],
-              ["Coherence & Structure", "20%"],
-              ["Instruction & Word Count Adherence", "20%"],
-              ["Originality & Expression", "15%"],
-              ["Tone & Formatting", "10%"],
-              ["Research & Citation Accuracy", "10%"],
-            ].map(([label, weight]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between py-1.5 border-b border-[#e6e0d4] last:border-0"
-              >
-                <span className="font-medium text-stone-800">{label}</span>
-                <span className="font-tech font-semibold text-teal-800">
-                  {weight}
-                </span>
-              </div>
-            ))}
+        <div className="lg:col-span-6">
+          <div className="rounded-2xl overflow-hidden border border-[#e6e0d4] bg-[#faf7f2] p-2">
+            <Image
+              src="/images/creator-studio.svg"
+              alt="Creators Hub merit assessment rubric and M-Pesa payouts overview"
+              width={560}
+              height={400}
+              priority
+              className="w-full h-auto rounded-xl"
+            />
           </div>
-          <p className="text-[11px] text-stone-500 pt-1">
-            Score &ge; {assessmentConfig?.passScoreThreshold ?? 75}% unlocks
-            Creators Hub immediately. Scores 60–74% route to editorial admin
-            review.
-          </p>
         </div>
       </div>
 
+      {/* Visual 6-Criteria Radial Rubric */}
+      <section className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h2 className="font-editorial text-2xl font-semibold">
+            Automated 6-Criteria Scoring Matrix
+          </h2>
+          <span className="text-xs font-tech text-[#0f766e] bg-teal-50 px-3 py-1 rounded-full border border-teal-200 font-semibold">
+            {assessmentConfig?.passScoreThreshold ?? 75}% Auto-Unlock · 60–74% Editorial Review
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 text-center">
+          {RUBRIC_RINGS.map((item) => (
+            <div
+              key={item.label}
+              className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] flex flex-col items-center gap-2"
+            >
+              <ScoreRing
+                score={item.pct * 4}
+                label={`${item.pct}%`}
+                size={74}
+                tone={item.tone}
+              />
+              <span className="text-xs font-semibold text-[#111827] leading-tight">
+                {item.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3-Step Visual Journey */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="editorial-card p-6 space-y-2.5">
-          <ClipboardCheck className="w-6 h-6 text-teal-700" />
+        <div className="editorial-card p-6 space-y-3">
+          <span className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200 text-[#0f766e] flex items-center justify-center">
+            <ClipboardCheck className="w-5 h-5" />
+          </span>
           <h3 className="font-editorial text-lg font-semibold">
-            1. Single Account Roles
+            Unified Account Role
           </h3>
-          <p className="text-sm text-stone-600">
-            Keep booking as a customer while selling services as a Creator under
-            one unified credential &amp; notification center.
+          <p className="text-xs text-stone-600 leading-relaxed">
+            Book as a customer and earn as a Creator using the exact same
+            session and alerts.
           </p>
         </div>
-        <div className="editorial-card p-6 space-y-2.5">
-          <FileText className="w-6 h-6 text-[#1e3a8a]" />
+
+        <div className="editorial-card p-6 space-y-3">
+          <span className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200 text-[#1e3a8a] flex items-center justify-center">
+            <FileText className="w-5 h-5" />
+          </span>
           <h3 className="font-editorial text-lg font-semibold">
-            2. Structured Moderation
+            Scoped Publishing
           </h3>
-          <p className="text-sm text-stone-600">
-            Save drafts or submit listings for administrator approval with clear
-            14-day or 30-day public validity dates.
+          <p className="text-xs text-stone-600 leading-relaxed">
+            Draft services with clear prerequisites, deliverables, and 14d or
+            30d public validity windows.
           </p>
         </div>
-        <div className="editorial-card p-6 space-y-2.5">
-          <Wallet className="w-6 h-6 text-amber-700" />
+
+        <div className="editorial-card p-6 space-y-3">
+          <span className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 flex items-center justify-center">
+            <Wallet className="w-5 h-5" />
+          </span>
           <h3 className="font-editorial text-lg font-semibold">
-            3. Escrow-Backed Earnings
+            Escrow to M-Pesa B2C
           </h3>
-          <p className="text-sm text-stone-600">
-            Every paid order enters protected escrow and unlocks straight into
-            your available balance upon customer completion, withdrawable via
-            M-Pesa.
+          <p className="text-xs text-stone-600 leading-relaxed">
+            Approved deliveries credit your available balance instantly for
+            direct M-Pesa payout.
           </p>
         </div>
       </div>
 
-      <div className="editorial-card p-6 bg-white flex items-start gap-3">
-        <Award className="w-5 h-5 text-teal-700 shrink-0 mt-0.5" />
-        <div className="text-sm text-stone-700 space-y-1">
-          <p className="font-semibold text-[#111827]">
-            Important Creator Safeguards
-          </p>
-          <p className="flex items-center gap-1.5 text-xs text-stone-600">
-            <CheckCircle2 className="w-3.5 h-3.5 text-teal-700 shrink-0" />
-            Creators retain full focus on craft: platform administrators manage
-            payment verification, refunds, and financial records cleanly.
-          </p>
-        </div>
+      <div className="editorial-card p-5 bg-teal-50/50 border-teal-200 flex items-center gap-3 text-xs text-teal-950">
+        <CheckCircle2 className="w-5 h-5 text-[#0f766e] shrink-0" />
+        <span>
+          Creators focus purely on craft — Tovolana handles IntaSend checkout
+          verification, escrow protection, and dispute auditing.
+        </span>
       </div>
     </div>
   );

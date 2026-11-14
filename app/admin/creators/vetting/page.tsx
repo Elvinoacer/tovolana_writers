@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CreatorAvatar,
+  ScoreRing,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ShieldCheck, XCircle } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
@@ -104,25 +109,35 @@ export default function AdminCreatorVettingPage() {
       ) : (
         <div className="space-y-4">
           {attempts.map((a) => (
-            <div key={a.id} className="editorial-card p-6 space-y-4">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <StatusPill status={a.autoDecision} />
-                    <span className="font-tech text-xs text-stone-500">
-                      @{a.creatorProfile.username} ({a.creatorProfile.user.email})
-                    </span>
+            <div key={a.id} className="editorial-card p-6 bg-white space-y-5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div className="flex items-center gap-3.5">
+                  <CreatorAvatar
+                    name={a.creatorProfile.displayName}
+                    username={a.creatorProfile.username}
+                    size="md"
+                  />
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <StatusPill status={a.autoDecision} />
+                      <span className="font-tech text-xs text-stone-500">
+                        @{a.creatorProfile.username} ({a.creatorProfile.user.email})
+                      </span>
+                    </div>
+                    <h2 className="font-editorial text-xl font-semibold mt-1">
+                      {a.creatorProfile.displayName} — {a.config.title}
+                    </h2>
                   </div>
-                  <h2 className="font-editorial text-xl font-semibold mt-1">
-                    {a.creatorProfile.displayName} — {a.config.title}
-                  </h2>
                 </div>
-                <span className="font-tech text-2xl font-bold text-[#1e3a8a]">
-                  {a.totalScore}/100
-                </span>
+                <ScoreRing
+                  score={a.totalScore ?? 0}
+                  size={74}
+                  strokeWidth={6}
+                  tone={(a.totalScore ?? 0) >= 75 ? "emerald" : "gold"}
+                />
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 text-xs">
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
                 {[
                   ["Grammar", a.grammarScore],
                   ["Coherence", a.coherenceScore],
@@ -130,21 +145,32 @@ export default function AdminCreatorVettingPage() {
                   ["Originality", a.originalityScore],
                   ["Tone", a.toneScore],
                   ["Research", a.researchScore],
-                ].map(([label, val]) => (
-                  <div
-                    key={String(label)}
-                    className="p-2 rounded bg-[#faf7f2] border border-[#e6e0d4] text-center"
-                  >
-                    <span className="block text-stone-500">{label}</span>
-                    <span className="font-tech font-bold">
-                      {Math.round(Number(val ?? 0))}%
-                    </span>
-                  </div>
-                ))}
+                ].map(([label, val]) => {
+                  const pct = Math.min(100, Math.max(0, Math.round(Number(val ?? 0))));
+                  return (
+                    <div
+                      key={String(label)}
+                      className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-stone-600">{label}</span>
+                        <span className="font-tech font-bold text-[#0f766e]">
+                          {pct}%
+                        </span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                        <div
+                          className="h-full bg-[#0f766e] rounded-full"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {a.responseText && (
-                <p className="text-xs text-stone-700 bg-stone-50 p-3 rounded border border-[#e6e0d4] whitespace-pre-wrap max-h-40 overflow-y-auto">
+                <p className="text-xs text-stone-700 bg-[#faf7f2] p-4 rounded-xl border border-[#e6e0d4] whitespace-pre-wrap max-h-40 overflow-y-auto">
                   {a.responseText}
                 </p>
               )}
@@ -156,19 +182,19 @@ export default function AdminCreatorVettingPage() {
                   onChange={(e) =>
                     setNotes((p) => ({ ...p, [a.id]: e.target.value }))
                   }
-                  placeholder="Moderator evaluation note..."
-                  className="flex-1 rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                  placeholder="Moderator calibration note..."
+                  className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
                 />
                 <button
                   onClick={() => overrideDecision(a.id, "APPROVED")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold"
+                  className="btn-creator px-4 py-2 text-xs gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Approve Creator
                 </button>
                 <button
                   onClick={() => overrideDecision(a.id, "REJECTED")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-rose-300 bg-white text-rose-700 text-xs font-semibold"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors"
                 >
                   <XCircle className="w-3.5 h-3.5" />
                   Reject

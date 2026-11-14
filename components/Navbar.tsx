@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import { ProBadge } from "@/components/ui/Badges";
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
 export function Navbar() {
   const { user, unreadNotifications, refresh, logout } = useAuth();
@@ -76,6 +77,7 @@ export function Navbar() {
         body: JSON.stringify({ email, password: "Password123!" }),
       });
       await refresh();
+      setMobileOpen(false);
       router.push(redirectTo);
       router.refresh();
     } finally {
@@ -83,35 +85,38 @@ export function Navbar() {
     }
   }
 
-  const navLinkClass = (prefix: string) =>
-    `px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+  const navLinkClass = (prefix: string) => {
+    const active =
       pathname === prefix ||
-      (prefix !== "/" && pathname?.startsWith(prefix))
-        ? "bg-[#1e3a8a]/10 text-[#1e3a8a]"
-        : "text-stone-700 hover:text-[#111827] hover:bg-stone-200/60"
+      (prefix !== "/" && pathname?.startsWith(prefix));
+    return `px-3.5 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all ${
+      active
+        ? "bg-[#111827] text-white shadow-xs"
+        : "text-stone-700 hover:text-[#111827] hover:bg-stone-200/70"
     }`;
+  };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-[#e6e0d4] bg-[#faf7f2]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 border-b border-[#e6e0d4]/80 glass-surface">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <span className="w-9 h-9 rounded-lg bg-[#1e3a8a] text-white flex items-center justify-center shadow-sm group-hover:bg-[#172554] transition-colors">
-              <Feather className="w-5 h-5" />
+            <span className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#1e3a8a] to-[#172554] text-white flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <Feather className="w-4.5 h-4.5" />
             </span>
             <div>
               <span className="font-editorial text-lg font-semibold tracking-tight text-[#111827] block leading-none">
-                Tovolana Writers
+                Tovolana
               </span>
-              <span className="text-[11px] uppercase tracking-widest text-stone-500 font-tech">
-                Editorial Marketplace
+              <span className="text-[10px] uppercase tracking-[0.18em] text-stone-500 font-tech">
+                Writers Studio
               </span>
             </div>
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-1 bg-white/75 border border-[#e6e0d4] rounded-full p-1">
             <Link href="/explore" className={navLinkClass("/explore")}>
-              Explore Tasks
+              Explore
             </Link>
             <Link href="/membership" className={navLinkClass("/membership")}>
               Free &amp; Pro
@@ -120,7 +125,7 @@ export function Navbar() {
               href="/creators-hub/join"
               className={navLinkClass("/creators-hub/join")}
             >
-              Become a Creator
+              Creators
             </Link>
             <Link href="/policies" className={navLinkClass("/policies")}>
               Policies
@@ -128,66 +133,82 @@ export function Navbar() {
           </nav>
         </div>
 
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden md:flex items-center gap-2.5">
           {user ? (
             <>
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-stone-800 hover:bg-stone-200/60"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                  pathname?.startsWith("/dashboard")
+                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                    : "bg-white text-stone-800 border-[#e6e0d4] hover:bg-stone-100"
+                }`}
               >
-                <LayoutDashboard className="w-4 h-4 text-[#1e3a8a]" />
+                <LayoutDashboard className="w-3.5 h-3.5" />
                 <span>Customer</span>
               </Link>
 
               <Link
                 href={isCreator ? "/creators-hub" : "/creators-hub/onboarding"}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-teal-900 bg-teal-50 border border-teal-200 hover:bg-teal-100"
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                  pathname?.startsWith("/creators-hub") &&
+                  pathname !== "/creators-hub/join"
+                    ? "bg-[#0f766e] text-white border-[#0f766e]"
+                    : "bg-teal-50/90 text-teal-900 border-teal-200 hover:bg-teal-100"
+                }`}
               >
-                <BookOpenCheck className="w-4 h-4 text-teal-700" />
+                <BookOpenCheck className="w-3.5 h-3.5" />
                 <span>Creators Hub</span>
               </Link>
 
               {isAdmin && (
                 <Link
                   href="/admin"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium text-amber-950 bg-amber-50 border border-amber-200 hover:bg-amber-100"
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                    pathname?.startsWith("/admin")
+                      ? "bg-[#111827] text-white border-[#111827]"
+                      : "bg-amber-50 text-amber-950 border-amber-200 hover:bg-amber-100"
+                  }`}
                 >
-                  <Shield className="w-4 h-4 text-amber-800" />
-                  <span>Admin Console</span>
+                  <Shield className="w-3.5 h-3.5" />
+                  <span>Admin</span>
                 </Link>
               )}
 
               <div className="relative">
                 <button
                   onClick={toggleNotifications}
-                  className="relative p-2 rounded-lg border border-[#e6e0d4] bg-white hover:bg-stone-50"
+                  className="relative p-2 rounded-xl border border-[#e6e0d4] bg-white hover:bg-stone-50 transition-colors"
                   aria-label="Notifications"
                 >
                   <Bell className="w-4 h-4 text-stone-700" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
-                      {unreadNotifications}
-                    </span>
+                    <>
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 animate-pulse-ring" />
+                      <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px] font-bold flex items-center justify-center">
+                        {unreadNotifications}
+                      </span>
+                    </>
                   )}
                 </button>
 
                 {notifOpen && (
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 editorial-card p-3 shadow-xl z-50">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 editorial-card p-3 shadow-xl z-50 animate-reveal">
                     <div className="flex items-center justify-between pb-2 border-b border-[#e6e0d4]">
-                      <span className="text-sm font-semibold">
-                        Notifications
+                      <span className="text-xs font-semibold uppercase tracking-wider font-tech text-stone-700">
+                        Alerts &amp; Activity
                       </span>
                       <button
                         onClick={markAllRead}
-                        className="text-xs text-[#1e3a8a] hover:underline"
+                        className="text-xs font-medium text-[#1e3a8a] hover:underline"
                       >
                         Mark all read
                       </button>
                     </div>
                     <div className="max-h-72 overflow-y-auto divide-y divide-stone-100 mt-1">
                       {notifs.length === 0 ? (
-                        <p className="text-xs text-stone-500 py-4 text-center">
-                          No notifications yet.
+                        <p className="text-xs text-stone-500 py-6 text-center">
+                          All caught up.
                         </p>
                       ) : (
                         notifs.map((n) => (
@@ -195,14 +216,14 @@ export function Navbar() {
                             key={n.id}
                             href={n.linkUrl || "/dashboard"}
                             onClick={() => setNotifOpen(false)}
-                            className={`block py-2.5 px-2 rounded hover:bg-stone-50 ${
-                              !n.readAt ? "bg-blue-50/40" : ""
+                            className={`block py-2.5 px-2.5 rounded-lg hover:bg-stone-50 transition-colors ${
+                              !n.readAt ? "bg-blue-50/50" : ""
                             }`}
                           >
                             <p className="text-xs font-semibold text-stone-900">
                               {n.title}
                             </p>
-                            <p className="text-xs text-stone-600 line-clamp-2 mt-0.5">
+                            <p className="text-[11px] text-stone-600 line-clamp-2 mt-0.5">
                               {n.body}
                             </p>
                           </Link>
@@ -213,27 +234,30 @@ export function Navbar() {
                 )}
               </div>
 
-              <div className="flex items-center gap-2 pl-2 border-l border-[#e6e0d4]">
-                <div className="text-right">
-                  <div className="flex items-center justify-end gap-1.5">
-                    <span className="text-xs font-semibold text-[#111827]">
-                      {user.name.split(" ")[0]}
-                    </span>
-                    {user.membershipTier === "PRO" ? (
-                      <ProBadge />
-                    ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-stone-200 text-stone-700 font-medium">
-                        FREE
+              <div className="flex items-center gap-2.5 pl-2.5 border-l border-[#e6e0d4]">
+                <Link
+                  href="/dashboard/settings"
+                  className="flex items-center gap-2 hover:opacity-85 transition-opacity"
+                >
+                  <CreatorAvatar name={user.name} size="sm" />
+                  <div className="leading-tight">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-[#111827]">
+                        {user.name.split(" ")[0]}
                       </span>
-                    )}
+                      {user.membershipTier === "PRO" ? (
+                        <ProBadge />
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-stone-200/80 text-stone-700 font-tech font-medium">
+                          FREE
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-stone-500 block max-w-[110px] truncate">
+                      {user.email}
+                    </span>
                   </div>
-                  <Link
-                    href="/dashboard/settings"
-                    className="text-[11px] text-stone-500 hover:underline block"
-                  >
-                    {user.email}
-                  </Link>
-                </div>
+                </Link>
                 <button
                   onClick={async () => {
                     await logout();
@@ -241,7 +265,8 @@ export function Navbar() {
                     router.refresh();
                   }}
                   title="Sign out"
-                  className="p-2 rounded-lg text-stone-600 hover:text-rose-700 hover:bg-rose-50"
+                  aria-label="Sign out"
+                  className="p-2 rounded-xl text-stone-500 hover:text-rose-700 hover:bg-rose-50 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -252,39 +277,48 @@ export function Navbar() {
               <div className="relative group">
                 <button
                   disabled={switching}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#e6e0d4] bg-white text-xs font-medium text-stone-700 hover:bg-stone-50"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#e6e0d4] bg-white text-xs font-medium text-stone-700 hover:bg-stone-50 transition-colors"
                 >
                   <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-                  Demo Switch
+                  <span>Quick Persona</span>
                   <ChevronDown className="w-3.5 h-3.5" />
                 </button>
-                <div className="hidden group-hover:block absolute right-0 top-full pt-1 w-56 z-50">
-                  <div className="editorial-card p-1.5 shadow-lg space-y-0.5 text-xs">
+                <div className="hidden group-hover:block absolute right-0 top-full pt-1.5 w-64 z-50">
+                  <div className="editorial-card p-2 shadow-xl space-y-1 text-xs">
                     <button
                       onClick={() =>
                         quickSwitchDemo("free.customer@tovolana.com", "/dashboard")
                       }
-                      className="w-full text-left px-2.5 py-2 rounded hover:bg-stone-100 flex items-center justify-between"
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-stone-100 flex items-center justify-between"
                     >
-                      <span>Free Customer (Brian)</span>
-                      <span className="text-stone-400">FREE</span>
+                      <span className="flex items-center gap-2">
+                        <CreatorAvatar name="Brian Mwangi" size="sm" />
+                        <span>Brian · Free Client</span>
+                      </span>
+                      <span className="text-[10px] font-tech text-stone-500">FREE</span>
                     </button>
                     <button
                       onClick={() =>
                         quickSwitchDemo("pro.customer@tovolana.com", "/dashboard")
                       }
-                      className="w-full text-left px-2.5 py-2 rounded hover:bg-stone-100 flex items-center justify-between"
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-amber-50 flex items-center justify-between"
                     >
-                      <span>Pro Customer (Grace)</span>
+                      <span className="flex items-center gap-2">
+                        <CreatorAvatar name="Grace Njeri" size="sm" />
+                        <span>Grace · Pro Client</span>
+                      </span>
                       <Crown className="w-3.5 h-3.5 text-amber-600" />
                     </button>
                     <button
                       onClick={() =>
                         quickSwitchDemo("creator@tovolana.com", "/creators-hub")
                       }
-                      className="w-full text-left px-2.5 py-2 rounded hover:bg-stone-100 flex items-center justify-between"
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-teal-50 flex items-center justify-between"
                     >
-                      <span>Vetted Creator (Amara)</span>
+                      <span className="flex items-center gap-2">
+                        <CreatorAvatar name="Amara Ochieng" size="sm" available />
+                        <span>Amara · Vetted Creator</span>
+                      </span>
                       <UserCheck className="w-3.5 h-3.5 text-teal-700" />
                     </button>
                     <button
@@ -294,17 +328,18 @@ export function Navbar() {
                           "/creators-hub/onboarding"
                         )
                       }
-                      className="w-full text-left px-2.5 py-2 rounded hover:bg-stone-100"
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-stone-100 flex items-center gap-2"
                     >
-                      Applicant (Faith — Assessment)
+                      <CreatorAvatar name="Faith Wambui" size="sm" />
+                      <span>Faith · Exam Applicant</span>
                     </button>
                     <button
                       onClick={() =>
                         quickSwitchDemo("admin@tovolana.com", "/admin")
                       }
-                      className="w-full text-left px-2.5 py-2 rounded hover:bg-amber-50 text-amber-900 font-medium flex items-center justify-between"
+                      className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-blue-50 text-[#1e3a8a] font-semibold flex items-center justify-between"
                     >
-                      <span>Administrator Console</span>
+                      <span>Admin Command Console</span>
                       <Shield className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -312,9 +347,9 @@ export function Navbar() {
               </div>
               <Link
                 href="/auth"
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-[#1e3a8a] text-white hover:bg-[#172554] transition-colors"
+                className="btn-primary px-4 py-2 text-xs sm:text-sm"
               >
-                Sign In / Join
+                Sign In
               </Link>
             </div>
           )}
@@ -322,7 +357,7 @@ export function Navbar() {
 
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
-          className="md:hidden p-2 rounded-lg border border-[#e6e0d4] bg-white"
+          className="md:hidden p-2 rounded-xl border border-[#e6e0d4] bg-white"
           aria-label="Toggle Menu"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -330,34 +365,34 @@ export function Navbar() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-[#e6e0d4] bg-[#faf7f2] px-4 py-4 space-y-2">
+        <div className="md:hidden border-t border-[#e6e0d4] bg-[#faf7f2] px-4 py-4 space-y-2 animate-reveal">
           <Link
             href="/explore"
             onClick={() => setMobileOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium hover:bg-stone-200/60"
+            className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
           >
             Explore Services
           </Link>
           <Link
             href="/membership"
             onClick={() => setMobileOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium hover:bg-stone-200/60"
+            className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
           >
-            Free &amp; Pro Membership
+            Free &amp; Pro Plans
           </Link>
           <Link
             href="/creators-hub/join"
             onClick={() => setMobileOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium hover:bg-stone-200/60"
+            className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
           >
             Become a Creator
           </Link>
           <Link
             href="/policies"
             onClick={() => setMobileOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-medium hover:bg-stone-200/60"
+            className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
           >
-            Platform Policies
+            Policies
           </Link>
           <hr className="border-[#e6e0d4]" />
           {user ? (
@@ -365,14 +400,14 @@ export function Navbar() {
               <Link
                 href="/dashboard"
                 onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-[#1e3a8a]"
+                className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-[#1e3a8a]"
               >
-                Customer Dashboard
+                Customer Workspace
               </Link>
               <Link
                 href={isCreator ? "/creators-hub" : "/creators-hub/onboarding"}
                 onClick={() => setMobileOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm font-medium text-teal-800"
+                className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-teal-800"
               >
                 Creators Hub
               </Link>
@@ -380,7 +415,7 @@ export function Navbar() {
                 <Link
                   href="/admin"
                   onClick={() => setMobileOpen(false)}
-                  className="block px-3 py-2 rounded-lg text-sm font-medium text-amber-900"
+                  className="block px-3 py-2.5 rounded-xl text-sm font-semibold text-amber-900"
                 >
                   Admin Console
                 </Link>
@@ -391,7 +426,7 @@ export function Navbar() {
                   setMobileOpen(false);
                   router.push("/");
                 }}
-                className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-rose-700"
+                className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-medium text-rose-700"
               >
                 Sign Out
               </button>
@@ -400,7 +435,7 @@ export function Navbar() {
             <Link
               href="/auth"
               onClick={() => setMobileOpen(false)}
-              className="block text-center px-4 py-2.5 rounded-lg text-sm font-semibold bg-[#1e3a8a] text-white"
+              className="btn-primary w-full py-2.5 text-sm"
             >
               Sign In / Create Account
             </Link>

@@ -3,7 +3,7 @@
 import React, { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CheckCircle2, MailCheck, Smartphone } from "lucide-react";
+import { CheckCircle2, MailCheck, ShieldCheck, Smartphone } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 
 function VerifyCenterInner() {
@@ -33,12 +33,12 @@ function VerifyCenterInner() {
       setEmailStatus(json.error?.message || "Invalid verification token.");
       return;
     }
-    setEmailStatus("Email verified cleanly!");
+    setEmailStatus("Email verified cleanly.");
     await refresh();
   }
 
   async function resendEmailToken() {
-    setEmailStatus("Generating new token...");
+    setEmailStatus("Generating token...");
     const res = await fetch("/api/auth/verify-email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,7 +52,7 @@ function VerifyCenterInner() {
     if (json.data?.verificationPreviewToken) {
       setEmailToken(json.data.verificationPreviewToken);
     }
-    setEmailStatus("Verification email queued in outbox.");
+    setEmailStatus("Verification token ready.");
   }
 
   async function sendPhoneOtp() {
@@ -70,12 +70,12 @@ function VerifyCenterInner() {
     if (json.data?.sandboxOtpPreview) {
       setOtpPreview(json.data.sandboxOtpPreview);
     }
-    setPhoneStatus(`OTP dispatched to ${json.data.phone} (expires in 10m).`);
+    setPhoneStatus(`Sent to ${json.data.phone} (10m window).`);
   }
 
   async function verifyPhoneCode(e: React.FormEvent) {
     e.preventDefault();
-    setPhoneStatus("Checking OTP...");
+    setPhoneStatus("Checking code...");
     const res = await fetch("/api/auth/otp/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -86,19 +86,25 @@ function VerifyCenterInner() {
       setPhoneStatus(json.error?.message || "OTP verification failed.");
       return;
     }
-    setPhoneStatus("Phone number verified cleanly!");
+    setPhoneStatus("Phone verified cleanly.");
     await refresh();
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-6">
-      <div>
-        <p className="text-xs font-tech uppercase tracking-wider text-[#1e3a8a]">
-          Identity Verification Center (Screen 2.2)
-        </p>
-        <h1 className="font-editorial text-3xl font-semibold mt-1">
-          Dual-Channel Email &amp; Phone OTP Verification
-        </h1>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6 animate-reveal">
+      <div className="editorial-card p-6 bg-white ink-grid-bg flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider text-[#1e3a8a]">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Security Trust Center
+          </span>
+          <h1 className="font-editorial text-3xl font-semibold mt-1 text-[#111827]">
+            Verify Email &amp; M-Pesa Phone
+          </h1>
+        </div>
+        <Link href="/dashboard/settings" className="btn-ghost px-4 py-2 text-xs">
+          Back to Settings
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -106,10 +112,10 @@ function VerifyCenterInner() {
           <div className="flex items-center justify-between">
             <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
               <MailCheck className="w-5 h-5 text-[#1e3a8a]" />
-              Email Verification
+              Email Token
             </h2>
             {user?.emailVerified && (
-              <span className="inline-flex items-center gap-1 text-xs text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0f766e] bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Verified
               </span>
@@ -120,23 +126,20 @@ function VerifyCenterInner() {
               type="text"
               value={emailToken}
               onChange={(e) => setEmailToken(e.target.value)}
-              placeholder="Paste email verification token"
-              className="w-full px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+              placeholder="Paste verification token"
+              className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
             />
             <div className="flex gap-2">
-              <button
-                type="submit"
-                className="flex-1 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554]"
-              >
-                Verify Email Token
+              <button type="submit" className="btn-primary flex-1 py-2.5 text-xs">
+                Verify Email
               </button>
               {user && (
                 <button
                   type="button"
                   onClick={resendEmailToken}
-                  className="px-3 py-2.5 rounded-lg border border-[#e6e0d4] text-xs font-semibold hover:bg-stone-50"
+                  className="btn-ghost px-3.5 py-2.5 text-xs"
                 >
-                  Generate Token
+                  Generate
                 </button>
               )}
             </div>
@@ -149,11 +152,11 @@ function VerifyCenterInner() {
         <div className="editorial-card p-6 bg-white space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-teal-700" />
+              <Smartphone className="w-5 h-5 text-[#0f766e]" />
               Phone SMS OTP
             </h2>
             {user?.phoneVerified && (
-              <span className="inline-flex items-center gap-1 text-xs text-teal-800 bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
+              <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#0f766e] bg-teal-50 px-2.5 py-0.5 rounded-full border border-teal-200">
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 Verified
               </span>
@@ -161,10 +164,10 @@ function VerifyCenterInner() {
           </div>
           {!user ? (
             <p className="text-xs text-stone-600">
-              <Link href="/auth" className="text-[#1e3a8a] underline">
-                Sign in first
+              <Link href="/auth" className="text-[#1e3a8a] font-semibold underline">
+                Sign in
               </Link>{" "}
-              to request and verify your phone OTP.
+              to verify your M-Pesa phone number.
             </p>
           ) : (
             <>
@@ -174,19 +177,19 @@ function VerifyCenterInner() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="0712345678"
-                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                  className="flex-1 px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
                 />
                 <button
                   type="button"
                   onClick={sendPhoneOtp}
-                  className="px-3.5 py-2 rounded-lg bg-teal-800 text-white text-xs font-semibold hover:bg-teal-900"
+                  className="btn-creator px-4 py-2.5 text-xs"
                 >
                   Send OTP
                 </button>
               </div>
               {otpPreview && (
-                <p className="text-xs font-tech bg-amber-50 border border-amber-200 p-2 rounded text-amber-900">
-                  Sandbox OTP Preview: <strong>{otpPreview}</strong>
+                <p className="text-xs font-tech bg-amber-50 border border-amber-200 p-2.5 rounded-xl text-amber-900">
+                  Sandbox OTP: <strong>{otpPreview}</strong>
                 </p>
               )}
               <form onSubmit={verifyPhoneCode} className="flex gap-2">
@@ -195,20 +198,15 @@ function VerifyCenterInner() {
                   maxLength={6}
                   value={otpCode}
                   onChange={(e) => setOtpCode(e.target.value)}
-                  placeholder="6-digit code"
-                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                  placeholder="6-digit OTP"
+                  className="flex-1 px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
                 />
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg bg-[#111827] text-white text-xs font-semibold"
-                >
+                <button type="submit" className="btn-dark px-4 py-2.5 text-xs">
                   Verify Code
                 </button>
               </form>
               {phoneStatus && (
-                <p className="text-xs font-medium text-stone-700">
-                  {phoneStatus}
-                </p>
+                <p className="text-xs font-medium text-stone-700">{phoneStatus}</p>
               )}
             </>
           )}

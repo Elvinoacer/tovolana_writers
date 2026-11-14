@@ -7,6 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isUserProActive } from "@/lib/pricing";
 import { TaskCard } from "@/components/TaskCard";
 import { VettedCreatorBadge } from "@/components/ui/Badges";
+import { CreatorAvatar, ScoreRing } from "@/components/ui/EditorialVisuals";
 
 export const dynamic = "force-dynamic";
 
@@ -72,42 +73,52 @@ export default async function PublicCreatorProfilePage({
     : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10">
-      <div className="editorial-card p-6 sm:p-8 bg-white grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-        <div className="lg:col-span-8 space-y-3">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 animate-reveal">
+      {/* Editorial Creator Banner */}
+      <div className="editorial-card p-6 sm:p-8 bg-white ink-grid-bg grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <VettedCreatorBadge />
             <span
-              className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+              className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                 creator.isAvailable
                   ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                   : "bg-stone-100 text-stone-700 border-stone-200"
               }`}
             >
-              {creator.isAvailable
-                ? "Accepting New Bookings"
-                : "Currently at Capacity"}
+              {creator.isAvailable ? "Accepting Bookings" : "At Capacity"}
             </span>
           </div>
 
-          <h1 className="font-editorial text-3xl font-semibold text-[#111827]">
-            {creator.displayName}{" "}
-            <span className="text-base font-tech text-stone-500 font-normal">
-              @{creator.username}
-            </span>
-          </h1>
-          <p className="text-base font-medium text-[#1e3a8a]">
-            {creator.headline}
-          </p>
-          <p className="text-sm text-stone-600 leading-relaxed max-w-3xl">
+          <div className="flex items-center gap-4">
+            <CreatorAvatar
+              name={creator.displayName}
+              username={creator.username}
+              available={creator.isAvailable}
+              size="lg"
+            />
+            <div>
+              <h1 className="font-editorial text-3xl font-semibold text-[#111827]">
+                {creator.displayName}
+              </h1>
+              <p className="text-xs font-tech text-stone-500">
+                @{creator.username}
+              </p>
+              <p className="text-sm font-medium text-[#1e3a8a] mt-0.5">
+                {creator.headline}
+              </p>
+            </div>
+          </div>
+
+          <p className="text-sm text-stone-600 leading-relaxed max-w-2xl">
             {creator.bio}
           </p>
 
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap gap-1.5">
             {creator.writingCategories.map((cat) => (
               <span
                 key={cat}
-                className="text-xs px-2.5 py-1 rounded-md bg-[#faf7f2] border border-[#e6e0d4] text-stone-700"
+                className="text-xs px-3 py-1 rounded-full bg-[#faf7f2] border border-[#e6e0d4] text-stone-800 font-medium"
               >
                 {cat}
               </span>
@@ -115,30 +126,30 @@ export default async function PublicCreatorProfilePage({
           </div>
         </div>
 
-        <div className="lg:col-span-4 grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-center">
-            <p className="text-2xl font-bold font-tech text-[#111827] flex items-center justify-center gap-1">
-              <Star className="w-5 h-5 text-amber-500 fill-amber-500" />
-              {creator.ratingAverage.toFixed(1)}
-            </p>
-            <p className="text-xs text-stone-500 mt-1">Average Rating</p>
-          </div>
-          <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-center">
-            <p className="text-2xl font-bold font-tech text-[#111827]">
-              {creator.completedBookingsCount}
-            </p>
-            <p className="text-xs text-stone-500 mt-1">Delivered Orders</p>
-          </div>
-          <div className="col-span-2 p-4 rounded-xl bg-teal-50 border border-teal-200 flex items-center justify-between">
-            <div>
-              <p className="text-xs text-teal-900 font-semibold">
-                Assessment Score
-              </p>
-              <p className="text-xs text-teal-700">6-Criteria Rubric Vetted</p>
+        {/* Triple Visual Gauge Card */}
+        <div className="lg:col-span-5 grid grid-cols-3 gap-3 bg-[#faf7f2] p-5 rounded-2xl border border-[#e6e0d4] text-center">
+          <ScoreRing
+            score={creator.assessmentScore ?? 90}
+            size={84}
+            tone="emerald"
+            sublabel="Rubric Score"
+          />
+          <ScoreRing
+            score={(creator.ratingAverage / 5) * 100}
+            label={`${creator.ratingAverage.toFixed(1)}★`}
+            size={84}
+            tone="gold"
+            sublabel="Client Rating"
+          />
+          <div className="flex flex-col items-center justify-center">
+            <div className="w-[84px] h-[84px] rounded-full border-[7px] border-blue-200 bg-white flex flex-col items-center justify-center">
+              <span className="font-tech text-xl font-bold text-[#1e3a8a]">
+                {creator.completedBookingsCount}
+              </span>
             </div>
-            <p className="text-2xl font-bold font-tech text-teal-900">
-              {creator.assessmentScore ?? 90}/100
-            </p>
+            <span className="text-[11px] font-medium text-stone-600 mt-1">
+              Delivered
+            </span>
           </div>
         </div>
       </div>
@@ -147,19 +158,22 @@ export default async function PublicCreatorProfilePage({
       {samples.length > 0 && (
         <section className="space-y-4">
           <h2 className="font-editorial text-2xl font-semibold flex items-center gap-2">
-            <Award className="w-5 h-5 text-teal-700" />
-            Verified Writing Samples
+            <Award className="w-5 h-5 text-[#0f766e]" />
+            Writing Samples
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {samples.map((s, idx) => (
-              <div key={idx} className="editorial-card p-5 space-y-2">
-                <span className="text-[11px] font-tech uppercase px-2 py-0.5 rounded bg-stone-100 text-stone-700">
+              <div
+                key={idx}
+                className="editorial-card p-6 bg-white border-l-4 border-l-[#0f766e] space-y-2"
+              >
+                <span className="text-[10px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200 font-semibold">
                   {s.category}
                 </span>
-                <h3 className="font-editorial text-lg font-semibold">
+                <h3 className="font-editorial text-lg font-semibold text-[#111827]">
                   {s.title}
                 </h3>
-                <p className="text-sm text-stone-600 leading-relaxed">
+                <p className="text-xs text-stone-600 leading-relaxed">
                   {s.excerpt}
                 </p>
               </div>
@@ -168,10 +182,10 @@ export default async function PublicCreatorProfilePage({
         </section>
       )}
 
-      {/* Published Services */}
+      {/* Active Services */}
       <section className="space-y-4">
         <h2 className="font-editorial text-2xl font-semibold">
-          Active Services by {creator.displayName} ({creator.listings.length})
+          Active Services ({creator.listings.length})
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {creator.listings.map((task) => (
@@ -196,20 +210,23 @@ export default async function PublicCreatorProfilePage({
             {creator.reviewsReceived.map((rev) => (
               <div key={rev.id} className="editorial-card p-5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-teal-700" />
+                  <span className="text-xs font-semibold inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#0f766e]" />
                     {rev.customer.name}
                   </span>
-                  <span className="text-xs font-tech text-amber-700">
-                    {rev.rating}/5 ★
+                  <span className="inline-flex items-center gap-1 text-xs font-tech text-amber-700 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                    {rev.rating}.0
                   </span>
                 </div>
-                <p className="text-sm text-stone-700">{rev.comment}</p>
+                <p className="text-xs text-stone-700 leading-relaxed">
+                  {rev.comment}
+                </p>
                 <Link
                   href={`/tasks/${rev.task.slug}`}
-                  className="text-xs text-[#1e3a8a] hover:underline block"
+                  className="text-xs font-medium text-[#1e3a8a] hover:underline block"
                 >
-                  Service: {rev.task.title}
+                  {rev.task.title}
                 </Link>
               </div>
             ))}

@@ -1,5 +1,8 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+import { CategoryCoverArt } from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Archive, Edit3, FilePlus2, Send, Trash2 } from "lucide-react";
@@ -127,20 +130,17 @@ export default function CreatorListingsManagerPage() {
   }
 
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-editorial font-semibold">
-            My Service Listings
-          </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            Manage drafts, moderation feedback, valid dates, and archived
-            offerings.
-          </p>
-        </div>
+    <CreatorShell
+      title="My Service Listings"
+      subtitle="Manage drafts, admin review feedback, validity windows, and archives."
+    >
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <span className="font-tech text-xs px-3 py-1 rounded-full bg-white border border-[#e6e0d4] text-stone-700">
+          {listings.length} Services
+        </span>
         <Link
           href="/creators-hub/listings/new"
-          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900"
+          className="btn-creator px-4 py-2 text-xs gap-1.5"
         >
           <FilePlus2 className="w-4 h-4" />
           New Listing
@@ -148,91 +148,104 @@ export default function CreatorListingsManagerPage() {
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
           {notice}
         </div>
       )}
 
-      <div className="space-y-4">
-        {listings.map((item) => (
-          <div
-            key={item.id}
-            className="editorial-card p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
-          >
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2 flex-wrap">
-                <StatusPill status={item.status} />
-                <span className="text-xs text-stone-500">
-                  {item.category.name}
-                </span>
-                <span className="text-xs font-tech text-stone-600">
-                  · {item._count.bookings} bookings
-                </span>
-              </div>
-              <h2 className="font-editorial text-lg font-semibold">
-                {item.title}
-              </h2>
-              <div className="flex items-center gap-3 flex-wrap">
-                <ListingValidityTag
-                  validUntil={item.validUntil}
-                  validityType={item.validityType}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {listings.map((item) => {
+          const catSlug = item.category.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-");
+
+          return (
+            <div
+              key={item.id}
+              className="editorial-card overflow-hidden bg-white flex flex-col justify-between"
+            >
+              <div>
+                <CategoryCoverArt
+                  slug={catSlug}
+                  name={item.category.name}
+                  heightClass="h-20"
                 />
-                <span className="font-tech text-sm font-bold text-[#111827]">
-                  {formatKes(item.basePrice, item.currency)}
-                </span>
+                <div className="p-5 space-y-3">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <StatusPill status={item.status} />
+                    <span className="text-xs font-tech text-stone-600">
+                      {item._count.bookings} bookings
+                    </span>
+                  </div>
+
+                  <h2 className="font-editorial text-lg font-semibold text-[#111827]">
+                    {item.title}
+                  </h2>
+
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <ListingValidityTag
+                      validUntil={item.validUntil}
+                      validityType={item.validityType}
+                    />
+                    <span className="font-tech text-base font-bold text-[#111827]">
+                      {formatKes(item.basePrice, item.currency)}
+                    </span>
+                  </div>
+
+                  {item.moderationNote && (
+                    <p className="text-xs text-orange-800 bg-orange-50 border border-orange-200 px-3 py-2 rounded-xl">
+                      Admin Note: {item.moderationNote}
+                    </p>
+                  )}
+                </div>
               </div>
-              {item.moderationNote && (
-                <p className="text-xs text-orange-800 bg-orange-50 border border-orange-200 px-3 py-1.5 rounded">
-                  Admin Feedback: {item.moderationNote}
-                </p>
-              )}
-            </div>
 
-            <div className="flex flex-wrap items-center gap-2 shrink-0">
-              <Link
-                href={`/creators-hub/listings/new?edit=${encodeURIComponent(item.slug)}`}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e6e0d4] bg-white text-xs font-medium hover:bg-stone-50"
-              >
-                <Edit3 className="w-3.5 h-3.5" />
-                Edit
-              </Link>
-
-              {(item.status === "DRAFT" ||
-                item.status === "CHANGES_REQUESTED") && (
-                <button
-                  onClick={() => submitForReview(item.slug)}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#0f766e] text-white text-xs font-semibold hover:bg-teal-900"
+              <div className="px-5 pb-5 pt-3 border-t border-[#e6e0d4] flex flex-wrap items-center gap-2">
+                <Link
+                  href={`/creators-hub/listings/new?edit=${encodeURIComponent(item.slug)}`}
+                  className="btn-ghost px-3 py-1.5 text-xs gap-1"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  Submit Review
-                </button>
-              )}
+                  <Edit3 className="w-3.5 h-3.5" />
+                  Edit
+                </Link>
 
-              <button
-                onClick={() => archiveOrDelete(item.slug)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rose-200 bg-white text-rose-700 text-xs font-medium hover:bg-rose-50"
-              >
-                {item._count.bookings > 0 ? (
-                  <>
-                    <Archive className="w-3.5 h-3.5" />
-                    Archive
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="w-3.5 h-3.5" />
-                    Delete
-                  </>
+                {(item.status === "DRAFT" ||
+                  item.status === "CHANGES_REQUESTED") && (
+                  <button
+                    onClick={() => submitForReview(item.slug)}
+                    className="btn-creator px-3 py-1.5 text-xs gap-1"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    Submit Review
+                  </button>
                 )}
-              </button>
+
+                <button
+                  onClick={() => archiveOrDelete(item.slug)}
+                  className="ml-auto inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors"
+                >
+                  {item._count.bookings > 0 ? (
+                    <>
+                      <Archive className="w-3.5 h-3.5" />
+                      Archive
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
-    </main>
+    </CreatorShell>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
@@ -140,27 +142,34 @@ export default function AdminFinancePage() {
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-6 bg-white space-y-4">
             <h2 className="font-editorial text-lg font-semibold">
-              Creator Payout Requests ({data.payouts.length})
+              Creator B2C M-Pesa Payout Requests ({data.payouts.length})
             </h2>
             {data.payouts.length === 0 ? (
               <p className="text-xs text-stone-500">No payouts requested.</p>
             ) : (
-              <div className="divide-y divide-[#e6e0d4] text-xs">
+              <div className="space-y-2.5 text-xs">
                 {data.payouts.map((p) => (
                   <div
                     key={p.id}
-                    className="py-3 flex items-center justify-between gap-3"
+                    className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3 flex-wrap"
                   >
-                    <div>
-                      <p className="font-semibold">
-                        {p.creator.displayName} (@{p.creator.username}) ·{" "}
-                        <span className="font-tech">{p.destinationPhone}</span>
-                      </p>
-                      <p className="text-stone-500">
-                        Requested {formatShortDate(p.requestedAt)}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <CreatorAvatar
+                        name={p.creator.displayName}
+                        username={p.creator.username}
+                        size="sm"
+                      />
+                      <div>
+                        <p className="font-semibold">
+                          {p.creator.displayName} (@{p.creator.username}) ·{" "}
+                          <span className="font-tech">{p.destinationPhone}</span>
+                        </p>
+                        <p className="text-stone-500">
+                          Requested {formatShortDate(p.requestedAt)}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-tech font-bold text-sm">
@@ -170,7 +179,7 @@ export default function AdminFinancePage() {
                       {p.status !== "PAID" && (
                         <button
                           onClick={() => markPayoutPaid(p.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded bg-[#0f766e] text-white font-semibold"
+                          className="btn-creator px-3.5 py-1.5 text-xs gap-1"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Settle Payout
@@ -183,46 +192,46 @@ export default function AdminFinancePage() {
             )}
           </div>
 
-          <div className="editorial-card p-5 space-y-3 overflow-x-auto">
+          <div className="editorial-card p-6 bg-white space-y-4 overflow-x-auto">
             <h2 className="font-editorial text-lg font-semibold">
-              IntaSend Payment Transactions
+              IntaSend Payment Ledger
             </h2>
             <table className="w-full text-left text-xs">
               <thead className="bg-[#faf7f2] border-b border-[#e6e0d4] text-stone-600">
                 <tr>
-                  <th className="p-3">Ref</th>
-                  <th className="p-3">User / Purpose</th>
-                  <th className="p-3">Amount</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Reconcile</th>
+                  <th className="p-3.5">Ref</th>
+                  <th className="p-3.5">User / Purpose</th>
+                  <th className="p-3.5">Amount</th>
+                  <th className="p-3.5">Status</th>
+                  <th className="p-3.5">Reconcile</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#e6e0d4]">
                 {data.transactions.map((t) => (
-                  <tr key={t.id}>
-                    <td className="p-3 font-tech">{t.apiRef}</td>
-                    <td className="p-3">
-                      <p className="font-medium">{t.user.name}</p>
+                  <tr key={t.id} className="hover:bg-[#faf7f2]/60 transition-colors">
+                    <td className="p-3.5 font-tech">{t.apiRef}</td>
+                    <td className="p-3.5">
+                      <p className="font-semibold text-[#111827]">{t.user.name}</p>
                       <p className="text-stone-500">
                         {t.purpose}{" "}
                         {t.booking ? `(${t.booking.bookingRef})` : ""} ·{" "}
                         {t.channel}
                       </p>
                     </td>
-                    <td className="p-3 font-tech font-bold">
+                    <td className="p-3.5 font-tech font-bold">
                       {formatKes(t.amount, t.currency)}
                     </td>
-                    <td className="p-3">
+                    <td className="p-3.5">
                       <StatusPill status={t.status} />
                     </td>
-                    <td className="p-3">
+                    <td className="p-3.5">
                       {t.status === "COMPLETE" && (
                         <button
                           onClick={() => issueRefund(t.id, t.amount)}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-rose-200 text-rose-700 hover:bg-rose-50"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold transition-colors"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          Issue Refund
+                          Refund
                         </button>
                       )}
                     </td>

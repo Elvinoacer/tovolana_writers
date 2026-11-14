@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CreatorAvatar,
+  EscrowStepVisualizer,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Scale } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
@@ -144,41 +149,44 @@ export default function AdminBookingsTribunalPage() {
       )}
 
       {/* Open Disputes */}
-      <div className="editorial-card p-6 space-y-4">
+      <div className="editorial-card p-6 bg-white space-y-4">
         <h2 className="font-editorial text-xl font-semibold flex items-center gap-2 text-rose-900">
           <Scale className="w-5 h-5" />
-          Active Dispute Tribunal Queue ({disputes.length})
+          Escrow Dispute Tribunal ({disputes.length})
         </h2>
         {disputes.length === 0 ? (
-          <p className="text-xs text-stone-500">
-            No open disputes requiring arbitration.
+          <p className="text-xs text-stone-500 py-2">
+            Zero open disputes requiring arbitration.
           </p>
         ) : (
           <div className="space-y-4">
             {disputes.map((d) => (
               <div
                 key={d.id}
-                className="p-5 rounded-xl border border-rose-200 bg-rose-50/40 space-y-3"
+                className="p-5 rounded-2xl border border-rose-200 bg-rose-50/40 space-y-4"
               >
-                <div className="flex justify-between flex-wrap gap-2">
+                <div className="flex justify-between flex-wrap gap-3">
                   <div>
-                    <span className="font-tech text-xs px-2 py-0.5 rounded bg-white border border-rose-200">
+                    <span className="font-tech text-xs px-2.5 py-0.5 rounded-full bg-white border border-rose-200">
                       {d.booking.bookingRef}
                     </span>
-                    <h3 className="font-semibold text-base mt-1">
+                    <h3 className="font-editorial text-lg font-semibold mt-1.5">
                       {d.reason}
                     </h3>
-                    <p className="text-xs text-stone-600">
-                      Customer: {d.booking.customer.name} · Creator:{" "}
-                      {d.booking.creator.displayName}
+                    <p className="text-xs text-stone-600 mt-0.5">
+                      {d.booking.customer.name} vs. {d.booking.creator.displayName}
                     </p>
                   </div>
-                  <p className="font-tech font-bold text-base">
-                    Escrow:{" "}
-                    {formatKes(d.booking.totalPayable, d.booking.currency)}
-                  </p>
+                  <div className="text-right">
+                    <span className="text-[11px] font-tech uppercase text-rose-700">
+                      Frozen Escrow
+                    </span>
+                    <p className="font-tech font-bold text-lg text-[#111827]">
+                      {formatKes(d.booking.totalPayable, d.booking.currency)}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-xs text-stone-700 bg-white p-3 rounded border border-rose-100">
+                <p className="text-xs text-stone-700 bg-white p-3.5 rounded-xl border border-rose-100">
                   {d.details}
                 </p>
                 <input
@@ -188,9 +196,9 @@ export default function AdminBookingsTribunalPage() {
                     setNotes((p) => ({ ...p, [d.id]: e.target.value }))
                   }
                   placeholder="Formal arbitration ruling note..."
-                  className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
                 />
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <button
                     onClick={() =>
                       resolveDispute(
@@ -200,9 +208,9 @@ export default function AdminBookingsTribunalPage() {
                         d.booking.listedPrice
                       )
                     }
-                    className="px-3.5 py-2 rounded-lg bg-rose-700 text-white text-xs font-semibold"
+                    className="p-3 rounded-xl bg-rose-700 text-white text-xs font-semibold hover:bg-rose-800 transition-colors"
                   >
-                    Full Refund to Customer
+                    100% Customer Refund
                   </button>
                   <button
                     onClick={() =>
@@ -213,9 +221,9 @@ export default function AdminBookingsTribunalPage() {
                         d.booking.listedPrice
                       )
                     }
-                    className="px-3.5 py-2 rounded-lg bg-amber-700 text-white text-xs font-semibold"
+                    className="p-3 rounded-xl bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800 transition-colors"
                   >
-                    50/50 Partial Split
+                    50 / 50 Equitable Split
                   </button>
                   <button
                     onClick={() =>
@@ -226,7 +234,7 @@ export default function AdminBookingsTribunalPage() {
                         d.booking.listedPrice
                       )
                     }
-                    className="px-3.5 py-2 rounded-lg bg-[#0f766e] text-white text-xs font-semibold"
+                    className="p-3 rounded-xl bg-[#0f766e] text-white text-xs font-semibold hover:bg-teal-900 transition-colors"
                   >
                     Release Escrow to Creator
                   </button>
@@ -238,44 +246,51 @@ export default function AdminBookingsTribunalPage() {
       </div>
 
       {/* All Recent Bookings */}
-      <div className="editorial-card p-5 space-y-3">
+      <div className="editorial-card p-6 bg-white space-y-4">
         <h2 className="font-editorial text-lg font-semibold">
           Platform Bookings Register ({bookings.length})
         </h2>
         {loading ? (
           <p className="text-xs text-stone-500">Loading bookings...</p>
         ) : (
-          <div className="divide-y divide-[#e6e0d4] text-xs">
+          <div className="space-y-3 text-xs">
             {bookings.map((b) => (
               <div
                 key={b.id}
-                className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-3"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-tech px-2 py-0.5 rounded bg-stone-100">
-                      {b.bookingRef}
-                    </span>
-                    <StatusPill status={b.status} />
-                    <span className="text-stone-500">
-                      Listing Status: {b.task.status}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-tech px-2 py-0.5 rounded bg-white border border-[#e6e0d4]">
+                        {b.bookingRef}
+                      </span>
+                      <StatusPill status={b.status} />
+                      <span className="text-stone-500 font-tech">
+                        Listing: {b.task.status}
+                      </span>
+                    </div>
+                    <p className="font-editorial font-semibold text-base text-[#111827]">
+                      {b.task.title}
+                    </p>
+                    <div className="flex items-center gap-2 text-stone-600">
+                      <CreatorAvatar name={b.customer.name} size="sm" />
+                      <span>
+                        {b.customer.name} → {b.creator.displayName}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <BookingDeadlineTag
+                      deadline={b.agreedDeliveryDeadline}
+                      status={b.status}
+                    />
+                    <span className="font-tech font-bold text-sm text-[#111827]">
+                      {formatKes(b.totalPayable, b.currency)}
                     </span>
                   </div>
-                  <p className="font-medium text-sm">{b.task.title}</p>
-                  <p className="text-stone-500">
-                    Customer: {b.customer.name} → Creator:{" "}
-                    {b.creator.displayName}
-                  </p>
                 </div>
-                <div className="flex items-center gap-3">
-                  <BookingDeadlineTag
-                    deadline={b.agreedDeliveryDeadline}
-                    status={b.status}
-                  />
-                  <span className="font-tech font-bold">
-                    {formatKes(b.totalPayable, b.currency)}
-                  </span>
-                </div>
+                <EscrowStepVisualizer status={b.status} compact />
               </div>
             ))}
           </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import { Crown, Search, ShieldAlert, UserCheck } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
@@ -128,23 +130,32 @@ export default function AdminUsersPage() {
             </thead>
             <tbody className="divide-y divide-[#e6e0d4]">
               {users.map((u) => (
-                <tr key={u.id}>
-                  <td className="p-3.5">
-                    <p className="font-semibold text-[#111827]">{u.name}</p>
-                    <p className="text-stone-500">{u.email}</p>
-                    <p className="font-tech text-[11px] text-stone-400">
-                      {u._count.customerBookings} bookings
-                      {u.creatorProfile
-                        ? ` · @${u.creatorProfile.username} (${u.creatorProfile.applicationStatus})`
-                        : ""}
-                    </p>
+                <tr key={u.id} className="hover:bg-[#faf7f2]/60 transition-colors">
+                  <td className="p-4">
+                    <div className="flex items-center gap-3">
+                      <CreatorAvatar
+                        name={u.name}
+                        username={u.creatorProfile?.username}
+                        size="sm"
+                      />
+                      <div>
+                        <p className="font-semibold text-[#111827]">{u.name}</p>
+                        <p className="text-stone-500">{u.email}</p>
+                        <p className="font-tech text-[11px] text-stone-400">
+                          {u._count.customerBookings} bookings
+                          {u.creatorProfile
+                            ? ` · @${u.creatorProfile.username} (${u.creatorProfile.applicationStatus})`
+                            : ""}
+                        </p>
+                      </div>
+                    </div>
                   </td>
-                  <td className="p-3.5">
+                  <td className="p-4">
                     <div className="flex flex-wrap gap-1">
                       {u.roles.map((r) => (
                         <span
                           key={r}
-                          className="px-2 py-0.5 rounded bg-stone-100 border border-stone-200 font-tech"
+                          className="px-2 py-0.5 rounded-md bg-[#faf7f2] border border-[#e6e0d4] font-tech"
                         >
                           {r}
                         </span>
@@ -152,16 +163,16 @@ export default function AdminUsersPage() {
                       {u.adminScopes.map((s) => (
                         <span
                           key={s}
-                          className="px-2 py-0.5 rounded bg-blue-50 text-[#1e3a8a] font-tech"
+                          className="px-2 py-0.5 rounded-md bg-blue-50 text-[#1e3a8a] border border-blue-200 font-tech"
                         >
                           {s}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="p-3.5">
+                  <td className="p-4">
                     <span
-                      className={`px-2 py-0.5 rounded-full font-semibold ${
+                      className={`px-2.5 py-0.5 rounded-full font-semibold ${
                         u.membershipTier === "PRO"
                           ? "bg-amber-100 text-amber-900"
                           : "bg-stone-100 text-stone-700"
@@ -170,10 +181,10 @@ export default function AdminUsersPage() {
                       {u.membershipTier}
                     </span>
                   </td>
-                  <td className="p-3.5">
+                  <td className="p-4">
                     <StatusPill status={u.status} />
                   </td>
-                  <td className="p-3.5">
+                  <td className="p-4">
                     <div className="flex flex-wrap gap-1.5">
                       <button
                         onClick={() =>
@@ -189,10 +200,10 @@ export default function AdminUsersPage() {
                             `Updated status for ${u.email}`
                           )
                         }
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded border font-medium ${
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
                           u.status === "SUSPENDED"
-                            ? "border-emerald-300 text-emerald-800"
-                            : "border-rose-300 text-rose-700"
+                            ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                            : "border-rose-300 text-rose-700 hover:bg-rose-50"
                         }`}
                       >
                         {u.status === "SUSPENDED" ? (
@@ -221,7 +232,7 @@ export default function AdminUsersPage() {
                             `Toggled Pro membership for ${u.email}`
                           )
                         }
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-amber-300 text-amber-900 font-medium"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 text-amber-900 font-semibold hover:bg-amber-50 transition-colors"
                       >
                         <Crown className="w-3 h-3" />
                         {u.membershipTier === "PRO" ? "Set Free" : "Grant Pro 30d"}

@@ -1,5 +1,11 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+import {
+  CreatorAvatar,
+  EscrowStepVisualizer,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -193,21 +199,25 @@ export default function CreatorsHubHomePage() {
     ) ?? [];
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-semibold uppercase tracking-wide text-[#0f766e]">
-            Creators Hub · @{data?.creatorProfile.username}
+    <CreatorShell
+      title={data?.creatorProfile.displayName || "Creators Hub"}
+      subtitle={`@${data?.creatorProfile.username ?? "creator"} · Manage contracts, escrow payouts & availability`}
+    >
+      {/* Studio Action Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs text-stone-600">
+          <span className="font-tech px-2.5 py-1 rounded-full bg-white border border-[#e6e0d4]">
+            {data?.listings.length ?? 0} Listings
           </span>
-          <h1 className="text-3xl font-editorial font-semibold mt-0.5">
-            {data?.creatorProfile.displayName}
-          </h1>
+          <span className="font-tech px-2.5 py-1 rounded-full bg-white border border-[#e6e0d4]">
+            {data?.bookings.length ?? 0} Total Orders
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
             onClick={toggleAvailability}
-            className={`px-3.5 py-2 rounded-lg text-xs font-semibold border ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
               data?.creatorProfile.isAvailable
                 ? "bg-emerald-50 text-emerald-800 border-emerald-200"
                 : "bg-stone-100 text-stone-700 border-stone-300"
@@ -219,83 +229,56 @@ export default function CreatorsHubHomePage() {
           </button>
           <button
             onClick={loadHub}
-            className="p-2 rounded-lg border border-[#e6e0d4] bg-white text-stone-600 hover:bg-stone-50"
+            className="btn-ghost p-2 text-stone-600"
+            aria-label="Refresh Creator studio"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <Link
             href="/creators-hub/listings/new"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900"
+            className="btn-creator px-4 py-2 text-xs gap-1.5"
           >
             <FilePlus2 className="w-4 h-4" />
-            New Task Listing
+            New Listing
           </Link>
         </div>
       </div>
 
-      {/* Sub-navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-[#e6e0d4] pb-3 text-xs font-medium">
-        <Link
-          href="/creators-hub"
-          className="px-3 py-1.5 rounded-md bg-[#0f766e] text-white"
-        >
-          Overview & Orders
-        </Link>
-        <Link
-          href="/creators-hub/listings"
-          className="px-3 py-1.5 rounded-md bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
-        >
-          Manage Listings ({data?.listings.length ?? 0})
-        </Link>
-        <Link
-          href="/creators-hub/earnings"
-          className="px-3 py-1.5 rounded-md bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
-        >
-          Earnings & Payouts
-        </Link>
-        <Link
-          href="/creators-hub/profile"
-          className="px-3 py-1.5 rounded-md bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
-        >
-          Public Portfolio & Settings
-        </Link>
-      </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 bg-white space-y-2">
           <div className="flex items-center justify-between text-xs text-stone-500">
-            <span>Available to Withdraw</span>
+            <span>Ready to Withdraw</span>
             <Wallet className="w-4 h-4 text-[#0f766e]" />
           </div>
-          <p className="font-tech text-2xl font-bold text-[#0f766e] mt-2">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#0f766e]">
             {formatKes(earnings?.availableBalance ?? 0)}
           </p>
         </div>
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 bg-white space-y-2">
           <div className="flex items-center justify-between text-xs text-stone-500">
-            <span>In Active Escrow</span>
+            <span>Active Escrow</span>
             <Briefcase className="w-4 h-4 text-amber-700" />
           </div>
-          <p className="font-tech text-2xl font-bold text-[#111827] mt-2">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
             {formatKes(earnings?.pendingEscrow ?? 0)}
           </p>
         </div>
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 bg-white space-y-2">
           <div className="flex items-center justify-between text-xs text-stone-500">
             <span>Active Orders</span>
             <ListChecks className="w-4 h-4 text-[#1e3a8a]" />
           </div>
-          <p className="font-tech text-2xl font-bold text-[#111827] mt-2">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
             {activeOrders.length}
           </p>
         </div>
-        <div className="editorial-card p-5">
+        <div className="editorial-card p-5 bg-white space-y-2">
           <div className="flex items-center justify-between text-xs text-stone-500">
-            <span>Avg Rating / Completed</span>
+            <span>Rating · Completed</span>
             <UserCheck className="w-4 h-4 text-emerald-700" />
           </div>
-          <p className="font-tech text-2xl font-bold text-[#111827] mt-2">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
             {(data?.creatorProfile.ratingAverage ?? 5).toFixed(1)} ·{" "}
             {data?.creatorProfile.completedBookingsCount ?? 0}
           </p>
@@ -306,26 +289,28 @@ export default function CreatorsHubHomePage() {
       {awaitingAccept.length > 0 && (
         <div className="editorial-card p-6 border-amber-200 bg-amber-50/50 space-y-4">
           <h2 className="font-editorial text-lg font-semibold text-amber-950">
-            New Escrow-Funded Requests Awaiting Acceptance (
-            {awaitingAccept.length})
+            Escrow-Funded Requests Awaiting Acceptance ({awaitingAccept.length})
           </h2>
           <div className="space-y-3">
             {awaitingAccept.map((b) => (
               <div
                 key={b.id}
-                className="p-4 rounded-lg bg-white border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 rounded-2xl bg-white border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
-                <div>
-                  <span className="font-tech text-xs text-stone-500">
-                    {b.bookingRef} · Client: {b.customer.name}
-                  </span>
-                  <p className="font-semibold text-sm">{b.taskTitleSnapshot}</p>
+                <div className="flex items-center gap-3">
+                  <CreatorAvatar name={b.customer.name} size="sm" />
+                  <div>
+                    <span className="font-tech text-xs text-stone-500">
+                      {b.bookingRef} · {b.customer.name}
+                    </span>
+                    <p className="font-semibold text-sm">{b.taskTitleSnapshot}</p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     disabled={busyId === b.bookingRef}
                     onClick={() => handleAcceptDecision(b.bookingRef, "ACCEPT")}
-                    className="px-3.5 py-1.5 rounded-lg bg-[#0f766e] text-white text-xs font-semibold hover:bg-teal-900"
+                    className="btn-creator px-3.5 py-1.5 text-xs"
                   >
                     Accept Work
                   </button>
@@ -334,7 +319,7 @@ export default function CreatorsHubHomePage() {
                     onClick={() =>
                       handleAcceptDecision(b.bookingRef, "DECLINE")
                     }
-                    className="px-3.5 py-1.5 rounded-lg border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50"
+                    className="px-3.5 py-1.5 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50"
                   >
                     Decline
                   </button>
@@ -346,59 +331,62 @@ export default function CreatorsHubHomePage() {
       )}
 
       {/* Orders List */}
-      <div className="editorial-card p-6 space-y-4">
+      <div className="editorial-card p-6 bg-white space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="font-editorial text-xl font-semibold">
-            Creator Fulfilment Queue
+            Fulfilment Queue
           </h2>
-          <span className="text-xs text-stone-500">
-            {data?.bookings.length ?? 0} total bookings
+          <span className="text-xs font-tech text-stone-500">
+            {data?.bookings.length ?? 0} bookings
           </span>
         </div>
 
         {(data?.bookings.length ?? 0) === 0 ? (
-          <p className="text-sm text-stone-500 py-4">
-            No bookings assigned yet. Submit your first task listing for admin
-            approval to appear in the marketplace!
+          <p className="text-sm text-stone-500 py-6 text-center">
+            No bookings assigned yet — publish your first approved service listing.
           </p>
         ) : (
-          <div className="divide-y divide-[#e6e0d4]">
+          <div className="space-y-3">
             {data?.bookings.map((b) => (
               <div
                 key={b.id}
-                className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-3"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-tech text-xs px-2 py-0.5 rounded bg-stone-100 border border-stone-200">
-                      {b.bookingRef}
-                    </span>
-                    <StatusPill status={b.status} />
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-tech text-xs px-2 py-0.5 rounded bg-white border border-[#e6e0d4]">
+                        {b.bookingRef}
+                      </span>
+                      <StatusPill status={b.status} />
+                    </div>
+                    <p className="font-editorial text-lg font-semibold text-[#111827]">
+                      {b.taskTitleSnapshot}
+                    </p>
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-stone-600">
+                      <span>Client: {b.customer.name}</span>
+                      <BookingDeadlineTag
+                        deadline={b.agreedDeliveryDeadline}
+                        status={b.status}
+                      />
+                    </div>
                   </div>
-                  <p className="font-medium text-[#111827]">
-                    {b.taskTitleSnapshot}
-                  </p>
-                  <div className="flex items-center gap-3 flex-wrap text-xs text-stone-500">
-                    <span>Customer: {b.customer.name}</span>
-                    <BookingDeadlineTag
-                      deadline={b.agreedDeliveryDeadline}
-                      status={b.status}
-                    />
+
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="font-tech font-bold text-base text-[#111827]">
+                      {formatKes(b.listedPrice, b.currency)}
+                    </span>
+                    <Link
+                      href={`/creators-hub/bookings/${b.bookingRef}`}
+                      className="btn-primary px-3.5 py-2 text-xs gap-1"
+                    >
+                      Open Order
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <span className="font-tech font-bold text-sm">
-                    {formatKes(b.listedPrice, b.currency)}
-                  </span>
-                  <Link
-                    href={`/creators-hub/bookings/${b.bookingRef}`}
-                    className="inline-flex items-center gap-1 px-3.5 py-2 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554]"
-                  >
-                    Open Fulfilment
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
+                <EscrowStepVisualizer status={b.status} compact />
               </div>
             ))}
           </div>
@@ -408,11 +396,9 @@ export default function CreatorsHubHomePage() {
       <div className="text-xs text-stone-500 flex items-center gap-2">
         <CheckCircle2 className="w-4 h-4 text-[#0f766e]" />
         <span>
-          Creators cannot alter confirmed booking prices or mark bookings paid —
-          all escrow settlements run automatically via IntaSend webhooks and
-          customer delivery acceptance.
+          Confirmed prices stay immutable; settlements release automatically upon delivery approval.
         </span>
       </div>
-    </main>
+    </CreatorShell>
   );
 }

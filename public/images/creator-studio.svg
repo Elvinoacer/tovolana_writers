@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 400" fill="none">
+  <defs>
+    <linearGradient id="studioBg" x1="0" y1="0" x2="560" y2="400" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F0FDFA"/>
+      <stop offset="100%" stop-color="#FAF7F2"/>
+    </linearGradient>
+    <filter id="studioShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#0F766E" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="560" height="400" rx="28" fill="url(#studioBg)" stroke="#CCFBF1" stroke-width="1.5"/>
+
+  <!-- Left Rubric Gauge Dial -->
+  <g filter="url(#studioShadow)">
+    <rect x="34" y="38" width="242" height="324" rx="20" fill="#FFFFFF" stroke="#E6E0D4"/>
+  </g>
+  <text x="58" y="72" font-family="monospace" font-size="10" font-weight="700" fill="#0F766E">MERIT-FIRST ASSESSMENT</text>
+  <text x="58" y="96" font-family="Georgia, serif" font-size="20" font-weight="700" fill="#111827">6-Criteria Craft</text>
+
+  <!-- 6 Animated-Look Progress Bars -->
+  <g font-family="sans-serif" font-size="10.5" font-weight="600" fill="#374151">
+    <text x="58" y="132">Grammar &amp; Mechanics</text><text x="252" y="132" text-anchor="end" fill="#0F766E">25%</text>
+    <rect x="58" y="140" width="194" height="7" rx="3.5" fill="#E5E7EB"/><rect x="58" y="140" width="168" height="7" rx="3.5" fill="#0F766E"/>
+
+    <text x="58" y="170">Coherence &amp; Structure</text><text x="252" y="170" text-anchor="end" fill="#1E3A8A">20%</text>
+    <rect x="58" y="178" width="194" height="7" rx="3.5" fill="#E5E7EB"/><rect x="58" y="178" width="154" height="7" rx="3.5" fill="#1E3A8A"/>
+
+    <text x="58" y="208">Word &amp; Rubric Fit</text><text x="252" y="208" text-anchor="end" fill="#0F766E">20%</text>
+    <rect x="58" y="216" width="194" height="7" rx="3.5" fill="#E5E7EB"/><rect x="58" y="216" width="160" height="7" rx="3.5" fill="#0F766E"/>
+
+    <text x="58" y="246">Original Expression</text><text x="252" y="246" text-anchor="end" fill="#B45309">15%</text>
+    <rect x="58" y="254" width="194" height="7" rx="3.5" fill="#E5E7EB"/><rect x="58" y="254" width="142" height="7" rx="3.5" fill="#B45309"/>
+
+    <text x="58" y="284">Citations &amp; Formatting</text><text x="252" y="284" text-anchor="end" fill="#1E3A8A">20%</text>
+    <rect x="58" y="292" width="194" height="7" rx="3.5" fill="#E5E7EB"/><rect x="58" y="292" width="150" height="7" rx="3.5" fill="#1E3A8A"/>
+  </g>
+
+  <rect x="58" y="316" width="194" height="30" rx="10" fill="#F0FDFA" stroke="#99F6E4"/>
+  <text x="155" y="335" font-family="sans-serif" font-size="10.5" font-weight="700" fill="#0F766E" text-anchor="middle">Score ≥ 75% Instant Unlock</text>
+
+  <!-- Right Top Card: No ID Gatekeeping Badge -->
+  <g filter="url(#studioShadow)">
+    <rect x="298" y="38" width="228" height="148" rx="20" fill="#0F766E"/>
+  </g>
+  <circle cx="332" cy="76" r="16" fill="#FFFFFF" fill-opacity="0.18"/>
+  <path d="M326 76 L330 80 L339 71" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="318" y="114" font-family="Georgia, serif" font-size="18" font-weight="700" fill="#FFFFFF">Zero ID Barrier</text>
+  <text x="318" y="136" font-family="sans-serif" font-size="11" fill="#CCFBF1">No National ID cards.</text>
+  <text x="318" y="153" font-family="sans-serif" font-size="11" fill="#CCFBF1">No degree certificate uploads.</text>
+
+  <!-- Right Bottom Card: Creator Payouts -->
+  <g filter="url(#studioShadow)">
+    <rect x="298" y="206" width="228" height="156" rx="20" fill="#FFFFFF" stroke="#E6E0D4"/>
+  </g>
+  <text x="320" y="238" font-family="monospace" font-size="10" font-weight="700" fill="#B45309">ESCROW TO M-PESA B2C</text>
+  <text x="320" y="270" font-family="monospace" font-size="22" font-weight="700" fill="#111827">KES 48,500</text>
+  <text x="320" y="290" font-family="sans-serif" font-size="10.5" fill="#6B7280">Settled automatically on order approval</text>
+  <rect x="320" y="310" width="184" height="32" rx="10" fill="#FEF3C7" stroke="#FDE68A"/>
+  <text x="412" y="330" font-family="sans-serif" font-size="11" font-weight="700" fill="#B45309" text-anchor="middle">1-Click B2C Withdrawal</text>
+</svg>

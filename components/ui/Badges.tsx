@@ -17,40 +17,119 @@ export function formatShortDate(date: string | Date | null | undefined): string 
   });
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  PUBLISHED: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  APPROVED: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  COMPLETED: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  COMPLETE: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  AVAILABLE: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  PAID: "bg-emerald-50 text-emerald-800 border-emerald-200",
-  IN_PROGRESS: "bg-blue-50 text-blue-900 border-blue-200",
-  DELIVERED: "bg-indigo-50 text-indigo-900 border-indigo-200",
-  PENDING_REVIEW: "bg-amber-50 text-amber-800 border-amber-200",
-  PENDING_PAYMENT: "bg-amber-50 text-amber-800 border-amber-200",
-  PENDING_ESCROW: "bg-amber-50 text-amber-800 border-amber-200",
-  UNDER_REVIEW: "bg-amber-50 text-amber-800 border-amber-200",
-  PAID_AWAITING_ACCEPTANCE: "bg-amber-50 text-amber-800 border-amber-200",
-  REVISION_REQUESTED: "bg-orange-50 text-orange-800 border-orange-200",
-  CHANGES_REQUESTED: "bg-orange-50 text-orange-800 border-orange-200",
-  EXPIRED: "bg-stone-100 text-stone-700 border-stone-300",
-  ARCHIVED: "bg-slate-100 text-slate-700 border-slate-300",
-  DRAFT: "bg-stone-100 text-stone-600 border-stone-200",
-  DISPUTED: "bg-rose-50 text-rose-800 border-rose-200",
-  OPEN: "bg-rose-50 text-rose-800 border-rose-200",
-  REJECTED: "bg-rose-50 text-rose-800 border-rose-200",
-  SUSPENDED: "bg-rose-50 text-rose-800 border-rose-200",
-  CANCELLED: "bg-stone-100 text-stone-600 border-stone-200",
-  REFUNDED: "bg-purple-50 text-purple-800 border-purple-200",
+const STATUS_STYLES: Record<string, { chip: string; dot: string }> = {
+  PUBLISHED: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  APPROVED: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  COMPLETED: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  COMPLETE: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  AVAILABLE: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  PAID: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  ACTIVE: {
+    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
+    dot: "bg-emerald-500",
+  },
+  IN_PROGRESS: {
+    chip: "bg-blue-50 text-blue-900 border-blue-200",
+    dot: "bg-blue-600",
+  },
+  DELIVERED: {
+    chip: "bg-indigo-50 text-indigo-900 border-indigo-200",
+    dot: "bg-indigo-600",
+  },
+  PENDING_REVIEW: {
+    chip: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  PENDING_PAYMENT: {
+    chip: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  PENDING_ESCROW: {
+    chip: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  UNDER_REVIEW: {
+    chip: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  PAID_AWAITING_ACCEPTANCE: {
+    chip: "bg-amber-50 text-amber-800 border-amber-200",
+    dot: "bg-amber-500",
+  },
+  REVISION_REQUESTED: {
+    chip: "bg-orange-50 text-orange-800 border-orange-200",
+    dot: "bg-orange-500",
+  },
+  CHANGES_REQUESTED: {
+    chip: "bg-orange-50 text-orange-800 border-orange-200",
+    dot: "bg-orange-500",
+  },
+  EXPIRED: {
+    chip: "bg-stone-100 text-stone-700 border-stone-300",
+    dot: "bg-stone-500",
+  },
+  ARCHIVED: {
+    chip: "bg-slate-100 text-slate-700 border-slate-300",
+    dot: "bg-slate-500",
+  },
+  DRAFT: {
+    chip: "bg-stone-100 text-stone-600 border-stone-200",
+    dot: "bg-stone-400",
+  },
+  DISPUTED: {
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-600",
+  },
+  OPEN: {
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-600",
+  },
+  REJECTED: {
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-600",
+  },
+  SUSPENDED: {
+    chip: "bg-rose-50 text-rose-800 border-rose-200",
+    dot: "bg-rose-600",
+  },
+  CANCELLED: {
+    chip: "bg-stone-100 text-stone-600 border-stone-200",
+    dot: "bg-stone-400",
+  },
+  REFUNDED: {
+    chip: "bg-purple-50 text-purple-800 border-purple-200",
+    dot: "bg-purple-600",
+  },
 };
 
 export function StatusPill({ status }: { status: string }) {
-  const cls =
-    STATUS_STYLES[status] || "bg-stone-100 text-stone-700 border-stone-200";
+  const tone = STATUS_STYLES[status] || {
+    chip: "bg-stone-100 text-stone-700 border-stone-200",
+    dot: "bg-stone-500",
+  };
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${cls}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-tight ${tone.chip}`}
     >
+      <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
       {status.replace(/_/g, " ")}
     </span>
   );
@@ -58,7 +137,7 @@ export function StatusPill({ status }: { status: string }) {
 
 export function ProBadge({ label = "PRO" }: { label?: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300">
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
       <Crown className="w-3 h-3 text-amber-700" />
       {label}
     </span>
@@ -67,9 +146,9 @@ export function ProBadge({ label = "PRO" }: { label?: string }) {
 
 export function VettedCreatorBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-teal-50 text-teal-800 border border-teal-200">
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-800 border border-teal-200">
       <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-      Assessment-Vetted Creator
+      Vetted Writer
     </span>
   );
 }
@@ -84,12 +163,17 @@ export function ListingValidityTag({
   return (
     <div
       title="Listing validity controls public discovery window only; confirmed bookings remain protected until their own delivery deadline."
-      className="inline-flex items-center gap-1.5 text-xs text-stone-600 bg-stone-100 px-2.5 py-1 rounded-md border border-stone-200 font-tech"
+      className="inline-flex items-center gap-1.5 text-[11px] text-stone-600 bg-stone-100/90 px-2.5 py-1 rounded-lg border border-stone-200 font-tech"
     >
-      <Calendar className="w-3.5 h-3.5 text-stone-500" />
+      <Calendar className="w-3 h-3 text-stone-500 shrink-0" />
       <span>
-        Valid Until: <strong>{formatShortDate(validUntil)}</strong>
-        {validityType ? ` (${validityType.replace("STANDARD_", "").replace("SHORT_", "").replace("ADMIN_", "")})` : ""}
+        Valid <strong className="text-stone-800">{formatShortDate(validUntil)}</strong>
+        {validityType
+          ? ` · ${validityType
+              .replace("STANDARD_", "")
+              .replace("SHORT_", "")
+              .replace("ADMIN_", "")}`
+          : ""}
       </span>
     </div>
   );
@@ -103,7 +187,8 @@ export function BookingDeadlineTag({
   status: string;
 }) {
   const d = typeof deadline === "string" ? new Date(deadline) : deadline;
-  const isCompleted = status === "COMPLETED" || status === "REFUNDED" || status === "CANCELLED";
+  const isCompleted =
+    status === "COMPLETED" || status === "REFUNDED" || status === "CANCELLED";
   const hoursLeft = getDeadlineHoursLeft(d);
 
   const tone = isCompleted
@@ -116,12 +201,16 @@ export function BookingDeadlineTag({
 
   return (
     <div
-      className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md border font-tech ${tone}`}
+      className={`inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg border font-tech ${tone}`}
     >
-      <Clock className="w-3.5 h-3.5" />
+      <Clock className="w-3 h-3 shrink-0" />
       <span>
-        Delivery Due: <strong>{formatShortDate(d)}</strong>
-        {!isCompleted && hoursLeft >= 0 ? ` (${hoursLeft}h left)` : !isCompleted && hoursLeft < 0 ? " (Overdue)" : ""}
+        Due <strong>{formatShortDate(d)}</strong>
+        {!isCompleted && hoursLeft >= 0
+          ? ` (${hoursLeft}h)`
+          : !isCompleted && hoursLeft < 0
+            ? " (Overdue)"
+            : ""}
       </span>
     </div>
   );

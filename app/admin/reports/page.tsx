@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CreatorAvatar,
+  ScoreRing,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { useEffect, useState } from "react";
 import { Download } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
@@ -101,51 +106,78 @@ export default function AdminReportsPage() {
 
       {report && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-6 bg-white space-y-4">
             <h2 className="font-editorial text-lg font-semibold">
-              Bookings by Status
+              Bookings Distribution
             </h2>
-            <div className="divide-y divide-[#e6e0d4] text-xs">
-              {report.bookingsByStatus.map((row) => (
-                <div
-                  key={row.status}
-                  className="py-2.5 flex items-center justify-between"
-                >
-                  <StatusPill status={row.status} />
-                  <div className="text-right">
-                    <span className="font-tech font-bold">
-                      {row._count._all} orders
-                    </span>{" "}
-                    ·{" "}
-                    <span className="font-tech text-stone-600">
-                      {formatKes(row._sum.totalPayable ?? 0)}
-                    </span>
+            <div className="space-y-3 text-xs">
+              {report.bookingsByStatus.map((row) => {
+                const maxOrders = Math.max(
+                  1,
+                  report.summary.totalBookings || 1
+                );
+                const pct = Math.min(
+                  100,
+                  Math.round((row._count._all / maxOrders) * 100)
+                );
+                return (
+                  <div
+                    key={row.status}
+                    className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <StatusPill status={row.status} />
+                      <div className="text-right font-tech">
+                        <span className="font-bold">{row._count._all}</span>{" "}
+                        <span className="text-stone-500">
+                          · {formatKes(row._sum.totalPayable ?? 0)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                      <div
+                        className="h-full bg-[#1e3a8a] rounded-full transition-all duration-500"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          <div className="editorial-card p-5 space-y-3">
+          <div className="editorial-card p-6 bg-white space-y-4">
             <h2 className="font-editorial text-lg font-semibold">
               Top Vetted Creators
             </h2>
-            <div className="divide-y divide-[#e6e0d4] text-xs">
+            <div className="space-y-2.5 text-xs">
               {report.creatorStats.map((c) => (
                 <div
                   key={c.username}
-                  className="py-2.5 flex items-center justify-between"
+                  className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
                 >
-                  <div>
-                    <p className="font-semibold">{c.displayName}</p>
-                    <p className="text-stone-500">
-                      @{c.username} · Exam: {c.assessmentScore ?? "N/A"}/100
-                    </p>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <CreatorAvatar
+                      name={c.displayName}
+                      username={c.username}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-[#111827] truncate">
+                        {c.displayName}
+                      </p>
+                      <p className="text-stone-500 truncate">
+                        @{c.username} · <strong>{c.completedBookingsCount}</strong> orders ·{" "}
+                        {c.ratingAverage.toFixed(1)}★
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right font-tech">
-                    <strong>{c.completedBookingsCount}</strong> completed ·{" "}
-                    {c.ratingAverage.toFixed(1)}★
-                  </div>
+                  <ScoreRing
+                    score={c.assessmentScore ?? 0}
+                    size={46}
+                    strokeWidth={4}
+                    tone="emerald"
+                  />
                 </div>
               ))}
             </div>

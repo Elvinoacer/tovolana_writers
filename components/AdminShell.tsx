@@ -21,17 +21,17 @@ const ADMIN_TABS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   {
     href: "/admin/listings/moderation",
-    label: "Listing Moderation",
+    label: "Moderation",
     icon: CheckSquare,
   },
-  { href: "/admin/listings/vault", label: "Archive & Expiry Vault", icon: Archive },
+  { href: "/admin/listings/vault", label: "Archive Vault", icon: Archive },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
-  { href: "/admin/creators/vetting", label: "Creator Vetting", icon: Shield },
+  { href: "/admin/creators/vetting", label: "Vetting", icon: Shield },
   { href: "/admin/users", label: "Users & RBAC", icon: Users },
-  { href: "/admin/bookings", label: "Bookings & Disputes", icon: Scale },
-  { href: "/admin/finance", label: "Finance & Escrow", icon: Wallet },
-  { href: "/admin/settings", label: "Platform Config", icon: Settings },
-  { href: "/admin/reports", label: "Reports & Export", icon: BarChart3 },
+  { href: "/admin/bookings", label: "Tribunal", icon: Scale },
+  { href: "/admin/finance", label: "Escrow & Finance", icon: Wallet },
+  { href: "/admin/settings", label: "Settings", icon: Settings },
+  { href: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];
 
 export function AdminShell({
@@ -68,11 +68,11 @@ export function AdminShell({
           </h1>
           <p className="text-sm text-stone-600">
             This console requires an active Administrator account with valid
-            role scopes. Use the Demo Switcher or sign in as an Admin.
+            role scopes.
           </p>
           <Link
-            href="/auth?next=/admin"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold"
+            href="/auth?callbackUrl=/admin"
+            className="btn-primary px-5 py-2.5 text-sm"
           >
             Sign In as Administrator
           </Link>
@@ -88,54 +88,55 @@ export function AdminShell({
     scopes.includes(requiredScope);
 
   return (
-    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-tech uppercase px-2 py-0.5 rounded bg-[#111827] text-white">
-              Admin Command Center
-            </span>
-            {scopes.map((s) => (
-              <span
-                key={s}
-                className="text-[11px] font-tech px-2 py-0.5 rounded bg-blue-50 text-[#1e3a8a] border border-blue-200"
-              >
-                {s}
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
+      <div className="editorial-card p-5 sm:p-6 bg-white ink-grid-bg space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-[#111827] text-white font-semibold">
+                Admin Command Center
               </span>
-            ))}
+              {scopes.map((s) => (
+                <span
+                  key={s}
+                  className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-blue-50 text-[#1e3a8a] border border-blue-200 font-semibold"
+                >
+                  {s.replace("_ADMIN", "")}
+                </span>
+              ))}
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-editorial font-semibold mt-1.5 text-[#111827]">
+              {title}
+            </h1>
+            <p className="text-xs sm:text-sm text-stone-600 mt-0.5">{subtitle}</p>
           </div>
-          <h1 className="text-3xl font-editorial font-semibold mt-1.5">
-            {title}
-          </h1>
-          <p className="text-sm text-stone-600 mt-0.5">{subtitle}</p>
         </div>
-      </div>
 
-      <nav className="flex flex-wrap gap-1.5 border-b border-[#e6e0d4] pb-3">
-        {ADMIN_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const active = pathname === tab.href;
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                active
-                  ? "bg-[#1e3a8a] text-white"
-                  : "bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              {tab.label}
-            </Link>
-          );
-        })}
-      </nav>
+        <nav className="flex flex-wrap gap-1.5 pt-2 border-t border-[#e6e0d4]">
+          {ADMIN_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const active = pathname === tab.href;
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                  active
+                    ? "bg-[#1e3a8a] text-white shadow-xs"
+                    : "bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 hover:bg-stone-200/60"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {tab.label}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
       {!hasScope ? (
         <div className="editorial-card p-6 border-rose-200 bg-rose-50 text-rose-900 text-sm">
-          Missing required scope: <strong>{requiredScope}</strong>. Your admin
-          role does not include permission for this section.
+          Missing required scope: <strong>{requiredScope}</strong>.
         </div>
       ) : (
         children

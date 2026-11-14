@@ -1,5 +1,7 @@
 "use client";
 
+import { CreatorShell } from "@/components/CreatorShell";
+
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowDownRight, Wallet } from "lucide-react";
@@ -135,65 +137,91 @@ export default function CreatorEarningsPage() {
     );
   }
 
-  return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-editorial font-semibold">
-            Creator Earnings & M-Pesa Payouts
-          </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            Track per-booking escrow releases, platform commission, and B2C
-            M-Pesa withdrawals.
-          </p>
-        </div>
-        <Link
-          href="/creators-hub"
-          className="text-xs font-semibold text-[#0f766e] hover:underline"
-        >
-          ← Back to Creators Hub
-        </Link>
-      </div>
+  const totalFlow =
+    summary.pendingEscrow + summary.availableBalance + summary.paidOutTotal;
+  const escrowPct =
+    totalFlow > 0 ? Math.round((summary.pendingEscrow / totalFlow) * 100) : 0;
+  const readyPct =
+    totalFlow > 0 ? Math.round((summary.availableBalance / totalFlow) * 100) : 0;
+  const paidPct = Math.max(0, 100 - escrowPct - readyPct);
 
+  return (
+    <CreatorShell
+      title="Earnings & M-Pesa B2C"
+      subtitle="Escrow releases, net creator revenue, and mobile money withdrawals."
+    >
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
           {notice}
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="editorial-card p-5">
-          <p className="text-xs text-stone-500">Available for Withdrawal</p>
-          <p className="font-tech text-2xl font-bold text-[#0f766e] mt-1">
-            {formatKes(summary.availableBalance, summary.currency)}
-          </p>
+      {/* Visual Escrow-to-M-Pesa Pipeline Breakdown */}
+      <div className="editorial-card p-6 bg-white space-y-4">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs font-tech uppercase tracking-wider text-stone-500 font-semibold">
+            3-Stage Revenue Pipeline
+          </span>
+          <span className="font-tech text-xs text-[#0f766e] font-semibold">
+            Lifetime Volume: {formatKes(totalFlow, summary.currency)}
+          </span>
         </div>
-        <div className="editorial-card p-5">
-          <p className="text-xs text-stone-500">Locked in Active Escrow</p>
-          <p className="font-tech text-2xl font-bold text-amber-800 mt-1">
-            {formatKes(summary.pendingEscrow, summary.currency)}
-          </p>
+
+        <div className="h-3 rounded-full bg-[#f2ede3] overflow-hidden flex">
+          {escrowPct > 0 && (
+            <div
+              className="h-full bg-amber-500 transition-all duration-500"
+              style={{ width: `${escrowPct}%` }}
+            />
+          )}
+          {readyPct > 0 && (
+            <div
+              className="h-full bg-[#0f766e] transition-all duration-500"
+              style={{ width: `${readyPct}%` }}
+            />
+          )}
+          {paidPct > 0 && (
+            <div
+              className="h-full bg-[#111827] transition-all duration-500"
+              style={{ width: `${paidPct}%` }}
+            />
+          )}
         </div>
-        <div className="editorial-card p-5">
-          <p className="text-xs text-stone-500">Total Paid Out</p>
-          <p className="font-tech text-2xl font-bold text-[#111827] mt-1">
-            {formatKes(summary.paidOutTotal, summary.currency)}
-          </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+          <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4]">
+            <p className="text-xs text-stone-500">1. Active Escrow</p>
+            <p className="font-tech text-2xl font-bold text-amber-800 mt-1">
+              {formatKes(summary.pendingEscrow, summary.currency)}
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl bg-teal-50/70 border border-teal-200">
+            <p className="text-xs text-teal-900 font-medium">2. Ready to Withdraw</p>
+            <p className="font-tech text-2xl font-bold text-[#0f766e] mt-1">
+              {formatKes(summary.availableBalance, summary.currency)}
+            </p>
+          </div>
+          <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4]">
+            <p className="text-xs text-stone-500">3. M-Pesa Disbursed</p>
+            <p className="font-tech text-2xl font-bold text-[#111827] mt-1">
+              {formatKes(summary.paidOutTotal, summary.currency)}
+            </p>
+          </div>
         </div>
       </div>
 
       <form
         onSubmit={handleRequestPayout}
-        className="editorial-card p-6 flex flex-col sm:flex-row items-end gap-4"
+        className="editorial-card p-6 bg-white flex flex-col sm:flex-row items-end gap-4"
       >
         <div className="flex-1 w-full">
-          <label className="block text-xs font-medium text-stone-600 mb-1">
-            M-Pesa Destination Phone (Minimum KES 100)
+          <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+            M-Pesa B2C Phone (Min KES 100)
           </label>
           <input
             type="tel"
@@ -201,13 +229,13 @@ export default function CreatorEarningsPage() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+254712345678"
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
           />
         </div>
         <button
           type="submit"
           disabled={busy || summary.availableBalance < 100}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold hover:bg-teal-900 disabled:opacity-50"
+          className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
         >
           <ArrowDownRight className="w-4 h-4" />
           Withdraw {formatKes(summary.availableBalance, summary.currency)}
@@ -215,7 +243,7 @@ export default function CreatorEarningsPage() {
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="editorial-card p-5 space-y-3">
+        <div className="editorial-card p-5 bg-white space-y-3">
           <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
             <Wallet className="w-4 h-4 text-[#0f766e]" />
             Per-Booking Escrow Ledger
@@ -223,11 +251,11 @@ export default function CreatorEarningsPage() {
           {ledger.length === 0 ? (
             <p className="text-xs text-stone-500">No ledger entries yet.</p>
           ) : (
-            <div className="divide-y divide-[#e6e0d4] text-xs">
+            <div className="space-y-2.5 text-xs">
               {ledger.map((e) => (
                 <div
                   key={e.id}
-                  className="py-3 flex items-center justify-between gap-2"
+                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-2"
                 >
                   <div>
                     <p className="font-tech font-medium">
@@ -253,7 +281,7 @@ export default function CreatorEarningsPage() {
           )}
         </div>
 
-        <div className="editorial-card p-5 space-y-3">
+        <div className="editorial-card p-5 bg-white space-y-3">
           <h2 className="font-editorial text-lg font-semibold">
             Payout History
           </h2>
@@ -262,11 +290,11 @@ export default function CreatorEarningsPage() {
               No withdrawals requested yet.
             </p>
           ) : (
-            <div className="divide-y divide-[#e6e0d4] text-xs">
+            <div className="space-y-2.5 text-xs">
               {payouts.map((p) => (
                 <div
                   key={p.id}
-                  className="py-3 flex items-center justify-between"
+                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between"
                 >
                   <div>
                     <p className="font-tech font-medium">
@@ -288,6 +316,6 @@ export default function CreatorEarningsPage() {
           )}
         </div>
       </div>
-    </main>
+    </CreatorShell>
   );
 }

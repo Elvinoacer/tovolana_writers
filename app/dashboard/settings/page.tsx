@@ -1,5 +1,7 @@
 "use client";
 
+import { CustomerShell } from "@/components/CustomerShell";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
@@ -137,32 +139,63 @@ export default function CustomerSettingsPage() {
   }
 
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
-      <div>
-        <h1 className="text-3xl font-editorial font-semibold">
-          Account & Security Settings
-        </h1>
-        <p className="text-sm text-stone-600 mt-1">
-          Manage your identity details, verification status, connected Google
-          sign-in, and notification preferences.
-        </p>
-      </div>
-
+    <CustomerShell
+      title="Account & Security"
+      subtitle="Identity verification, connected providers, and alert channels."
+    >
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-center gap-2">
+        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 shrink-0" />
           <span>{notice}</span>
         </div>
       )}
 
+      {/* Visual Verification Badges Strip */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="editorial-card p-4 bg-white flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-tech uppercase text-stone-500">Email Identity</p>
+            <p className="text-sm font-semibold text-[#111827] mt-0.5">{user.email}</p>
+          </div>
+          <span
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+              user.emailVerified
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                : "bg-amber-50 text-amber-800 border border-amber-200"
+            }`}
+          >
+            {user.emailVerified ? "Verified" : "Unverified"}
+          </span>
+        </div>
+
+        <div className="editorial-card p-4 bg-white flex items-center justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-tech uppercase text-stone-500">M-Pesa / SMS OTP</p>
+            <p className="text-sm font-tech font-semibold text-[#111827] mt-0.5">
+              {phone || "No number saved"}
+            </p>
+          </div>
+          <Link
+            href="/auth/verify"
+            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              user.phoneVerified
+                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                : "bg-blue-50 text-[#1e3a8a] border border-blue-200 hover:bg-blue-100"
+            }`}
+          >
+            {user.phoneVerified ? "OTP Verified" : "Verify OTP →"}
+          </Link>
+        </div>
+      </div>
+
       <form
         onSubmit={handleSaveProfile}
-        className="editorial-card p-6 space-y-5"
+        className="editorial-card p-6 bg-white space-y-5"
       >
         <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
           <UserCog className="w-5 h-5 text-[#1e3a8a]" />
@@ -178,7 +211,7 @@ export default function CustomerSettingsPage() {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
             />
           </div>
           <div>
@@ -189,7 +222,7 @@ export default function CustomerSettingsPage() {
               type="email"
               disabled
               value={user.email}
-              className="w-full rounded-lg border border-[#e6e0d4] bg-stone-100 px-3.5 py-2 text-sm text-stone-600"
+              className="w-full rounded-xl border border-[#e6e0d4] bg-[#faf7f2] px-3.5 py-2.5 text-sm text-stone-600"
             />
           </div>
           <div>
@@ -201,7 +234,7 @@ export default function CustomerSettingsPage() {
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+254712345678"
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm font-tech"
+              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
             />
           </div>
           <div>
@@ -211,7 +244,7 @@ export default function CustomerSettingsPage() {
             <select
               value={preferredLocale}
               onChange={(e) => setPreferredLocale(e.target.value)}
-              className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
             >
               <option value="en-KE">English (Kenya · KES)</option>
               <option value="en-US">English (International)</option>
@@ -229,8 +262,13 @@ export default function CustomerSettingsPage() {
             {(["email", "push", "inApp", "sms"] as const).map((k) => (
               <label
                 key={k}
-                className="flex items-center gap-2 p-2.5 rounded-lg border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer"
+                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
+                  prefs[k]
+                    ? "border-[#1e3a8a] bg-blue-50/40 text-[#111827]"
+                    : "border-[#e6e0d4] bg-[#faf7f2] text-stone-600"
+                }`}
               >
+                <span className="uppercase font-tech font-semibold">{k}</span>
                 <input
                   type="checkbox"
                   checked={prefs[k]}
@@ -238,23 +276,16 @@ export default function CustomerSettingsPage() {
                     setPrefs((p) => ({ ...p, [k]: e.target.checked }))
                   }
                 />
-                <span className="uppercase font-medium">{k}</span>
               </label>
             ))}
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
-          <Link
-            href="/auth/verify"
-            className="text-xs font-medium text-[#1e3a8a] hover:underline"
-          >
-            Verify Email or Phone OTP →
-          </Link>
+        <div className="flex items-center justify-end pt-2">
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554] disabled:opacity-50"
+            className="btn-primary px-5 py-2.5 text-sm disabled:opacity-50"
           >
             Save Preferences
           </button>
@@ -262,22 +293,22 @@ export default function CustomerSettingsPage() {
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="editorial-card p-6 space-y-3">
+        <div className="editorial-card p-6 bg-white space-y-3">
           <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-[#0f766e]" />
-            Connected Auth Providers
+            Auth Providers
           </h2>
           <div className="space-y-2 text-xs">
             {authAccounts.length === 0 ? (
-              <p className="text-stone-500">Email & Password credentials</p>
+              <p className="text-stone-500">Email &amp; Password credentials</p>
             ) : (
               authAccounts.map((a) => (
                 <div
                   key={a.provider}
-                  className="px-3 py-2 rounded-lg bg-stone-50 border border-[#e6e0d4] flex items-center justify-between"
+                  className="px-3.5 py-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between"
                 >
-                  <span className="font-semibold uppercase">{a.provider}</span>
-                  <span className="text-emerald-700 font-medium">Linked</span>
+                  <span className="font-tech font-semibold uppercase">{a.provider}</span>
+                  <span className="text-emerald-700 font-semibold">Linked</span>
                 </div>
               ))
             )}
@@ -286,18 +317,18 @@ export default function CustomerSettingsPage() {
 
         <form
           onSubmit={handlePasswordUpdate}
-          className="editorial-card p-6 space-y-3"
+          className="editorial-card p-6 bg-white space-y-3"
         >
           <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
             <KeyRound className="w-5 h-5 text-[#1e3a8a]" />
-            Change Password
+            Update Password
           </h2>
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Current password (blank if Google-only account)"
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+            placeholder="Current password (blank if Google-only)"
+            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
           />
           <input
             type="password"
@@ -306,17 +337,17 @@ export default function CustomerSettingsPage() {
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="New password (min 8 chars)"
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
           />
           <button
             type="submit"
             disabled={saving}
-            className="px-4 py-2 rounded-lg border border-[#e6e0d4] bg-white text-xs font-semibold hover:bg-stone-50"
+            className="btn-ghost px-4 py-2 text-xs"
           >
             Update Password
           </button>
         </form>
       </div>
-    </main>
+    </CustomerShell>
   );
 }

@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Filter, Search, SlidersHorizontal } from "lucide-react";
+import { Crown, Filter, Search, SlidersHorizontal, Sparkles } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
@@ -99,40 +99,73 @@ export default async function ExplorePage({
     }),
   ]);
 
+  const hasFilters = Boolean(
+    q || categorySlug !== "all" || pricingType !== "ALL" || maxPriceRaw
+  );
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#e6e0d4] pb-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
+      {/* Compact Header */}
+      <div className="editorial-card p-6 bg-white ink-grid-bg flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <p className="text-xs font-tech uppercase tracking-wider text-[#1e3a8a]">
-            Marketplace Directory (Screen 1.2)
-          </p>
-          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold mt-1">
-            Explore Vetted Writing Services
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider text-[#1e3a8a]">
+            <Sparkles className="w-3.5 h-3.5" />
+            Verified Marketplace
+          </span>
+          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold mt-1 text-[#111827]">
+            Explore Writing Services
           </h1>
-          <p className="text-sm text-stone-600 mt-1">
-            Every listing shows transparent KES fees, customer prerequisites,
-            delivery turnaround, and public validity dates upfront.
-          </p>
         </div>
         {!userIsPro && (
           <Link
             href="/membership"
-            className="text-xs font-medium px-3.5 py-2 rounded-lg bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 shrink-0"
+            className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2.5 rounded-xl bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 transition-colors shrink-0"
           >
-            Pro Members see early-access listings &amp; pay 50% less in fees
+            <Crown className="w-4 h-4 text-amber-700" />
+            Pro saves 50% on platform fees
           </Link>
         )}
+      </div>
+
+      {/* Visual Category Pills Strip */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <Link
+          href="/explore"
+          className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
+            categorySlug === "all"
+              ? "bg-[#111827] text-white border-[#111827]"
+              : "bg-white text-stone-700 border-[#e6e0d4] hover:border-[#1e3a8a]"
+          }`}
+        >
+          All Disciplines
+        </Link>
+        {categories.map((cat) => {
+          const active = categorySlug === cat.slug;
+          return (
+            <Link
+              key={cat.id}
+              href={`/explore?category=${cat.slug}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+              className={`px-3.5 py-2 rounded-full text-xs font-semibold whitespace-nowrap border transition-colors ${
+                active
+                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                  : "bg-white text-stone-700 border-[#e6e0d4] hover:border-[#1e3a8a]"
+              }`}
+            >
+              {cat.name}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Filter Engine Form */}
       <form
         method="GET"
         action="/explore"
-        className="editorial-card p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end"
+        className="editorial-card p-4 sm:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end bg-white"
       >
         <div className="lg:col-span-2">
-          <label className="block text-xs font-medium text-stone-600 mb-1">
-            Keyword Search
+          <label className="block text-[11px] font-tech uppercase text-stone-500 mb-1">
+            Keyword
           </label>
           <div className="relative">
             <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
@@ -141,21 +174,21 @@ export default async function ExplorePage({
               name="q"
               defaultValue={q}
               placeholder="Literature review, APA, RFP..."
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">
-            Category
+          <label className="block text-[11px] font-tech uppercase text-stone-500 mb-1">
+            Discipline
           </label>
           <select
             name="category"
             defaultValue={categorySlug}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+            className="w-full px-3 py-2 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
           >
-            <option value="all">All Active Categories</option>
+            <option value="all">All Active</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.slug}>
                 {cat.name}
@@ -165,55 +198,55 @@ export default async function ExplorePage({
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">
-            Pricing Model
+          <label className="block text-[11px] font-tech uppercase text-stone-500 mb-1">
+            Pricing
           </label>
           <select
             name="pricingType"
             defaultValue={pricingType}
-            className="w-full px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2]"
+            className="w-full px-3 py-2 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2]"
           >
             <option value="ALL">Fixed &amp; Quote</option>
-            <option value="FIXED">Fixed Price Only</option>
-            <option value="QUOTE_BASED">Quotation-Based</option>
+            <option value="FIXED">Fixed Price</option>
+            <option value="QUOTE_BASED">Custom Quote</option>
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-stone-600 mb-1">
+          <label className="block text-[11px] font-tech uppercase text-stone-500 mb-1">
             Max Base (KES)
           </label>
           <input
             type="number"
             name="maxPrice"
             defaultValue={maxPriceRaw}
-            placeholder="e.g. 8000"
-            className="w-full px-3 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+            placeholder="8000"
+            className="w-full px-3 py-2 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
           />
         </div>
 
         <div className="flex gap-2">
           <div className="flex-1">
-            <label className="block text-xs font-medium text-stone-600 mb-1">
-              Sort By
+            <label className="block text-[11px] font-tech uppercase text-stone-500 mb-1">
+              Sort
             </label>
             <select
               name="sort"
               defaultValue={sort}
-              className="w-full px-2.5 py-2 text-sm rounded-lg border border-[#e6e0d4] bg-[#faf7f2]"
+              className="w-full px-2.5 py-2 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2]"
             >
               <option value="newest">Newest</option>
-              <option value="price_asc">Lowest Price</option>
-              <option value="price_desc">Highest Price</option>
-              <option value="fastest">Fastest Delivery</option>
+              <option value="price_asc">Lowest KES</option>
+              <option value="price_desc">Highest KES</option>
+              <option value="fastest">Fastest</option>
             </select>
           </div>
           <button
             type="submit"
-            className="self-end px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554] inline-flex items-center gap-1.5"
+            className="btn-primary self-end px-4 py-2 text-sm"
           >
             <Filter className="w-3.5 h-3.5" />
-            Apply
+            Go
           </button>
         </div>
       </form>
@@ -221,27 +254,24 @@ export default async function ExplorePage({
       <div className="flex items-center justify-between text-xs text-stone-600">
         <span className="inline-flex items-center gap-1.5 font-tech">
           <SlidersHorizontal className="w-3.5 h-3.5" />
-          Showing {tasks.length} active published service{tasks.length === 1 ? "" : "s"}
+          {tasks.length} service{tasks.length === 1 ? "" : "s"} matched
         </span>
-        {(q || categorySlug !== "all" || pricingType !== "ALL" || maxPriceRaw) && (
-          <Link href="/explore" className="text-[#1e3a8a] hover:underline">
-            Clear all filters
+        {hasFilters && (
+          <Link
+            href="/explore"
+            className="font-semibold text-[#1e3a8a] hover:underline"
+          >
+            Clear Filters
           </Link>
         )}
       </div>
 
       {tasks.length === 0 ? (
-        <div className="editorial-card p-12 text-center space-y-3">
+        <div className="editorial-card p-12 text-center space-y-4">
           <h3 className="font-editorial text-xl font-semibold">
             No matching services found
           </h3>
-          <p className="text-sm text-stone-600 max-w-md mx-auto">
-            Try clearing your price cap or selecting a broader writing discipline.
-          </p>
-          <Link
-            href="/explore"
-            className="inline-block px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold"
-          >
+          <Link href="/explore" className="btn-primary px-5 py-2.5 text-sm">
             Reset Directory Filters
           </Link>
         </div>

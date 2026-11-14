@@ -129,10 +129,10 @@ export default function AdminCategoriesPage() {
 
       <form
         onSubmit={handleCreate}
-        className="editorial-card p-5 grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
+        className="editorial-card p-5 bg-white grid grid-cols-1 md:grid-cols-4 gap-3 items-end"
       >
         <div>
-          <label className="block text-xs font-medium mb-1">
+          <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1">
             Category Name
           </label>
           <input
@@ -141,18 +141,20 @@ export default function AdminCategoriesPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Grant Proposals"
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
           />
         </div>
         <div className="md:col-span-2">
-          <label className="block text-xs font-medium mb-1">Description</label>
+          <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1">
+            Description
+          </label>
           <input
             type="text"
             required
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Scope overview shown in category discovery..."
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+            placeholder="Concise scope summary..."
+            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
           />
         </div>
         <div className="flex gap-2">
@@ -160,19 +162,19 @@ export default function AdminCategoriesPage() {
             type="number"
             value={sortOrder}
             onChange={(e) => setSortOrder(e.target.value)}
-            className="w-20 rounded-lg border border-[#e6e0d4] bg-white px-2.5 py-2 text-sm font-tech"
+            className="w-20 rounded-xl border border-[#e6e0d4] bg-white px-2.5 py-2 text-sm font-tech"
           />
           <button
             type="submit"
-            className="flex-1 inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold"
+            className="btn-primary flex-1 px-4 py-2 text-xs gap-1.5"
           >
             <FolderPlus className="w-3.5 h-3.5" />
-            Add Category
+            Add
           </button>
         </div>
       </form>
 
-      <div className="editorial-card overflow-hidden">
+      <div className="editorial-card overflow-hidden bg-white">
         {loading ? (
           <p className="p-6 text-sm text-stone-500">Loading categories...</p>
         ) : (
@@ -180,25 +182,27 @@ export default function AdminCategoriesPage() {
             {categories.map((cat) => (
               <div
                 key={cat.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-[#faf7f2]/60 transition-colors"
               >
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-tech text-xs px-2 py-0.5 rounded bg-stone-100">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-tech text-xs px-2 py-0.5 rounded-md bg-[#faf7f2] border border-[#e6e0d4]">
                       #{cat.sortOrder}
                     </span>
-                    <h3 className="font-semibold text-sm">{cat.name}</h3>
+                    <h3 className="font-editorial font-semibold text-base text-[#111827]">
+                      {cat.name}
+                    </h3>
                     <span
-                      className={`text-[11px] px-2 py-0.5 rounded-full font-medium ${
+                      className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold ${
                         cat.isActive
                           ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                           : "bg-stone-200 text-stone-700"
                       }`}
                     >
-                      {cat.isActive ? "Active" : "Deactivated"}
+                      {cat.isActive ? "Active" : "Inactive"}
                     </span>
                     <span className="font-tech text-xs text-stone-500">
-                      {cat._count?.listings ?? 0} linked listings
+                      {cat._count?.listings ?? 0} listings
                     </span>
                   </div>
                   <p className="text-xs text-stone-600 mt-1">
@@ -209,14 +213,14 @@ export default function AdminCategoriesPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => toggleActive(cat)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#e6e0d4] bg-white text-xs font-medium hover:bg-stone-50"
+                    className="btn-ghost px-3 py-1.5 text-xs gap-1"
                   >
                     <Power className="w-3.5 h-3.5" />
                     {cat.isActive ? "Deactivate" : "Reactivate"}
                   </button>
                   <button
                     onClick={() => handleDelete(cat)}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-rose-200 bg-white text-rose-700 text-xs font-medium hover:bg-rose-50"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                     Delete

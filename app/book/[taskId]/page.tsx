@@ -1,5 +1,10 @@
 "use client";
 
+import {
+  CategoryCoverArt,
+  CreatorAvatar,
+} from "@/components/ui/EditorialVisuals";
+
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -360,41 +365,45 @@ export default function BookTaskPage({
     );
   }
 
+  const categorySlugGuess = task.category.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-");
+
   return (
-    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-      <div className="flex items-center justify-between gap-4">
+    <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
+      <div className="editorial-card p-4 sm:px-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <Link
           href={`/tasks/${task.slug}`}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-[#111827]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#111827]"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to service brief
         </Link>
-        <div className="flex items-center gap-2 text-xs font-medium">
+        <div className="flex items-center gap-2 text-xs font-semibold flex-wrap">
           {[1, 2, 3].map((num) => (
             <span
               key={num}
-              className={`px-3 py-1 rounded-full border ${
+              className={`px-3 py-1 rounded-full border transition-all ${
                 step === num
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
+                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs"
                   : step > num
                     ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-white text-stone-500 border-[#e6e0d4]"
+                    : "bg-[#faf7f2] text-stone-500 border-[#e6e0d4]"
               }`}
             >
               {num}.{" "}
               {num === 1
                 ? "Requirements"
                 : num === 2
-                  ? "Review & Total"
-                  : "Escrow Payment"}
+                  ? "Review & Policy"
+                  : "IntaSend Escrow"}
             </span>
           ))}
         </div>
       </div>
 
       {error && (
-        <div className="p-4 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm flex items-start gap-2.5">
+        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm flex items-start gap-2.5">
           <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -404,14 +413,13 @@ export default function BookTaskPage({
         <div className="lg:col-span-2 space-y-6">
           {/* Step 1: Requirements */}
           {step === 1 && (
-            <div className="editorial-card p-6 sm:p-8 space-y-6">
+            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
               <div>
                 <h1 className="text-2xl font-editorial font-semibold">
-                  Step 1: Assignment Requirements
+                  Step 1 · Assignment Requirements
                 </h1>
-                <p className="text-sm text-stone-600 mt-1">
-                  Provide complete instructions so {task.creator.displayName} can
-                  deliver accurately on the first draft.
+                <p className="text-xs text-stone-600 mt-1">
+                  Brief {task.creator.displayName} accurately upfront.
                 </p>
               </div>
 
@@ -441,7 +449,7 @@ export default function BookTaskPage({
                             }))
                           }
                           placeholder={field.placeholder || ""}
-                          className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
                         />
                       ) : field.type === "select" && field.options ? (
                         <select
@@ -452,7 +460,7 @@ export default function BookTaskPage({
                               [key]: e.target.value,
                             }))
                           }
-                          className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
                         >
                           <option value="">Select an option...</option>
                           {field.options.map((opt) => (
@@ -472,7 +480,7 @@ export default function BookTaskPage({
                             }))
                           }
                           placeholder={field.placeholder || ""}
-                          className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
                         />
                       )}
                     </div>
@@ -482,29 +490,29 @@ export default function BookTaskPage({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
                     <label className="block text-sm font-medium text-[#111827] mb-1">
-                      Preferred Delivery Date (Optional)
+                      Preferred Delivery Date
                     </label>
                     <input
                       type="date"
                       value={requestedDeadline}
                       onChange={(e) => setRequestedDeadline(e.target.value)}
-                      className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+                      className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
                     />
                     <p className="text-[11px] text-stone-500 mt-1">
-                      Standard turnaround is {task.deliveryTurnaroundDays} days.
+                      Standard: {task.deliveryTurnaroundDays} days.
                     </p>
                   </div>
 
                   <div>
                     <label className="block text-sm font-medium text-[#111827] mb-1">
-                      Supporting Brief Document (Optional)
+                      Brief File (Optional)
                     </label>
-                    <label className="flex items-center gap-2 px-3.5 py-2 rounded-lg border border-dashed border-stone-300 bg-stone-50 text-xs text-stone-700 cursor-pointer hover:bg-stone-100">
+                    <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 bg-[#faf7f2] text-xs text-stone-700 cursor-pointer hover:bg-stone-100">
                       <Upload className="w-4 h-4 text-[#1e3a8a]" />
                       <span className="truncate">
                         {briefFile
                           ? briefFile.name
-                          : "Attach rubric, outline, or PDF brief"}
+                          : "Attach rubric, outline, or PDF"}
                       </span>
                       <input
                         type="file"
@@ -517,7 +525,7 @@ export default function BookTaskPage({
                   </div>
                 </div>
 
-                <label className="flex items-start gap-3 p-3.5 rounded-lg border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer">
+                <label className="flex items-start gap-3 p-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={rushSelected}
@@ -526,12 +534,12 @@ export default function BookTaskPage({
                   />
                   <div className="text-xs">
                     <span className="font-semibold text-[#111827]">
-                      Add Priority / Rush Handling (+20% ={" "}
+                      Priority Rush (+20% ·{" "}
                       {formatKes(Math.round(task.basePrice * 0.2), task.currency)}
                       )
                     </span>
                     <p className="text-stone-600 mt-0.5">
-                      Cuts expected delivery turnaround in half where eligible.
+                      Halves standard delivery turnaround where eligible.
                     </p>
                   </div>
                 </label>
@@ -556,9 +564,9 @@ export default function BookTaskPage({
                     setError(null);
                     setStep(2);
                   }}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554]"
+                  className="btn-primary px-6 py-2.5 text-sm gap-2"
                 >
-                  Continue to Price & Policy Review
+                  Review Scope &amp; Policy
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -567,43 +575,42 @@ export default function BookTaskPage({
 
           {/* Step 2: Transparent Confirmation */}
           {step === 2 && (
-            <div className="editorial-card p-6 sm:p-8 space-y-6">
+            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
               <div>
                 <h1 className="text-2xl font-editorial font-semibold">
-                  Step 2: Confirm Scope, Deadlines & Policies
+                  Step 2 · Confirm Deadlines &amp; Escrow Policy
                 </h1>
-                <p className="text-sm text-stone-600 mt-1">
-                  Review your locked terms before creating your booking reference.
+                <p className="text-xs text-stone-600 mt-1">
+                  Verify locked terms before generating your booking reference.
                 </p>
               </div>
 
-              <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 text-xs text-blue-950 space-y-1.5">
+              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 text-xs text-blue-950 space-y-1">
                 <p className="font-semibold flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-[#1e3a8a]" />
-                  Delivery Deadline vs. Listing Validity Protection
+                  Independent Delivery Deadline Guarantee
                 </p>
                 <p>
-                  Once confirmed, your booking receives an independent{" "}
-                  <strong>Delivery Deadline</strong> (
-                  {requestedDeadline
-                    ? requestedDeadline
-                    : `${rushSelected ? Math.max(1, Math.ceil(task.deliveryTurnaroundDays / 2)) : task.deliveryTurnaroundDays} days from confirmation`}
-                  ). Even if the public listing expires afterward, your booking
-                  remains active and protected.
+                  Target Delivery:{" "}
+                  <strong>
+                    {requestedDeadline
+                      ? requestedDeadline
+                      : `${rushSelected ? Math.max(1, Math.ceil(task.deliveryTurnaroundDays / 2)) : task.deliveryTurnaroundDays} days from payment`}
+                  </strong>
+                  . Protected even if the public listing expires later.
                 </p>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div className="p-4 rounded-lg bg-[#faf7f2] border border-[#e6e0d4]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
                   <p className="font-semibold text-[#111827]">Revision Policy</p>
                   <p className="text-xs text-stone-600 mt-1">
-                    {task.revisionPolicy} (Up to{" "}
-                    <strong>{task.maxRevisions}</strong> revision rounds included)
+                    {task.revisionPolicy} ({task.maxRevisions} rounds included)
                   </p>
                 </div>
-                <div className="p-4 rounded-lg bg-[#faf7f2] border border-[#e6e0d4]">
+                <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
                   <p className="font-semibold text-[#111827]">
-                    Cancellation & Escrow Policy
+                    Cancellation Policy
                   </p>
                   <p className="text-xs text-stone-600 mt-1">
                     {task.cancellationPolicy}
@@ -619,27 +626,27 @@ export default function BookTaskPage({
                   className="mt-0.5"
                 />
                 <span>
-                  I confirm that the deliverables, timeline, total payable (
+                  I confirm deliverables, turnaround, total payable (
                   <strong>{formatKes(computedTotal, task.currency)}</strong>), and
-                  platform policies are clear and accurate.
+                  escrow terms.
                 </span>
               </label>
 
               <div className="flex items-center justify-between pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-4 py-2 rounded-lg border border-[#e6e0d4] text-sm font-medium text-stone-700 hover:bg-stone-50"
+                  className="btn-ghost px-4 py-2 text-sm"
                 >
                   Edit Requirements
                 </button>
                 <button
                   disabled={!acceptedPolicies || submitting}
                   onClick={handleCreateBooking}
-                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554] disabled:opacity-50"
+                  className="btn-primary px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
                 >
                   {submitting
                     ? "Locking Booking..."
-                    : "Confirm Booking & Proceed to Escrow"}
+                    : "Confirm & Proceed to Escrow"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
@@ -648,17 +655,17 @@ export default function BookTaskPage({
 
           {/* Step 3: IntaSend Escrow Checkout */}
           {step === 3 && createdBooking && (
-            <div className="editorial-card p-6 sm:p-8 space-y-6">
+            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <span className="font-tech text-xs px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Booking Reference: {createdBooking.bookingRef}
+                  <span className="font-tech text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
+                    Ref: {createdBooking.bookingRef}
                   </span>
                   <h1 className="text-2xl font-editorial font-semibold mt-2">
-                    Step 3: Fund IntaSend Escrow
+                    Step 3 · Fund IntaSend Escrow
                   </h1>
                 </div>
-                <p className="font-tech text-xl font-bold text-[#1e3a8a]">
+                <p className="font-tech text-2xl font-bold text-[#1e3a8a]">
                   {formatKes(
                     createdBooking.totalPayable,
                     createdBooking.currency
@@ -672,34 +679,34 @@ export default function BookTaskPage({
                     <button
                       type="button"
                       onClick={() => setChannel("MPESA_STK")}
-                      className={`p-4 rounded-xl border text-left transition-all ${
+                      className={`p-4 rounded-2xl border text-left transition-all ${
                         channel === "MPESA_STK"
                           ? "border-[#1e3a8a] bg-blue-50/50 ring-2 ring-[#1e3a8a]/20"
-                          : "border-[#e6e0d4] bg-white hover:bg-stone-50"
+                          : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
                       }`}
                     >
                       <Smartphone className="w-5 h-5 text-emerald-700 mb-2" />
                       <p className="font-semibold text-sm">M-Pesa STK Push</p>
                       <p className="text-xs text-stone-600 mt-0.5">
-                        Instant KES prompt straight to your Safaricom phone.
+                        Instant KES prompt on Safaricom.
                       </p>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setChannel("CARD")}
-                      className={`p-4 rounded-xl border text-left transition-all ${
+                      className={`p-4 rounded-2xl border text-left transition-all ${
                         channel === "CARD"
                           ? "border-[#1e3a8a] bg-blue-50/50 ring-2 ring-[#1e3a8a]/20"
-                          : "border-[#e6e0d4] bg-white hover:bg-stone-50"
+                          : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
                       }`}
                     >
                       <CreditCard className="w-5 h-5 text-[#1e3a8a] mb-2" />
                       <p className="font-semibold text-sm">
-                        Visa / Mastercard Checkout
+                        Visa / Mastercard
                       </p>
                       <p className="text-xs text-stone-600 mt-0.5">
-                        Hosted IntaSend 3DS card payment link.
+                        Hosted 3DS card checkout.
                       </p>
                     </button>
                   </div>
@@ -714,7 +721,7 @@ export default function BookTaskPage({
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+254712345678"
-                        className="w-full rounded-lg border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+                        className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
                       />
                     </div>
                   )}
@@ -729,7 +736,7 @@ export default function BookTaskPage({
                     <button
                       disabled={submitting}
                       onClick={handleInitiatePayment}
-                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554] disabled:opacity-50"
+                      className="btn-primary px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
                     >
                       {submitting
                         ? "Connecting to IntaSend..."
@@ -741,7 +748,7 @@ export default function BookTaskPage({
                   </div>
                 </div>
               ) : (
-                <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-5 space-y-4">
+                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle2 className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
                     <div className="text-sm">
@@ -749,7 +756,7 @@ export default function BookTaskPage({
                         Payment Request Initiated ({checkoutInfo.mode || "SANDBOX"})
                       </p>
                       <p className="text-xs text-amber-900 mt-1">
-                        Transaction Ref:{" "}
+                        Ref:{" "}
                         <code className="font-tech bg-white px-1.5 py-0.5 rounded border border-amber-200">
                           {checkoutInfo.transaction?.apiRef}
                         </code>
@@ -762,29 +769,29 @@ export default function BookTaskPage({
                       href={checkoutInfo.checkoutUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white border border-amber-300 text-xs font-semibold text-amber-950"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-amber-950"
                     >
-                      Open Hosted IntaSend Checkout
+                      Open Hosted Checkout
                       <ArrowRight className="w-3.5 h-3.5" />
                     </a>
                   )}
 
                   <div className="pt-3 border-t border-amber-200 space-y-2.5">
                     <p className="text-xs font-semibold text-stone-800">
-                      IntaSend Sandbox Verification Controls (Test Environment)
+                      IntaSend Sandbox Simulation Controls
                     </p>
                     <div className="flex flex-wrap gap-2.5">
                       <button
                         disabled={submitting}
                         onClick={() => handleSimulateSandboxWebhook("COMPLETE")}
-                        className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50"
                       >
-                        Simulate Successful Escrow Payment
+                        Simulate Successful Payment
                       </button>
                       <button
                         disabled={submitting}
                         onClick={() => handleSimulateSandboxWebhook("FAILED")}
-                        className="px-4 py-2 rounded-lg border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
                       >
                         Simulate Failed Payment
                       </button>
@@ -796,94 +803,104 @@ export default function BookTaskPage({
           )}
         </div>
 
-        {/* Sticky Order Ledger */}
+        {/* Sticky Visual Order Ledger */}
         <aside className="space-y-4">
-          <div className="editorial-card p-6 space-y-4 sticky top-24">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-[#1e3a8a]">
-                {task.category.name}
-              </span>
-              {userIsPro && <ProBadge label="Pro Fee 50% Off" />}
-            </div>
+          <div className="editorial-card overflow-hidden bg-white sticky top-24">
+            <CategoryCoverArt
+              slug={categorySlugGuess}
+              name={task.category.name}
+              heightClass="h-24"
+            />
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <CreatorAvatar name={task.creator.displayName} size="sm" />
+                  <span className="text-xs font-semibold text-[#111827]">
+                    {task.creator.displayName}
+                  </span>
+                </div>
+                {userIsPro && <ProBadge label="Pro 50% Off" />}
+              </div>
 
-            <h2 className="font-editorial text-lg font-semibold leading-snug">
-              {task.title}
-            </h2>
+              <h2 className="font-editorial text-lg font-semibold leading-snug">
+                {task.title}
+              </h2>
 
-            <div className="flex items-center gap-2 flex-wrap">
-              <VettedCreatorBadge />
-              <ListingValidityTag
-                validUntil={task.validUntil}
-                validityType={task.validityType}
-              />
-            </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <VettedCreatorBadge />
+                <ListingValidityTag
+                  validUntil={task.validUntil}
+                  validityType={task.validityType}
+                />
+              </div>
 
-            <div className="border-t border-b border-[#e6e0d4] py-3 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-stone-600">Listed Service Price</span>
-                <span className="font-tech font-medium">
-                  {formatKes(task.basePrice, task.currency)}
+              <div className="border-t border-b border-[#e6e0d4] py-3 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-stone-600">Service Price</span>
+                  <span className="font-tech font-medium">
+                    {formatKes(task.basePrice, task.currency)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-stone-600">
+                    Fee ({activeTier?.effectiveFeePct ?? 10}%)
+                  </span>
+                  <span className="font-tech font-medium">
+                    {formatKes(activeTier?.serviceFee ?? 0, task.currency)}
+                  </span>
+                </div>
+                {activeTier && activeTier.proDiscount > 0 && (
+                  <div className="flex justify-between text-amber-800 text-xs">
+                    <span>Pro Savings</span>
+                    <span className="font-tech">
+                      -{formatKes(activeTier.proDiscount, task.currency)}
+                    </span>
+                  </div>
+                )}
+                {rushFee > 0 && (
+                  <div className="flex justify-between text-blue-900">
+                    <span>Priority Rush</span>
+                    <span className="font-tech">
+                      +{formatKes(rushFee, task.currency)}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-[#111827]">Total Payable</span>
+                <span className="font-tech text-2xl font-bold text-[#1e3a8a]">
+                  {formatKes(computedTotal, task.currency)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-stone-600">
-                  Service Fee ({activeTier?.effectiveFeePct ?? 10}%)
-                </span>
-                <span className="font-tech font-medium">
-                  {formatKes(activeTier?.serviceFee ?? 0, task.currency)}
-                </span>
-              </div>
-              {activeTier && activeTier.proDiscount > 0 && (
-                <div className="flex justify-between text-amber-800 text-xs">
-                  <span>Pro Member Fee Savings</span>
-                  <span className="font-tech">
-                    -{formatKes(activeTier.proDiscount, task.currency)}
+
+              {!userIsPro && freePricing && proPricing && (
+                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                  <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
+                  <span>
+                    Pro pays{" "}
+                    <strong className="font-tech">
+                      {formatKes(proPricing.totalPayable, task.currency)}
+                    </strong>
+                    .{" "}
+                    <Link href="/membership" className="underline font-semibold">
+                      Compare Pro
+                    </Link>
                   </span>
                 </div>
               )}
-              {rushFee > 0 && (
-                <div className="flex justify-between text-blue-900">
-                  <span>Priority Rush Handling</span>
-                  <span className="font-tech">
-                    +{formatKes(rushFee, task.currency)}
-                  </span>
-                </div>
-              )}
-            </div>
 
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-[#111827]">Total Payable</span>
-              <span className="font-tech text-xl font-bold text-[#1e3a8a]">
-                {formatKes(computedTotal, task.currency)}
-              </span>
-            </div>
-
-            {!userIsPro && freePricing && proPricing && (
-              <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
-                <span>
-                  Pro members pay only{" "}
-                  <strong className="font-tech">
-                    {formatKes(proPricing.totalPayable, task.currency)}
-                  </strong>{" "}
-                  on this booking.{" "}
-                  <Link href="/membership" className="underline font-semibold">
-                    Compare Pro
-                  </Link>
-                </span>
+              <div className="text-xs text-stone-600 space-y-1.5 pt-2">
+                <p className="font-semibold text-[#111827] flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
+                  Deliverables
+                </p>
+                <ul className="list-disc pl-4 space-y-1">
+                  {task.deliverablesSummary.map((d, i) => (
+                    <li key={i}>{d}</li>
+                  ))}
+                </ul>
               </div>
-            )}
-
-            <div className="text-xs text-stone-600 space-y-1.5 pt-2">
-              <p className="font-semibold text-[#111827] flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
-                Deliverables Included
-              </p>
-              <ul className="list-disc pl-4 space-y-1">
-                {task.deliverablesSummary.map((d, i) => (
-                  <li key={i}>{d}</li>
-                ))}
-              </ul>
             </div>
           </div>
         </aside>

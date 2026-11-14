@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import { Fraunces, JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthContext";
@@ -29,7 +30,7 @@ export const metadata: Metadata = {
     "Connect with assessment-vetted writing Creators with transparent pricing, explicit delivery deadlines, IntaSend escrow protection, and structured revisions.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"

@@ -66,8 +66,8 @@ jobs:
       - name: Seed Initial Marketplace Catalog & Accounts
         run: npm run db:seed
 
-      - name: TypeScript Type Check
-        run: npx tsc --noEmit
+      - name: Generate Next.js Types & TypeScript Check
+        run: npx next typegen && npx tsc --noEmit
 
       - name: ESLint Check
         run: npm run lint

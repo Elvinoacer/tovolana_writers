@@ -20,51 +20,66 @@ interface DisciplineVisualConfig {
   accentBg: string;
   accentText: string;
   patternStroke: string;
+  photoSrc: string;
   tag: string;
 }
 
 const DISCIPLINE_THEMES: Record<string, DisciplineVisualConfig> = {
   "academic-writing": {
-    gradient: "from-[#1e3a8a] via-[#1d4ed8] to-[#0f172a]",
-    accentBg: "bg-blue-500/20",
-    accentText: "text-blue-100",
+    gradient: "from-[#1e3a8a]/80 via-[#1d4ed8]/55 to-[#0f172a]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#93c5fd",
+    photoSrc: "/images/photos/cat-academic.jpg",
     tag: "Scholarly Monograph",
   },
   "essays-and-assignments": {
-    gradient: "from-[#0f766e] via-[#0d9488] to-[#134e4a]",
-    accentBg: "bg-teal-400/20",
-    accentText: "text-teal-50",
+    gradient: "from-[#0f766e]/75 via-[#0d9488]/45 to-[#092927]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#5eead4",
+    photoSrc: "/images/photos/cat-essays.jpg",
     tag: "Structured Rhetoric",
   },
   "research-papers": {
-    gradient: "from-[#312e81] via-[#4338ca] to-[#1e1b4b]",
-    accentBg: "bg-indigo-400/20",
-    accentText: "text-indigo-100",
+    gradient: "from-[#312e81]/80 via-[#4338ca]/50 to-[#0b1120]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#a5b4fc",
+    photoSrc: "/images/photos/cat-research.jpg",
     tag: "Empirical Inquiry",
   },
   "articles-and-blog-writing": {
-    gradient: "from-[#b45309] via-[#d97706] to-[#78350f]",
-    accentBg: "bg-amber-300/20",
-    accentText: "text-amber-50",
+    gradient: "from-[#92400e]/75 via-[#b45309]/45 to-[#1c1917]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#fde68a",
+    photoSrc: "/images/photos/cat-articles.jpg",
     tag: "Editorial Voice",
   },
   "business-writing-and-proposals": {
-    gradient: "from-[#0f172a] via-[#1e293b] to-[#1e3a8a]",
-    accentBg: "bg-sky-400/20",
-    accentText: "text-sky-100",
+    gradient: "from-[#0f172a]/80 via-[#1e293b]/55 to-[#0b1120]/92",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#7dd3fc",
+    photoSrc: "/images/photos/cat-business.jpg",
     tag: "Executive Strategy",
   },
   "editing-and-proofreading": {
-    gradient: "from-[#881337] via-[#be123c] to-[#4c0519]",
-    accentBg: "bg-rose-400/20",
-    accentText: "text-rose-100",
+    gradient: "from-[#881337]/75 via-[#be123c]/45 to-[#1c0810]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
     patternStroke: "#fda4af",
+    photoSrc: "/images/photos/cat-editing.jpg",
     tag: "Precision Polish",
+  },
+  "other-services": {
+    gradient: "from-[#1e293b]/75 via-[#334155]/45 to-[#0f172a]/90",
+    accentBg: "bg-black/45 border border-white/20",
+    accentText: "text-white",
+    patternStroke: "#cbd5e1",
+    photoSrc: "/images/photos/cat-other.jpg",
+    tag: "Bespoke Craft",
   },
 };
 
@@ -73,17 +88,11 @@ function getTheme(slug: string): DisciplineVisualConfig {
   for (const [k, val] of Object.entries(DISCIPLINE_THEMES)) {
     if (slug.includes(k.split("-")[0])) return val;
   }
-  return {
-    gradient: "from-[#1e293b] via-[#334155] to-[#0f172a]",
-    accentBg: "bg-stone-300/20",
-    accentText: "text-stone-100",
-    patternStroke: "#cbd5e1",
-    tag: "Bespoke Craft",
-  };
+  return DISCIPLINE_THEMES["other-services"];
 }
 
 function DisciplineIcon({ slug }: { slug: string }) {
-  const cls = "w-5 h-5";
+  const cls = "w-4 h-4";
   if (slug.includes("academic")) return <BookOpen className={cls} />;
   if (slug.includes("essay")) return <PenTool className={cls} />;
   if (slug.includes("research")) return <FlaskConical className={cls} />;
@@ -96,7 +105,7 @@ function DisciplineIcon({ slug }: { slug: string }) {
 export function CategoryCoverArt({
   slug,
   name,
-  heightClass = "h-28",
+  heightClass = "h-36",
   children,
 }: {
   slug: string;
@@ -108,55 +117,35 @@ export function CategoryCoverArt({
 
   return (
     <div
-      className={`relative overflow-hidden bg-gradient-to-br ${theme.gradient} ${heightClass} p-4 flex flex-col justify-between select-none`}
+      className={`relative overflow-hidden bg-[#111827] ${heightClass} p-4 flex flex-col justify-between select-none`}
     >
-      {/* Bespoke Geometric Plate SVG */}
-      <svg
+      {/* Real Discipline Photograph */}
+      <Image
+        src={theme.photoSrc}
+        alt={`${name} writing studio photography`}
+        fill
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 420px"
+        className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
+      />
+
+      {/* Directional Legibility & Color-Harmonized Overlay */}
+      <div
         aria-hidden="true"
-        viewBox="0 0 240 120"
-        className="absolute right-0 bottom-0 w-44 h-28 opacity-20 pointer-events-none transition-transform duration-500 group-hover:scale-110"
-        fill="none"
-      >
-        <circle
-          cx="185"
-          cy="65"
-          r="52"
-          stroke={theme.patternStroke}
-          strokeWidth="1.5"
-          strokeDasharray="4 4"
-        />
-        <circle
-          cx="185"
-          cy="65"
-          r="32"
-          stroke={theme.patternStroke}
-          strokeWidth="1.5"
-        />
-        <path
-          d="M125 96 L225 22"
-          stroke={theme.patternStroke}
-          strokeWidth="1"
-        />
-        <rect
-          x="160"
-          y="40"
-          width="50"
-          height="50"
-          rx="10"
-          stroke={theme.patternStroke}
-          strokeWidth="1.2"
-          transform="rotate(14 185 65)"
-        />
-      </svg>
+        className={`absolute inset-0 bg-gradient-to-t ${theme.gradient}`}
+      />
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/65"
+      />
 
       <div className="relative z-10 flex items-center justify-between gap-2">
         <span
-          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${theme.accentBg} ${theme.accentText} backdrop-blur-md text-[11px] font-semibold tracking-tight`}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${theme.accentBg} ${theme.accentText} backdrop-blur-md text-[11px] font-semibold tracking-tight shadow-xs`}
         >
           <DisciplineIcon slug={slug} />
-          <span className="truncate max-w-[170px]">{name}</span>
+          <span className="truncate max-w-[165px]">{name}</span>
         </span>
-        <span className="text-[10px] font-tech uppercase tracking-wider text-white/75">
+        <span className="text-[10px] font-tech uppercase tracking-wider text-white/85 bg-black/35 px-2 py-0.5 rounded-full backdrop-blur-xs border border-white/10">
           {theme.tag}
         </span>
       </div>
@@ -166,13 +155,11 @@ export function CategoryCoverArt({
   );
 }
 
-const AVATAR_TONES = [
-  "from-[#1e3a8a] to-[#3b82f6]",
-  "from-[#0f766e] to-[#14b8a6]",
-  "from-[#b45309] to-[#f59e0b]",
-  "from-[#4338ca] to-[#6366f1]",
-  "from-[#9f1239] to-[#e11d48]",
-  "from-[#111827] to-[#4b5563]",
+const CREATOR_PHOTOS = [
+  "/images/photos/avatar-1.jpg",
+  "/images/photos/avatar-2.jpg",
+  "/images/photos/avatar-3.jpg",
+  "/images/photos/avatar-4.jpg",
 ];
 
 export function CreatorAvatar({
@@ -191,27 +178,28 @@ export function CreatorAvatar({
   for (let i = 0; i < seedStr.length; i++) {
     hash = (hash * 31 + seedStr.charCodeAt(i)) % 997;
   }
-  const gradient = AVATAR_TONES[hash % AVATAR_TONES.length];
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? "")
-    .join("");
+  const photoSrc = CREATOR_PHOTOS[hash % CREATOR_PHOTOS.length];
 
   const dims =
     size === "lg"
-      ? "w-16 h-16 text-xl rounded-2xl"
+      ? "w-16 h-16 rounded-2xl"
       : size === "sm"
-        ? "w-7 h-7 text-[11px] rounded-full"
-        : "w-9 h-9 text-xs rounded-xl";
+        ? "w-8 h-8 rounded-full"
+        : "w-10 h-10 rounded-xl";
+  const imgSize = size === "lg" ? 64 : size === "sm" ? 32 : 40;
 
   return (
     <div className="relative inline-flex shrink-0">
       <div
-        className={`${dims} bg-gradient-to-br ${gradient} text-white font-editorial font-bold flex items-center justify-center shadow-sm ring-2 ring-white`}
+        className={`${dims} relative overflow-hidden bg-[#1e293b] shadow-sm ring-2 ring-white`}
       >
-        {initials || "TW"}
+        <Image
+          src={photoSrc}
+          alt={name}
+          width={imgSize}
+          height={imgSize}
+          className="w-full h-full object-cover"
+        />
       </div>
       {available !== undefined && (
         <span
@@ -390,14 +378,14 @@ export function HeroManuscriptShowcase({
   return (
     <div className="relative animate-reveal stagger-2">
       <div className="editorial-card overflow-hidden bg-white p-2 sm:p-3">
-        <div className="relative rounded-2xl overflow-hidden bg-[#faf7f2]">
+        <div className="relative rounded-2xl overflow-hidden bg-[#faf7f2] aspect-[4/3]">
           <Image
-            src="/images/hero-atelier.svg"
-            alt="Tovolana Writers vetted editorial manuscript and IntaSend escrow visual showcase"
-            width={640}
-            height={480}
+            src="/images/photos/hero-nature-desk.jpg"
+            alt="Tovolana Writers vetted editorial workspace with laptop and planning notes"
+            fill
+            sizes="(max-width: 768px) 100vw, 600px"
             priority
-            className="w-full h-auto block"
+            className="object-cover"
           />
         </div>
 

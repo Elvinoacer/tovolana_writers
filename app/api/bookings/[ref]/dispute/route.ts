@@ -2,6 +2,10 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import {
+  AttachmentLinkError,
+  linkBookingAttachmentsInTx,
+} from "@/lib/booking-files";
 import { enqueueNotificationInTx } from "@/lib/notifications";
 import { fail, handleApiError, ok } from "@/lib/http";
 
@@ -12,17 +16,6 @@ const disputeSchema = z.object({
   attachmentFileIds: z.array(z.string().min(1)).max(5).optional(),
 });
 
-class AttachmentLinkError extends Error {
-  code: string;
-  status: number;
-
-  constructor(code: string, message: string, status: number) {
-    super(message);
-    this.code = code;
-    this.status = status;
-  }
-}
-
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ ref: string }> }
@@ -30,7 +23,15 @@ export async function POST(
   try {
     const { ref } = await context.params;
     const user = await requireAuth(request);
-    const body = disputeSchema.parse(await request.json());
+
+    let rawJson: unknown;
+    try {
+      rawJson = await request.json();
+    } catch {
+      return fail("BAD_REQUEST", "Malformed JSON request body.", 400);
+    }
+
+    const body = disputeSchema.parse(rawJson);
     const attachmentFileIds = [...new Set(body.attachmentFileIds ?? [])];
 
     const booking = await db.booking.findFirst({
@@ -104,67 +105,14 @@ export async function POST(
         },
       });
 
-      if (attachmentFileIds.length > 0) {
-        const files = await tx.bookingFile.findMany({
-          where: { id: { in: attachmentFileIds } },
-          select: {
-            id: true,
-            bookingId: true,
-            uploaderId: true,
-            revisionId: true,
-            disputeId: true,
-          },
-        });
-        const fileMap = new Map(files.map((f) => [f.id, f]));
-        const isAdmin = user.roles.includes("ADMIN");
-
-        for (const fileId of attachmentFileIds) {
-          const file = fileMap.get(fileId);
-          if (!file || file.bookingId !== booking.id) {
-            throw new AttachmentLinkError(
-              "INVALID_ATTACHMENT_FILE",
-              "One or more attachment files do not belong to this booking.",
-              400
-            );
-          }
-          if (!isAdmin && file.uploaderId !== user.id) {
-            throw new AttachmentLinkError(
-              "FORBIDDEN",
-              "You can only attach files that you uploaded.",
-              403
-            );
-          }
-          if (
-            file.revisionId ||
-            (file.disputeId && file.disputeId !== dispute.id)
-          ) {
-            throw new AttachmentLinkError(
-              "ATTACHMENT_ALREADY_LINKED",
-              "One or more attachment files are already linked to another revision or dispute.",
-              409
-            );
-          }
-        }
-
-        const linked = await tx.bookingFile.updateMany({
-          where: {
-            id: { in: attachmentFileIds },
-            bookingId: booking.id,
-            revisionId: null,
-            OR: [{ disputeId: null }, { disputeId: dispute.id }],
-            ...(isAdmin ? {} : { uploaderId: user.id }),
-          },
-          data: { disputeId: dispute.id },
-        });
-
-        if (linked.count !== attachmentFileIds.length) {
-          throw new AttachmentLinkError(
-            "ATTACHMENT_ALREADY_LINKED",
-            "One or more attachment files could not be linked to this dispute.",
-            409
-          );
-        }
-      }
+      await linkBookingAttachmentsInTx(tx, {
+        bookingId: booking.id,
+        userId: user.id,
+        isAdmin: user.roles.includes("ADMIN"),
+        fileIds: attachmentFileIds,
+        targetType: "dispute",
+        targetId: dispute.id,
+      });
 
       const updatedBooking = await tx.booking.update({
         where: { id: booking.id },

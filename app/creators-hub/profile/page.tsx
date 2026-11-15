@@ -76,7 +76,9 @@ export default function CreatorProfileEditorPage() {
     category: "Academic Writing",
     excerpt: "",
   });
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(
+    undefined
+  );
   const [avatarAssetId, setAvatarAssetId] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
@@ -385,6 +387,9 @@ export default function CreatorProfileEditorPage() {
     );
   }
 
+  const effectiveAvatarUrl =
+    avatarUrl !== undefined ? avatarUrl : user.avatarUrl;
+
   return (
     <CreatorShell
       title="Public Writer Portfolio"
@@ -409,7 +414,7 @@ export default function CreatorProfileEditorPage() {
               <CreatorAvatar
                 name={displayName || username || "Creator"}
                 username={username}
-                avatarUrl={avatarUrl ?? user.avatarUrl}
+                avatarUrl={effectiveAvatarUrl}
                 available={isAvailable}
                 size="lg"
               />
@@ -436,7 +441,7 @@ export default function CreatorProfileEditorPage() {
                       onChange={handleAvatarUpload}
                     />
                   </label>
-                  {(avatarUrl ?? user.avatarUrl) && (
+                  {effectiveAvatarUrl && (
                     <button
                       type="button"
                       disabled={uploadingAvatar || removingAvatar}

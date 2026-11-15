@@ -649,10 +649,17 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     customerLogin.headers.get("set-cookie")
   );
 
-  const category = await db.category.findFirstOrThrow({
-    where: { slug: "research-papers" },
-  });
+  const [category, creatorUser] = await Promise.all([
+    db.category.findFirstOrThrow({
+      where: { slug: "research-papers" },
+    }),
+    db.user.findUniqueOrThrow({
+      where: { email: "creator@tovolana.com" },
+      select: { id: true },
+    }),
+  ]);
 
+  const testStartedAt = new Date();
   const createdListingIds: string[] = [];
   const createdBookingIds: string[] = [];
   const createdBookingRefs: string[] = [];
@@ -790,6 +797,172 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     assert.equal(emptyBase64Res.status, 400);
     const emptyBase64Json = await emptyBase64Res.json();
     assert.equal(emptyBase64Json.error.code, "VALIDATION_ERROR");
+
+    const dataUriBase64Res = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "data-uri.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentBase64: "data:text/plain;base64,SGVsbG8=",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(dataUriBase64Res.status, 400);
+    const dataUriBase64Json = await dataUriBase64Res.json();
+    assert.equal(dataUriBase64Json.error.code, "VALIDATION_ERROR");
+
+    const corruptedBase64Res = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "corrupted.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentBase64: "not-valid-base64!!!",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(corruptedBase64Res.status, 400);
+    const corruptedBase64Json = await corruptedBase64Res.json();
+    assert.equal(corruptedBase64Json.error.code, "VALIDATION_ERROR");
+
+    const malformedRevJsonRes = await revisionBookingPost(
+      new NextRequest(
+        new URL(
+          `http://localhost:3000/api/bookings/${bookingRef}/revision`,
+          "http://localhost:3000"
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: customerCookie,
+          },
+          body: "{malformed",
+        }
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(malformedRevJsonRes.status, 400);
+    const malformedRevJson = await malformedRevJsonRes.json();
+    assert.equal(malformedRevJson.error.code, "BAD_REQUEST");
+
+    const malformedDisputeJsonRes = await disputeBookingPost(
+      new NextRequest(
+        new URL(
+          `http://localhost:3000/api/bookings/${bookingRef}/dispute`,
+          "http://localhost:3000"
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: customerCookie,
+          },
+          body: "{malformed",
+        }
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(malformedDisputeJsonRes.status, 400);
+    const malformedDisputeJson = await malformedDisputeJsonRes.json();
+    assert.equal(malformedDisputeJson.error.code, "BAD_REQUEST");
+
+    // Role-per-category enforcement on active booking
+    const customerDeliverableRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "spoofed-deliverable.txt",
+          mimeType: "text/plain",
+          fileCategory: "CREATOR_DELIVERABLE",
+          contentText: "Customer cannot upload creator deliverable",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(customerDeliverableRes.status, 403);
+    assert.equal((await customerDeliverableRes.json()).error.code, "FORBIDDEN");
+
+    const creatorBriefRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "spoofed-brief.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentText: "Creator cannot upload customer brief",
+        },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(creatorBriefRes.status, 403);
+    assert.equal((await creatorBriefRes.json()).error.code, "FORBIDDEN");
+
+    const creatorRevAttachRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "spoofed-rev.txt",
+          mimeType: "text/plain",
+          fileCategory: "REVISION_ATTACHMENT",
+          contentText: "Creator cannot upload customer revision attachment",
+        },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(creatorRevAttachRes.status, 403);
+    assert.equal((await creatorRevAttachRes.json()).error.code, "FORBIDDEN");
+
+    // Case-insensitive multipart/form-data Content-Type handling
+    const boundary = "----TovolanaMixedCaseBoundary123";
+    const mixedCaseMultipartBody = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="file"; filename="mixed-case.txt"',
+      "Content-Type: text/plain",
+      "",
+      "Mixed case multipart header check",
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="fileCategory"',
+      "",
+      "CUSTOMER_BRIEF",
+      `--${boundary}--`,
+      "",
+    ].join("\r\n");
+    const mixedCaseMultipartRes = await presignFilePost(
+      new NextRequest(
+        new URL(
+          `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+          "http://localhost:3000"
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": `MULTIPART/FORM-DATA; boundary=${boundary}`,
+            cookie: customerCookie,
+          },
+          body: mixedCaseMultipartBody,
+        }
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(mixedCaseMultipartRes.status, 201);
+    const { data: mixedCaseMultipartData } = await mixedCaseMultipartRes.json();
+    createdFileIds.push(mixedCaseMultipartData.file.id);
 
     const nonAsciiMimeRes = await presignFilePost(
       makeJsonReq(
@@ -1487,6 +1660,88 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     const disputedDelJson = await disputedCustomerDel.json();
     assert.equal(disputedDelJson.error.code, "FILE_LOCKED_BY_BOOKING_STATUS");
 
+    // During DISPUTED: creator CAN upload DISPUTE_EVIDENCE counter-evidence -> 201,
+    // while non-DISPUTE_EVIDENCE categories are locked -> 409
+    const creatorDisputeCounterRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "creator-counter-evidence.txt",
+          mimeType: "text/plain",
+          fileCategory: "DISPUTE_EVIDENCE",
+          disputeId: openDisputeData.dispute.id,
+          contentText: "Creator counter-evidence log for tribunal review.",
+        },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(creatorDisputeCounterRes.status, 201);
+    const { data: creatorDisputeCounterData } =
+      await creatorDisputeCounterRes.json();
+    createdFileIds.push(creatorDisputeCounterData.file.id);
+
+    const disputedBriefUploadRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "late-brief.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentText: "Blocked during DISPUTED",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(disputedBriefUploadRes.status, 409);
+    assert.equal(
+      (await disputedBriefUploadRes.json()).error.code,
+      "FILE_LOCKED_BY_BOOKING_STATUS"
+    );
+
+    const disputedDelivUploadRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "late-deliverable.txt",
+          mimeType: "text/plain",
+          fileCategory: "CREATOR_DELIVERABLE",
+          contentText: "Blocked during DISPUTED",
+        },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(disputedDelivUploadRes.status, 409);
+    assert.equal(
+      (await disputedDelivUploadRes.json()).error.code,
+      "FILE_LOCKED_BY_BOOKING_STATUS"
+    );
+
+    const disputedRevUploadRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "late-rev.txt",
+          mimeType: "text/plain",
+          fileCategory: "REVISION_ATTACHMENT",
+          contentText: "Blocked during DISPUTED",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(disputedRevUploadRes.status, 409);
+    assert.equal(
+      (await disputedRevUploadRes.json()).error.code,
+      "FILE_LOCKED_BY_BOOKING_STATUS"
+    );
+
     // Admin overview includes openDisputes[].booking.files with uploader metadata and no raw R2 public URLs
     const overviewRes = await adminOverviewGet(
       makeJsonReq(
@@ -1534,6 +1789,54 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
       await db.bookingFile.findUnique({ where: { id: deliverableId } }),
       null
     );
+
+    // 9. Terminal closed bookings (COMPLETED, REFUNDED, CANCELLED) block ALL non-admin uploads -> 409
+    for (const terminalStatus of ["COMPLETED", "REFUNDED", "CANCELLED"] as const) {
+      await db.booking.update({
+        where: { id: bookingBData.booking.id },
+        data: { status: terminalStatus },
+      });
+
+      const closedCustomerUpload = await presignFilePost(
+        makeJsonReq(
+          `http://localhost:3000/api/bookings/${otherBookingRef}/files/presign`,
+          "POST",
+          {
+            fileName: `closed-${terminalStatus.toLowerCase()}.txt`,
+            mimeType: "text/plain",
+            fileCategory: "CUSTOMER_BRIEF",
+            contentText: `Should fail in ${terminalStatus}`,
+          },
+          customerCookie
+        ),
+        { params: Promise.resolve({ ref: otherBookingRef }) }
+      );
+      assert.equal(closedCustomerUpload.status, 409);
+      assert.equal(
+        (await closedCustomerUpload.json()).error.code,
+        "FILE_LOCKED_BY_BOOKING_STATUS"
+      );
+
+      const closedEvidenceUpload = await presignFilePost(
+        makeJsonReq(
+          `http://localhost:3000/api/bookings/${otherBookingRef}/files/presign`,
+          "POST",
+          {
+            fileName: `closed-evidence-${terminalStatus.toLowerCase()}.txt`,
+            mimeType: "text/plain",
+            fileCategory: "DISPUTE_EVIDENCE",
+            contentText: `Dispute evidence also blocked in ${terminalStatus}`,
+          },
+          creatorCookie
+        ),
+        { params: Promise.resolve({ ref: otherBookingRef }) }
+      );
+      assert.equal(closedEvidenceUpload.status, 409);
+      assert.equal(
+        (await closedEvidenceUpload.json()).error.code,
+        "FILE_LOCKED_BY_BOOKING_STATUS"
+      );
+    }
   } finally {
     for (const fileId of createdFileIds) {
       await deleteFileDelete(
@@ -1562,6 +1865,24 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
         .catch(() => undefined);
     }
     if (createdListingIds.length > 0) {
+      await db.adminAuditLog
+        .deleteMany({
+          where: {
+            targetType: "TaskListing",
+            targetId: { in: createdListingIds },
+          },
+        })
+        .catch(() => undefined);
+      await db.notificationOutbox
+        .deleteMany({
+          where: {
+            userId: creatorUser.id,
+            eventType: "LISTING_APPROVE",
+            createdAt: { gte: testStartedAt },
+            body: { contains: "R2 File Vault & Tribunal Verification Package" },
+          },
+        })
+        .catch(() => undefined);
       await db.taskListing
         .deleteMany({ where: { id: { in: createdListingIds } } })
         .catch(() => undefined);

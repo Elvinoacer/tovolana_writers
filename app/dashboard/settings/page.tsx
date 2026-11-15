@@ -37,7 +37,9 @@ export default function CustomerSettingsPage() {
   >([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(
+    undefined
+  );
   const [avatarAssetId, setAvatarAssetId] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [removingAvatar, setRemovingAvatar] = useState(false);
@@ -244,6 +246,9 @@ export default function CustomerSettingsPage() {
     );
   }
 
+  const effectiveAvatarUrl =
+    avatarUrl !== undefined ? avatarUrl : user.avatarUrl;
+
   return (
     <CustomerShell
       title="Account & Security"
@@ -304,7 +309,7 @@ export default function CustomerSettingsPage() {
         <div className="flex items-center gap-4">
           <CreatorAvatar
             name={name || user.name}
-            avatarUrl={avatarUrl ?? user.avatarUrl}
+            avatarUrl={effectiveAvatarUrl}
             size="lg"
           />
           <div className="space-y-1">
@@ -333,7 +338,7 @@ export default function CustomerSettingsPage() {
               onChange={handleAvatarUpload}
             />
           </label>
-          {(avatarUrl ?? user.avatarUrl) && (
+          {effectiveAvatarUrl && (
             <button
               type="button"
               disabled={uploadingAvatar || removingAvatar}

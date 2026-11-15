@@ -257,7 +257,9 @@ async function syncEditorialAssets(
   failed: number;
 }> {
   const allFiles = await collectFilesSorted(EDITORIAL_ROOT);
+  const { hasR2Config } = await import("@/lib/env");
   const prefix = storage.getR2KeyPrefix();
+  let warnedMissingPublicUrl = false;
   let created = 0;
   let updated = 0;
   let skipped = 0;
@@ -303,6 +305,12 @@ async function syncEditorialAssets(
       });
 
       const stored = await storage.writePublicMedia(storageKey, buffer, mimeType);
+      if (!warnedMissingPublicUrl && hasR2Config() && !stored.publicUrl) {
+        warnedMissingPublicUrl = true;
+        console.warn(
+          "[editorial] Warning: R2 is configured without NEXT_PUBLIC_R2_PUBLIC_URL / R2_PUBLIC_URL; MediaAsset.publicUrl will stay null."
+        );
+      }
       try {
         await db.mediaAsset.upsert({
           where: { storageKey: stored.storageKey },

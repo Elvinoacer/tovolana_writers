@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import type { BookingStatus } from "@prisma/client";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
@@ -11,6 +12,12 @@ import {
   writePrivateFile,
 } from "@/lib/storage";
 import { fail, handleApiError, ok } from "@/lib/http";
+
+const TERMINAL_UPLOAD_LOCKED_STATUSES = new Set<BookingStatus>([
+  "COMPLETED",
+  "CANCELLED",
+  "REFUNDED",
+]);
 
 const fileCategorySchema = z.enum([
   "CUSTOMER_BRIEF",
@@ -77,6 +84,72 @@ function unsupportedFileTypeError() {
   );
 }
 
+function authorizeBookingFileUpload(params: {
+  bookingStatus: BookingStatus;
+  fileCategory: z.infer<typeof fileCategorySchema>;
+  isAdmin: boolean;
+  isCustomer: boolean;
+  isCreator: boolean;
+}) {
+  if (params.isAdmin) return null;
+
+  if (TERMINAL_UPLOAD_LOCKED_STATUSES.has(params.bookingStatus)) {
+    return fail(
+      "FILE_LOCKED_BY_BOOKING_STATUS",
+      `Files cannot be uploaded because this booking is ${params.bookingStatus}.`,
+      409
+    );
+  }
+
+  if (
+    params.bookingStatus === "DISPUTED" &&
+    params.fileCategory !== "DISPUTE_EVIDENCE"
+  ) {
+    return fail(
+      "FILE_LOCKED_BY_BOOKING_STATUS",
+      "Only dispute evidence files can be uploaded while a booking is DISPUTED.",
+      409
+    );
+  }
+
+  switch (params.fileCategory) {
+    case "CREATOR_DELIVERABLE":
+      if (!params.isCreator) {
+        return fail(
+          "FORBIDDEN",
+          "Only the assigned creator can upload deliverable files.",
+          403
+        );
+      }
+      break;
+    case "CUSTOMER_BRIEF":
+    case "REVISION_ATTACHMENT":
+      if (!params.isCustomer) {
+        return fail(
+          "FORBIDDEN",
+          `Only the booking customer can upload ${
+            params.fileCategory === "CUSTOMER_BRIEF"
+              ? "brief"
+              : "revision attachment"
+          } files.`,
+          403
+        );
+      }
+      break;
+    case "DISPUTE_EVIDENCE":
+      if (!params.isCustomer && !params.isCreator) {
+        return fail(
+          "FORBIDDEN",
+          "Only booking participants can upload dispute evidence.",
+          403
+        );
+      }
+      break;
+  }
+
+  return null;
+}
+
 export async function POST(
   request: NextRequest,
   context: { params: Promise<{ ref: string }> }
@@ -90,15 +163,26 @@ export async function POST(
     });
     if (!booking) return fail("BOOKING_NOT_FOUND", "Booking not found.", 404);
 
-    const allowed =
-      booking.customerId === user.id ||
-      booking.creatorId === user.creatorProfile?.id ||
-      user.roles.includes("ADMIN");
-    if (!allowed) {
+    const isCustomer = booking.customerId === user.id;
+    const isCreator = Boolean(
+      booking.creatorId &&
+        user.creatorProfile?.id &&
+        booking.creatorId === user.creatorProfile.id
+    );
+    const isAdmin = user.roles.includes("ADMIN");
+    if (!isCustomer && !isCreator && !isAdmin) {
       return fail(
         "FORBIDDEN",
         "You are not a participant in this booking.",
         403
+      );
+    }
+
+    if (!isAdmin && TERMINAL_UPLOAD_LOCKED_STATUSES.has(booking.status)) {
+      return fail(
+        "FILE_LOCKED_BY_BOOKING_STATUS",
+        `Files cannot be uploaded because this booking is ${booking.status}.`,
+        409
       );
     }
 
@@ -118,7 +202,7 @@ export async function POST(
     let disputeId: string | undefined;
     let buffer: Buffer;
 
-    if (contentType.includes("multipart/form-data")) {
+    if (contentType.toLowerCase().includes("multipart/form-data")) {
       let form: FormData;
       try {
         form = await request.formData();
@@ -154,6 +238,15 @@ export async function POST(
         return fail("VALIDATION_ERROR", "Invalid fileCategory field.", 400);
       }
 
+      const uploadAuthError = authorizeBookingFileUpload({
+        bookingStatus: booking.status,
+        fileCategory,
+        isAdmin,
+        isCustomer,
+        isCreator,
+      });
+      if (uploadAuthError) return uploadAuthError;
+
       if (typeof rawRevisionId === "string" && rawRevisionId.trim().length > 0) {
         revisionId = rawRevisionId.trim();
       }
@@ -184,28 +277,47 @@ export async function POST(
       revisionId = body.revisionId;
       disputeId = body.disputeId;
 
+      const uploadAuthError = authorizeBookingFileUpload({
+        bookingStatus: booking.status,
+        fileCategory,
+        isAdmin,
+        isCustomer,
+        isCreator,
+      });
+      if (uploadAuthError) return uploadAuthError;
+
       if (!isPermittedBookingUpload(rawMimeType, rawFileName)) {
         return unsupportedFileTypeError();
       }
 
       if (body.contentBase64 !== undefined) {
         const cleanedBase64 = body.contentBase64.replace(/\s+/g, "");
-        if (cleanedBase64.length === 0) {
+        if (
+          cleanedBase64.length === 0 ||
+          cleanedBase64.length % 4 !== 0 ||
+          !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanedBase64)
+        ) {
           return fail(
             "VALIDATION_ERROR",
-            "contentBase64 cannot be empty.",
+            "contentBase64 must be valid non-empty base64.",
             400
           );
         }
         if (
-          estimateBase64DecodedBytes(body.contentBase64) >
-          MAX_BROWSER_UPLOAD_BYTES
+          estimateBase64DecodedBytes(cleanedBase64) > MAX_BROWSER_UPLOAD_BYTES
         ) {
           return fileTooLargeError();
         }
         buffer = Buffer.from(cleanedBase64, "base64");
         if (buffer.byteLength > MAX_BROWSER_UPLOAD_BYTES) {
           return fileTooLargeError();
+        }
+        if (buffer.byteLength === 0) {
+          return fail(
+            "VALIDATION_ERROR",
+            "contentBase64 cannot decode to empty bytes.",
+            400
+          );
         }
       } else {
         const text =

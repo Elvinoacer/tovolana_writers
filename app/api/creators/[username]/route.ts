@@ -11,6 +11,7 @@ export async function GET(
     const creator = await db.creatorProfile.findUnique({
       where: { username },
       include: {
+        user: { select: { avatarUrl: true } },
         listings: {
           where: {
             status: "PUBLISHED",
@@ -26,7 +27,7 @@ export async function GET(
           orderBy: { createdAt: "desc" },
           take: 10,
           include: {
-            customer: { select: { id: true, name: true } },
+            customer: { select: { id: true, name: true, avatarUrl: true } },
             task: { select: { slug: true, title: true } },
           },
         },

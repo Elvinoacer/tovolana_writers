@@ -41,12 +41,13 @@ export async function GET(
         category: true,
         creator: {
           include: {
+            user: { select: { avatarUrl: true } },
             reviewsReceived: {
               where: { isPublic: true },
               orderBy: { createdAt: "desc" },
               take: 6,
               include: {
-                customer: { select: { id: true, name: true } },
+                customer: { select: { id: true, name: true, avatarUrl: true } },
               },
             },
           },
@@ -54,7 +55,9 @@ export async function GET(
         reviews: {
           where: { isPublic: true },
           orderBy: { createdAt: "desc" },
-          include: { customer: { select: { id: true, name: true } } },
+          include: {
+            customer: { select: { id: true, name: true, avatarUrl: true } },
+          },
         },
       },
     });

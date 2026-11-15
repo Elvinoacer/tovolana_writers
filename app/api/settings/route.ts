@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
         email: user.email,
         name: user.name,
         phone: user.phone,
+        avatarUrl: user.avatarUrl,
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified,
         membershipTier: user.membershipTier,
@@ -111,6 +112,7 @@ export async function PATCH(request: NextRequest) {
         email: updated.email,
         name: updated.name,
         phone: updated.phone,
+        avatarUrl: updated.avatarUrl,
       },
     });
   } catch (err) {

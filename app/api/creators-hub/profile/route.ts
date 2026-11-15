@@ -5,6 +5,29 @@ import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { fail, handleApiError, ok } from "@/lib/http";
 
+function isAllowedPortfolioUrl(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed || /[\x00-\x1f\x7f\s]/.test(trimmed)) return false;
+  if (trimmed.startsWith("/api/media/")) {
+    return !trimmed.startsWith("//") && !trimmed.includes("..");
+  }
+  try {
+    const parsed = new URL(trimmed);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+const safePortfolioUrlSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(2048)
+  .refine(isAllowedPortfolioUrl, {
+    message: "URL must use https://, http://, or relative /api/media/ paths.",
+  });
+
 const updateProfileSchema = z.object({
   displayName: z.string().min(2).max(80).optional(),
   headline: z.string().min(6).max(160).optional(),
@@ -18,6 +41,17 @@ const updateProfileSchema = z.object({
         title: z.string().min(3),
         category: z.string().min(2),
         excerpt: z.string().min(10),
+        url: safePortfolioUrlSchema.optional(),
+        attachmentUrl: safePortfolioUrlSchema.optional(),
+        attachmentName: z.string().trim().min(1).max(200).optional(),
+        attachmentAssetId: z.string().trim().min(1).optional(),
+        mimeType: z
+          .string()
+          .trim()
+          .min(3)
+          .max(120)
+          .regex(/^[\x20-\x7e]+$/)
+          .optional(),
       })
     )
     .optional(),
@@ -34,14 +68,28 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const attempts = await db.creatorAssessmentAttempt.findMany({
-      where: { creatorProfileId: user.creatorProfile.id },
-      orderBy: { createdAt: "desc" },
-      include: { config: { select: { title: true, minWords: true, maxWords: true } } },
-    });
+    const [creatorProfile, attempts] = await Promise.all([
+      db.creatorProfile.findUnique({
+        where: { id: user.creatorProfile.id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatarUrl: true,
+            },
+          },
+        },
+      }),
+      db.creatorAssessmentAttempt.findMany({
+        where: { creatorProfileId: user.creatorProfile.id },
+        orderBy: { createdAt: "desc" },
+        include: { config: { select: { title: true, minWords: true, maxWords: true } } },
+      }),
+    ]);
 
     return ok({
-      creatorProfile: user.creatorProfile,
+      creatorProfile,
       attempts,
     });
   } catch (err) {
@@ -57,6 +105,44 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = updateProfileSchema.parse(await request.json());
+
+    if (body.portfolioSamples && body.portfolioSamples.length > 0) {
+      const assetIds = [
+        ...new Set(
+          body.portfolioSamples
+            .map((sample) => sample.attachmentAssetId)
+            .filter((id): id is string => Boolean(id))
+        ),
+      ];
+
+      if (assetIds.length > 0) {
+        const assets = await db.mediaAsset.findMany({
+          where: { id: { in: assetIds } },
+          select: { id: true, ownerId: true },
+        });
+        const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
+        const isAdmin = user.roles.includes("ADMIN");
+
+        for (const assetId of assetIds) {
+          const asset = assetMap.get(assetId);
+          if (!asset) {
+            return fail(
+              "INVALID_MEDIA_ASSET",
+              "Referenced portfolio media asset was not found.",
+              400
+            );
+          }
+          if (!isAdmin && asset.ownerId !== user.id) {
+            return fail(
+              "FORBIDDEN",
+              "You can only attach portfolio media assets that you own.",
+              403
+            );
+          }
+        }
+      }
+    }
+
     const updated = await db.creatorProfile.update({
       where: { id: user.creatorProfile.id },
       data: {
@@ -69,6 +155,15 @@ export async function PATCH(request: NextRequest) {
         portfolioSamples: body.portfolioSamples as
           | Prisma.InputJsonValue
           | undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+          },
+        },
       },
     });
 

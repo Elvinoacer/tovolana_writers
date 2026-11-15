@@ -127,6 +127,7 @@ export async function GET(request: NextRequest) {
               ratingAverage: true,
               completedBookingsCount: true,
               isAvailable: true,
+              user: { select: { avatarUrl: true } },
             },
           },
           _count: { select: { reviews: true } },

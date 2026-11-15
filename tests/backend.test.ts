@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { NextRequest } from "next/server";
+import { MediaAssetPurpose, Prisma } from "@prisma/client";
 import { closeDbConnections, db } from "@/lib/db";
 import { closeRedisConnection } from "@/lib/redis";
 import { env, hasR2Config, MAX_BROWSER_UPLOAD_BYTES } from "@/lib/env";
@@ -37,6 +38,25 @@ import {
 } from "@/app/api/files/[fileId]/route";
 import { GET as adminOverviewGet } from "@/app/api/admin/overview/route";
 import { GET as healthGet } from "@/app/api/health/route";
+import { POST as mediaUploadPost } from "@/app/api/media/upload/route";
+import { DELETE as mediaDelete } from "@/app/api/media/[id]/route";
+import { GET as mediaRawGet } from "@/app/api/media/[id]/raw/route";
+import {
+  GET as creatorHubProfileGet,
+  PATCH as creatorHubProfilePatch,
+} from "@/app/api/creators-hub/profile/route";
+import { GET as settingsGet } from "@/app/api/settings/route";
+import { GET as tasksListGet } from "@/app/api/tasks/route";
+import { GET as taskDetailGet } from "@/app/api/tasks/[slug]/route";
+import { GET as publicCreatorGet } from "@/app/api/creators/[username]/route";
+import { GET as bookingDetailGet } from "@/app/api/bookings/[ref]/route";
+import {
+  createMediaStorageKey,
+  deleteStoredObject,
+  getR2KeyPrefix,
+  readPrivateFile,
+  readPublicLocalMedia,
+} from "@/lib/storage";
 
 function extractCookieValue(setCookie: string | null): string {
   assert.ok(setCookie, "Expected Set-Cookie header");
@@ -1545,6 +1565,942 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     for (const ref of createdBookingRefs) {
       await db.notificationOutbox
         .deleteMany({ where: { linkUrl: { endsWith: `/${ref}` } } })
+        .catch(() => undefined);
+    }
+  }
+});
+
+test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Attachment Validation & Avatar Serialization", async () => {
+  const adminLogin = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "admin@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  const adminCookie = extractCookieValue(adminLogin.headers.get("set-cookie"));
+
+  const creatorLogin = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "creator@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  const creatorCookie = extractCookieValue(creatorLogin.headers.get("set-cookie"));
+
+  const customerLogin = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "free.customer@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  const customerCookie = extractCookieValue(
+    customerLogin.headers.get("set-cookie")
+  );
+
+  const applicantLogin = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "applicant@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  const applicantCookie = extractCookieValue(
+    applicantLogin.headers.get("set-cookie")
+  );
+
+  const [customerUser, creatorUser] = await Promise.all([
+    db.user.findUniqueOrThrow({
+      where: { email: "free.customer@tovolana.com" },
+      select: { id: true, avatarUrl: true },
+    }),
+    db.user.findUniqueOrThrow({
+      where: { email: "creator@tovolana.com" },
+      include: { creatorProfile: true },
+    }),
+  ]);
+  assert.ok(creatorUser.creatorProfile);
+
+  const origCustomerAvatar = customerUser.avatarUrl;
+  const origCreatorAvatar = creatorUser.avatarUrl;
+  const origPortfolioSamples = creatorUser.creatorProfile.portfolioSamples;
+
+  const pngBase64 =
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+  const pngBuffer = Buffer.from(pngBase64, "base64");
+  const pdfBuffer = Buffer.from(
+    "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n",
+    "utf8"
+  );
+
+  const createdAssetIds: string[] = [];
+  const localCleanupPaths: string[] = [];
+  const createdListingIds: string[] = [];
+  const createdBookingIds: string[] = [];
+
+  try {
+    // 1. Unauthenticated upload rejected 401
+    const unauthRes = await mediaUploadPost(
+      makeJsonReq("http://localhost:3000/api/media/upload", "POST", {
+        fileName: "avatar.png",
+        mimeType: "image/png",
+        purpose: "USER_AVATAR",
+        contentBase64: pngBase64,
+      })
+    );
+    assert.equal(unauthRes.status, 401);
+
+    // 2. Authenticated USER_AVATAR PNG upload (JSON base64) -> 201 + DB & /api/settings + /api/media/[id]/raw
+    const avatar1Res = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "avatar-one.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: pngBase64,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(avatar1Res.status, 201);
+    const { data: avatar1Data } = await avatar1Res.json();
+    const asset1 = avatar1Data.asset;
+    createdAssetIds.push(asset1.id);
+
+    assert.equal(asset1.purpose, "USER_AVATAR");
+    assert.ok(
+      asset1.storageKey.startsWith(
+        `${env.r2KeyPrefix}/media/avatars/${customerUser.id}/`
+      )
+    );
+    assert.equal(asset1.storageProvider, hasR2Config() ? "R2" : "LOCAL");
+    assert.ok(typeof avatar1Data.publicUrl === "string" && avatar1Data.publicUrl.length > 0);
+    assert.equal(asset1.publicUrl, avatar1Data.publicUrl);
+
+    const dbCustomerAfter1 = await db.user.findUnique({
+      where: { id: customerUser.id },
+      select: { avatarUrl: true },
+    });
+    assert.equal(dbCustomerAfter1?.avatarUrl, avatar1Data.publicUrl);
+
+    const settings1Res = await settingsGet(
+      makeJsonReq(
+        "http://localhost:3000/api/settings",
+        "GET",
+        undefined,
+        customerCookie
+      )
+    );
+    assert.equal(settings1Res.status, 200);
+    const settings1Json = await settings1Res.json();
+    assert.equal(settings1Json.data.user.avatarUrl, avatar1Data.publicUrl);
+
+    const raw1Res = await mediaRawGet(
+      makeJsonReq(`http://localhost:3000/api/media/${asset1.id}/raw`, "GET"),
+      { params: Promise.resolve({ id: asset1.id }) }
+    );
+    if (
+      asset1.storageProvider === "R2" &&
+      (asset1.publicUrl.startsWith("https://") ||
+        asset1.publicUrl.startsWith("http://"))
+    ) {
+      assert.equal(raw1Res.status, 307);
+      assert.equal(raw1Res.headers.get("location"), asset1.publicUrl);
+    } else {
+      assert.equal(raw1Res.status, 200);
+      assert.equal(raw1Res.headers.get("x-content-type-options"), "nosniff");
+      assert.equal(raw1Res.headers.get("cache-control"), "public, max-age=3600");
+      assert.deepEqual(Buffer.from(await raw1Res.arrayBuffer()), pngBuffer);
+    }
+
+    // 3. Re-uploading second USER_AVATAR via multipart/form-data replaces previous avatar cleanly
+    const avatar2Form = new FormData();
+    avatar2Form.append(
+      "file",
+      new File([pngBuffer], "avatar-two.png", { type: "image/png" })
+    );
+    avatar2Form.append("purpose", "USER_AVATAR");
+    const avatar2Res = await mediaUploadPost(
+      makeFormReq(
+        "http://localhost:3000/api/media/upload",
+        avatar2Form,
+        customerCookie
+      )
+    );
+    assert.equal(avatar2Res.status, 201);
+    const { data: avatar2Data } = await avatar2Res.json();
+    const asset2 = avatar2Data.asset;
+    createdAssetIds.push(asset2.id);
+
+    assert.notEqual(asset2.id, asset1.id);
+    assert.equal(
+      await db.mediaAsset.findUnique({ where: { id: asset1.id } }),
+      null
+    );
+    await assert.rejects(() =>
+      asset1.storageProvider === "LOCAL"
+        ? readPublicLocalMedia(asset1.storageKey)
+        : readPrivateFile(asset1.storageKey, asset1.storageProvider)
+    );
+
+    const dbCustomerAfter2 = await db.user.findUnique({
+      where: { id: customerUser.id },
+      select: { avatarUrl: true },
+    });
+    assert.equal(dbCustomerAfter2?.avatarUrl, avatar2Data.publicUrl);
+
+    // 4. Reject SVG XSS, MIME-extension mismatch, non-ASCII MIME, empty base64, malformed JSON, >4MB size, & unauthorized purposes
+    const svgRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "avatar.svg",
+          mimeType: "image/svg+xml",
+          purpose: "USER_AVATAR",
+          contentBase64: Buffer.from("<svg><script>alert(1)</script></svg>").toString("base64"),
+        },
+        customerCookie
+      )
+    );
+    assert.equal(svgRes.status, 400);
+    assert.equal((await svgRes.json()).error.code, "UNSUPPORTED_FILE_TYPE");
+
+    const mismatchRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "fake-avatar.jpg",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: pngBase64,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(mismatchRes.status, 400);
+    assert.equal((await mismatchRes.json()).error.code, "UNSUPPORTED_FILE_TYPE");
+
+    const nonAsciiRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "avatar.png",
+          mimeType: "image/png; charset=ü",
+          purpose: "USER_AVATAR",
+          contentBase64: pngBase64,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(nonAsciiRes.status, 400);
+    assert.equal((await nonAsciiRes.json()).error.code, "UNSUPPORTED_FILE_TYPE");
+
+    const emptyB64Res = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "empty.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: "   ",
+        },
+        customerCookie
+      )
+    );
+    assert.equal(emptyB64Res.status, 400);
+    assert.equal((await emptyB64Res.json()).error.code, "VALIDATION_ERROR");
+
+    const malformedRes = await mediaUploadPost(
+      new NextRequest(
+        new URL("http://localhost:3000/api/media/upload", "http://localhost:3000"),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: customerCookie,
+          },
+          body: "{bad-json",
+        }
+      )
+    );
+    assert.equal(malformedRes.status, 400);
+    assert.equal((await malformedRes.json()).error.code, "BAD_REQUEST");
+
+    const oversizedHeaderRes = await mediaUploadPost(
+      new NextRequest(
+        new URL("http://localhost:3000/api/media/upload", "http://localhost:3000"),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": String(6 * 1024 * 1024 + 1),
+            cookie: customerCookie,
+          },
+          body: JSON.stringify({
+            fileName: "tiny.png",
+            mimeType: "image/png",
+            purpose: "USER_AVATAR",
+            contentBase64: pngBase64,
+          }),
+        }
+      )
+    );
+    assert.equal(oversizedHeaderRes.status, 400);
+    assert.equal((await oversizedHeaderRes.json()).error.code, "FILE_TOO_LARGE");
+
+    const bigBase64Res = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "huge.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: Buffer.alloc(MAX_BROWSER_UPLOAD_BYTES + 1, 65).toString("base64"),
+        },
+        customerCookie
+      )
+    );
+    assert.equal(bigBase64Res.status, 400);
+    assert.equal((await bigBase64Res.json()).error.code, "FILE_TOO_LARGE");
+
+    const nonAdminEditorialRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "hero.png",
+          mimeType: "image/png",
+          purpose: "EDITORIAL_ASSET",
+          contentBase64: pngBase64,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(nonAdminEditorialRes.status, 403);
+
+    const nonCreatorPortfolioRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "sample.pdf",
+          mimeType: "application/pdf",
+          purpose: "CREATOR_PORTFOLIO_DOCUMENT",
+          contentBase64: pdfBuffer.toString("base64"),
+        },
+        customerCookie
+      )
+    );
+    assert.equal(nonCreatorPortfolioRes.status, 403);
+
+    const applicantPortfolioRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "sample.png",
+          mimeType: "image/png",
+          purpose: "CREATOR_PORTFOLIO_IMAGE",
+          contentBase64: pngBase64,
+        },
+        applicantCookie
+      )
+    );
+    assert.equal(applicantPortfolioRes.status, 403);
+
+    const adminEditorialRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "editorial-hero.png",
+          mimeType: "image/png",
+          purpose: "EDITORIAL_ASSET",
+          contentBase64: pngBase64,
+        },
+        adminCookie
+      )
+    );
+    assert.equal(adminEditorialRes.status, 201);
+    const { data: editorialData } = await adminEditorialRes.json();
+    createdAssetIds.push(editorialData.asset.id);
+    assert.ok(
+      editorialData.asset.storageKey.startsWith(
+        `${env.r2KeyPrefix}/media/editorial/`
+      )
+    );
+
+    // 5. Non-owner DELETE -> 403; Owner DELETE -> 200, removes object + DB row, resets avatarUrl to null
+    const nonOwnerDelRes = await mediaDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/media/${asset2.id}`,
+        "DELETE",
+        undefined,
+        creatorCookie
+      ),
+      { params: Promise.resolve({ id: asset2.id }) }
+    );
+    assert.equal(nonOwnerDelRes.status, 403);
+
+    const ownerDelRes = await mediaDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/media/${asset2.id}`,
+        "DELETE",
+        undefined,
+        customerCookie
+      ),
+      { params: Promise.resolve({ id: asset2.id }) }
+    );
+    assert.equal(ownerDelRes.status, 200);
+    assert.equal((await ownerDelRes.json()).data.deletedId, asset2.id);
+    assert.equal(
+      await db.mediaAsset.findUnique({ where: { id: asset2.id } }),
+      null
+    );
+    await assert.rejects(() =>
+      asset2.storageProvider === "LOCAL"
+        ? readPublicLocalMedia(asset2.storageKey)
+        : readPrivateFile(asset2.storageKey, asset2.storageProvider)
+    );
+
+    const dbCustomerCleared = await db.user.findUnique({
+      where: { id: customerUser.id },
+      select: { avatarUrl: true },
+    });
+    assert.equal(dbCustomerCleared?.avatarUrl, null);
+
+    const settingsClearedRes = await settingsGet(
+      makeJsonReq(
+        "http://localhost:3000/api/settings",
+        "GET",
+        undefined,
+        customerCookie
+      )
+    );
+    assert.equal(settingsClearedRes.status, 200);
+    assert.equal((await settingsClearedRes.json()).data.user.avatarUrl, null);
+
+    const repeatDelRes = await mediaDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/media/${asset2.id}`,
+        "DELETE",
+        undefined,
+        customerCookie
+      ),
+      { params: Promise.resolve({ id: asset2.id }) }
+    );
+    assert.equal(repeatDelRes.status, 404);
+
+    // 6. Offline LOCAL /api/media/[id]/raw streaming (image inline, docx attachment, active MIME neutralized, no redirect loop)
+    const publicLocalRoot = path.resolve(process.cwd(), "uploads", "_public");
+    const localPngKey = createMediaStorageKey(
+      "general",
+      `local-test-${crypto.randomBytes(4).toString("hex")}`,
+      "offline-img.png"
+    );
+    const localPngPath = path.resolve(publicLocalRoot, localPngKey);
+    await fs.mkdir(path.dirname(localPngPath), { recursive: true });
+    await fs.writeFile(localPngPath, pngBuffer);
+    localCleanupPaths.push(localPngPath);
+
+    const localPngRow = await db.mediaAsset.create({
+      data: {
+        ownerId: customerUser.id,
+        purpose: MediaAssetPurpose.GENERAL,
+        fileName: "offline-img.png",
+        mimeType: "image/png",
+        sizeBytes: pngBuffer.byteLength,
+        storageProvider: "LOCAL",
+        storageKey: localPngKey,
+        publicUrl: null,
+      },
+    });
+    createdAssetIds.push(localPngRow.id);
+    await db.mediaAsset.update({
+      where: { id: localPngRow.id },
+      data: { publicUrl: `/api/media/${localPngRow.id}/raw` },
+    });
+
+    const localPngRawRes = await mediaRawGet(
+      makeJsonReq(`http://localhost:3000/api/media/${localPngRow.id}/raw`, "GET"),
+      { params: Promise.resolve({ id: localPngRow.id }) }
+    );
+    assert.equal(localPngRawRes.status, 200);
+    assert.equal(localPngRawRes.headers.get("x-content-type-options"), "nosniff");
+    assert.equal(
+      localPngRawRes.headers.get("cache-control"),
+      "public, max-age=3600"
+    );
+    assert.equal(localPngRawRes.headers.get("content-type"), "image/png");
+    assert.ok(
+      (localPngRawRes.headers.get("content-disposition") || "").startsWith(
+        "inline;"
+      )
+    );
+    assert.deepEqual(Buffer.from(await localPngRawRes.arrayBuffer()), pngBuffer);
+
+    const localDocxKey = createMediaStorageKey(
+      "portfolios",
+      `local-test-${crypto.randomBytes(4).toString("hex")}`,
+      "sample-draft.docx"
+    );
+    const localDocxPath = path.resolve(publicLocalRoot, localDocxKey);
+    await fs.mkdir(path.dirname(localDocxPath), { recursive: true });
+    await fs.writeFile(localDocxPath, Buffer.from("PK\x03\x04docx-bytes"));
+    localCleanupPaths.push(localDocxPath);
+
+    const localDocxRow = await db.mediaAsset.create({
+      data: {
+        ownerId: creatorUser.id,
+        purpose: MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT,
+        fileName: 'sample "v1" \\ draft.docx',
+        mimeType:
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        sizeBytes: 14,
+        storageProvider: "LOCAL",
+        storageKey: localDocxKey,
+        publicUrl: `/api/media/placeholder/raw`,
+      },
+    });
+    createdAssetIds.push(localDocxRow.id);
+
+    const localDocxRawRes = await mediaRawGet(
+      makeJsonReq(`http://localhost:3000/api/media/${localDocxRow.id}/raw`, "GET"),
+      { params: Promise.resolve({ id: localDocxRow.id }) }
+    );
+    assert.equal(localDocxRawRes.status, 200);
+    assert.equal(localDocxRawRes.headers.get("x-content-type-options"), "nosniff");
+    const docxDisp = localDocxRawRes.headers.get("content-disposition") || "";
+    assert.ok(docxDisp.startsWith("attachment;"));
+    assert.ok(!docxDisp.includes("\r") && !docxDisp.includes("\n"));
+
+    // Unexpected active MIME in DB must be neutralized to application/octet-stream + attachment
+    const localSvgKey = createMediaStorageKey(
+      "general",
+      `local-test-${crypto.randomBytes(4).toString("hex")}`,
+      "tampered.svg"
+    );
+    const localSvgPath = path.resolve(publicLocalRoot, localSvgKey);
+    await fs.mkdir(path.dirname(localSvgPath), { recursive: true });
+    await fs.writeFile(localSvgPath, Buffer.from("<svg/>", "utf8"));
+    localCleanupPaths.push(localSvgPath);
+
+    const localSvgRow = await db.mediaAsset.create({
+      data: {
+        ownerId: customerUser.id,
+        purpose: MediaAssetPurpose.GENERAL,
+        fileName: "tampered.svg",
+        mimeType: "image/svg+xml",
+        sizeBytes: 6,
+        storageProvider: "LOCAL",
+        storageKey: localSvgKey,
+        publicUrl: null,
+      },
+    });
+    createdAssetIds.push(localSvgRow.id);
+
+    const localSvgRawRes = await mediaRawGet(
+      makeJsonReq(`http://localhost:3000/api/media/${localSvgRow.id}/raw`, "GET"),
+      { params: Promise.resolve({ id: localSvgRow.id }) }
+    );
+    assert.equal(localSvgRawRes.status, 200);
+    assert.equal(
+      localSvgRawRes.headers.get("content-type"),
+      "application/octet-stream"
+    );
+    assert.ok(
+      (localSvgRawRes.headers.get("content-disposition") || "").startsWith(
+        "attachment;"
+      )
+    );
+
+    // 7. Creator avatar + CREATOR_PORTFOLIO_DOCUMENT PDF -> PATCH /api/creators-hub/profile + XSS/IDOR checks + serialization across APIs
+    const creatorAvatarRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "creator-avatar.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: pngBase64,
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(creatorAvatarRes.status, 201);
+    const { data: creatorAvatarData } = await creatorAvatarRes.json();
+    createdAssetIds.push(creatorAvatarData.asset.id);
+    const creatorAvatarUrl = creatorAvatarData.publicUrl as string;
+
+    const portfolioPdfRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "writing-portfolio.pdf",
+          mimeType: "application/pdf",
+          purpose: "CREATOR_PORTFOLIO_DOCUMENT",
+          contentBase64: pdfBuffer.toString("base64"),
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(portfolioPdfRes.status, 201);
+    const { data: portfolioPdfData } = await portfolioPdfRes.json();
+    createdAssetIds.push(portfolioPdfData.asset.id);
+    assert.ok(
+      portfolioPdfData.asset.storageKey.startsWith(
+        `${env.r2KeyPrefix}/media/portfolios/${creatorUser.id}/`
+      )
+    );
+
+    const foreignGeneralRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "customer-doc.pdf",
+          mimeType: "application/pdf",
+          purpose: "GENERAL",
+          contentBase64: pdfBuffer.toString("base64"),
+        },
+        customerCookie
+      )
+    );
+    assert.equal(foreignGeneralRes.status, 201);
+    const { data: foreignGeneralData } = await foreignGeneralRes.json();
+    createdAssetIds.push(foreignGeneralData.asset.id);
+
+    // Block javascript: and data: URLs in portfolioSamples -> 400
+    const xssJsUrlRes = await creatorHubProfilePatch(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "PATCH",
+        {
+          portfolioSamples: [
+            {
+              title: "XSS Sample",
+              category: "Research Papers",
+              excerpt: "Attempting javascript scheme in portfolio attachmentUrl.",
+              attachmentUrl: "javascript:alert(1)",
+            },
+          ],
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(xssJsUrlRes.status, 400);
+
+    const xssDataUrlRes = await creatorHubProfilePatch(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "PATCH",
+        {
+          portfolioSamples: [
+            {
+              title: "XSS Data Sample",
+              category: "Research Papers",
+              excerpt: "Attempting data URI scheme in portfolio url field.",
+              url: "data:text/html,<script>alert(1)</script>",
+            },
+          ],
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(xssDataUrlRes.status, 400);
+
+    // Block foreign user's attachmentAssetId -> 403
+    const foreignAssetAttachRes = await creatorHubProfilePatch(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "PATCH",
+        {
+          portfolioSamples: [
+            {
+              title: "Foreign Asset Attempt",
+              category: "Research Papers",
+              excerpt: "Attempting to attach another user's MediaAsset ID.",
+              attachmentAssetId: foreignGeneralData.asset.id,
+            },
+          ],
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(foreignAssetAttachRes.status, 403);
+
+    // Valid portfolioSamples save with creator's PDF asset
+    const validPortfolioSaveRes = await creatorHubProfilePatch(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "PATCH",
+        {
+          portfolioSamples: [
+            {
+              title: "Empirical Climate Finance Synthesis",
+              category: "Research Papers",
+              excerpt:
+                "Full PDF portfolio sample uploaded through R2 media pipeline.",
+              attachmentUrl: portfolioPdfData.publicUrl,
+              attachmentName: "writing-portfolio.pdf",
+              attachmentAssetId: portfolioPdfData.asset.id,
+              mimeType: "application/pdf",
+            },
+          ],
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(validPortfolioSaveRes.status, 200);
+
+    const hubProfileRes = await creatorHubProfileGet(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "GET",
+        undefined,
+        creatorCookie
+      )
+    );
+    assert.equal(hubProfileRes.status, 200);
+    const hubProfileJson = await hubProfileRes.json();
+    assert.equal(
+      hubProfileJson.data.creatorProfile.user.avatarUrl,
+      creatorAvatarUrl
+    );
+    assert.equal(
+      hubProfileJson.data.creatorProfile.portfolioSamples[0].attachmentAssetId,
+      portfolioPdfData.asset.id
+    );
+
+    // Verify /api/tasks, /api/tasks/[slug], /api/creators/[username], /api/bookings/[ref] include avatarUrl
+    const category = await db.category.findFirstOrThrow({
+      where: { slug: "research-papers" },
+    });
+    const listCreateRes = await createTaskPost(
+      makeJsonReq(
+        "http://localhost:3000/api/tasks",
+        "POST",
+        {
+          title: "Avatar Serialization Verification Package",
+          shortDescription:
+            "Temporary published listing to verify creator avatarUrl serialization.",
+          fullDescription:
+            "Verifies avatarUrl serialization across task list, task detail, creator profile, and booking detail APIs.",
+          serviceType: "Policy Brief",
+          categoryId: category.id,
+          pricingType: "FIXED",
+          basePrice: 2500,
+          deliveryTurnaroundDays: 2,
+          maxRevisions: 1,
+          manualAcceptanceRequired: false,
+          validityType: "SHORT_14D",
+          deliverablesSummary: ["Brief PDF"],
+          revisionPolicy: "1 revision included.",
+          cancellationPolicy: "Standard escrow policy.",
+          submitMode: "SUBMIT_REVIEW",
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(listCreateRes.status, 201);
+    const { data: listCreateData } = await listCreateRes.json();
+    const tempListingId = listCreateData.listing.id;
+    const tempListingSlug = listCreateData.listing.slug;
+    createdListingIds.push(tempListingId);
+
+    const approveTempRes = await reviewListingPost(
+      makeJsonReq(
+        `http://localhost:3000/api/admin/listings/${tempListingId}/review`,
+        "POST",
+        {
+          decision: "APPROVE",
+          validityType: "SHORT_14D",
+          note: "Approved for Test 7 serialization check.",
+        },
+        adminCookie
+      ),
+      { params: Promise.resolve({ id: tempListingId }) }
+    );
+    assert.equal(approveTempRes.status, 200);
+
+    const tasksRes = await tasksListGet(
+      makeJsonReq("http://localhost:3000/api/tasks", "GET")
+    );
+    assert.equal(tasksRes.status, 200);
+    const tasksJson = await tasksRes.json();
+    const matchedTask = tasksJson.data.tasks.find(
+      (t: { id: string }) => t.id === tempListingId
+    );
+    assert.ok(matchedTask);
+    assert.equal(matchedTask.creator.user.avatarUrl, creatorAvatarUrl);
+
+    const taskDetailRes = await taskDetailGet(
+      makeJsonReq(`http://localhost:3000/api/tasks/${tempListingSlug}`, "GET"),
+      { params: Promise.resolve({ slug: tempListingSlug }) }
+    );
+    assert.equal(taskDetailRes.status, 200);
+    const taskDetailJson = await taskDetailRes.json();
+    assert.equal(
+      taskDetailJson.data.task.creator.user.avatarUrl,
+      creatorAvatarUrl
+    );
+
+    const publicCreatorRes = await publicCreatorGet(
+      makeJsonReq(
+        `http://localhost:3000/api/creators/${creatorUser.creatorProfile.username}`,
+        "GET"
+      ),
+      { params: Promise.resolve({ username: creatorUser.creatorProfile.username }) }
+    );
+    assert.equal(publicCreatorRes.status, 200);
+    const publicCreatorJson = await publicCreatorRes.json();
+    assert.equal(
+      publicCreatorJson.data.creator.user.avatarUrl,
+      creatorAvatarUrl
+    );
+
+    // Create a booking and check /api/bookings/[ref] serialization (avatars + storageProvider/revisionId/disputeId without publicUrl)
+    const bookingRes = await createBookingPost(
+      makeJsonReq(
+        "http://localhost:3000/api/bookings",
+        "POST",
+        {
+          taskId: tempListingId,
+          requirementsResponses: {
+            topic: "Avatar & File Metadata Serialization",
+            wordCount: 1000,
+          },
+        },
+        customerCookie
+      )
+    );
+    assert.equal(bookingRes.status, 201);
+    const { data: bookingCreated } = await bookingRes.json();
+    const bookingRef = bookingCreated.booking.bookingRef as string;
+    createdBookingIds.push(bookingCreated.booking.id);
+
+    const bookingFileRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "booking-meta-check.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentText: "Verify BookingFile fields without R2_PUBLIC_URL",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(bookingFileRes.status, 201);
+    const { data: bookingFileData } = await bookingFileRes.json();
+
+    try {
+      const bookingDetailRes = await bookingDetailGet(
+        makeJsonReq(
+          `http://localhost:3000/api/bookings/${bookingRef}`,
+          "GET",
+          undefined,
+          customerCookie
+        ),
+        { params: Promise.resolve({ ref: bookingRef }) }
+      );
+      assert.equal(bookingDetailRes.status, 200);
+      const bookingDetailJson = await bookingDetailRes.json();
+      const b = bookingDetailJson.data.booking;
+      assert.equal(b.creator.user.avatarUrl, creatorAvatarUrl);
+      assert.equal(b.customer.avatarUrl, null);
+      assert.equal(b.files.length, 1);
+      assert.equal(
+        b.files[0].storageProvider,
+        hasR2Config() ? "R2" : "LOCAL"
+      );
+      assert.ok("revisionId" in b.files[0]);
+      assert.ok("disputeId" in b.files[0]);
+      assert.equal(b.files[0].publicUrl, undefined);
+      assert.ok(!JSON.stringify(b.files).includes("r2.dev"));
+    } finally {
+      await deleteFileDelete(
+        makeJsonReq(
+          `http://localhost:3000/api/files/${bookingFileData.file.id}`,
+          "DELETE",
+          undefined,
+          adminCookie
+        ),
+        { params: Promise.resolve({ fileId: bookingFileData.file.id }) }
+      ).catch(() => undefined);
+    }
+  } finally {
+    for (const assetId of createdAssetIds) {
+      const row = await db.mediaAsset
+        .findUnique({ where: { id: assetId } })
+        .catch(() => null);
+      if (row) {
+        await deleteStoredObject(row.storageKey, row.storageProvider).catch(
+          () => undefined
+        );
+        await db.mediaAsset
+          .delete({ where: { id: row.id } })
+          .catch(() => undefined);
+      }
+    }
+    for (const p of localCleanupPaths) {
+      await fs
+        .rm(path.dirname(p), { recursive: true, force: true })
+        .catch(() => undefined);
+    }
+    const prefix = getR2KeyPrefix();
+    const publicLocalRoot = path.resolve(process.cwd(), "uploads", "_public");
+    for (const dir of [
+      path.resolve(publicLocalRoot, prefix, "media", "general"),
+      path.resolve(publicLocalRoot, prefix, "media", "portfolios"),
+      path.resolve(publicLocalRoot, prefix, "media"),
+      path.resolve(publicLocalRoot, prefix),
+      publicLocalRoot,
+    ]) {
+      await fs.rmdir(dir).catch(() => undefined);
+    }
+
+    await db.user
+      .update({
+        where: { id: customerUser.id },
+        data: { avatarUrl: origCustomerAvatar },
+      })
+      .catch(() => undefined);
+    await db.user
+      .update({
+        where: { id: creatorUser.id },
+        data: { avatarUrl: origCreatorAvatar },
+      })
+      .catch(() => undefined);
+    await db.creatorProfile
+      .update({
+        where: { id: creatorUser.creatorProfile.id },
+        data: {
+          portfolioSamples:
+            origPortfolioSamples === null
+              ? Prisma.JsonNull
+              : (origPortfolioSamples as Prisma.InputJsonValue),
+        },
+      })
+      .catch(() => undefined);
+
+    if (createdBookingIds.length > 0) {
+      await db.booking
+        .deleteMany({ where: { id: { in: createdBookingIds } } })
+        .catch(() => undefined);
+    }
+    if (createdListingIds.length > 0) {
+      await db.taskListing
+        .deleteMany({ where: { id: { in: createdListingIds } } })
         .catch(() => undefined);
     }
   }

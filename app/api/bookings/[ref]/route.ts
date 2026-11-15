@@ -26,22 +26,31 @@ export async function GET(
             id: true,
             name: true,
             email: true,
+            avatarUrl: true,
             membershipTier: true,
           },
         },
         creator: {
           include: {
-            user: { select: { id: true, name: true, email: true } },
+            user: {
+              select: { id: true, name: true, email: true, avatarUrl: true },
+            },
           },
         },
         files: {
           orderBy: { createdAt: "desc" },
-          include: { uploader: { select: { id: true, name: true } } },
+          include: {
+            uploader: { select: { id: true, name: true, avatarUrl: true } },
+          },
         },
         revisions: { orderBy: { revisionNumber: "desc" } },
         messages: {
           orderBy: { createdAt: "asc" },
-          include: { sender: { select: { id: true, name: true, roles: true } } },
+          include: {
+            sender: {
+              select: { id: true, name: true, roles: true, avatarUrl: true },
+            },
+          },
         },
         payments: { orderBy: { createdAt: "desc" } },
         dispute: true,

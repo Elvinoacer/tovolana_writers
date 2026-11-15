@@ -629,96 +629,190 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     where: { slug: "research-papers" },
   });
 
-  const createRes = await createTaskPost(
-    makeJsonReq(
-      "http://localhost:3000/api/tasks",
-      "POST",
-      {
-        title: "R2 File Vault & Tribunal Verification Package",
-        shortDescription:
-          "Automated test listing for private R2 file vault, revision, and dispute checks.",
-        fullDescription:
-          "Verifies private R2 storage isolation, XSS rejection, 4 MB limits, lifecycle deletion locks, and dispute evidence.",
-        serviceType: "Policy Brief",
-        categoryId: category.id,
-        pricingType: "FIXED",
-        basePrice: 3000,
-        deliveryTurnaroundDays: 3,
-        maxRevisions: 2,
-        manualAcceptanceRequired: false,
-        validityType: "SHORT_14D",
-        deliverablesSummary: ["Draft report"],
-        revisionPolicy: "2 revisions included.",
-        cancellationPolicy: "Standard escrow rules apply.",
-        submitMode: "SUBMIT_REVIEW",
-      },
-      creatorCookie
-    )
-  );
-  assert.equal(createRes.status, 201);
-  const { data: createdListingData } = await createRes.json();
-  const listingId = createdListingData.listing.id;
-
-  const approveRes = await reviewListingPost(
-    makeJsonReq(
-      `http://localhost:3000/api/admin/listings/${listingId}/review`,
-      "POST",
-      {
-        decision: "APPROVE",
-        validityType: "SHORT_14D",
-        note: "Approved for Task 4 storage verification.",
-      },
-      adminCookie
-    ),
-    { params: Promise.resolve({ id: listingId }) }
-  );
-  assert.equal(approveRes.status, 200);
-
-  const bookingARes = await createBookingPost(
-    makeJsonReq(
-      "http://localhost:3000/api/bookings",
-      "POST",
-      {
-        taskId: listingId,
-        requirementsResponses: {
-          topic: "Private R2 File Lifecycle Verification",
-          wordCount: 1500,
-          citationStyle: "APA 7th",
-        },
-      },
-      customerCookie
-    )
-  );
-  assert.equal(bookingARes.status, 201);
-  const { data: bookingAData } = await bookingARes.json();
-  const bookingRef = bookingAData.booking.bookingRef;
-  const bookingId = bookingAData.booking.id;
-  const customerId = bookingAData.booking.customerId;
-
-  const bookingBRes = await createBookingPost(
-    makeJsonReq(
-      "http://localhost:3000/api/bookings",
-      "POST",
-      {
-        taskId: listingId,
-        requirementsResponses: {
-          topic: "Cross-Booking IDOR Control Booking",
-          wordCount: 1000,
-          citationStyle: "APA 7th",
-        },
-      },
-      customerCookie
-    )
-  );
-  assert.equal(bookingBRes.status, 201);
-  const { data: bookingBData } = await bookingBRes.json();
-  const otherBookingRef = bookingBData.booking.bookingRef;
-
+  const createdListingIds: string[] = [];
+  const createdBookingIds: string[] = [];
+  const createdBookingRefs: string[] = [];
   const createdFileIds: string[] = [];
   const legacyDirName = `__test-backend-legacy-${crypto.randomBytes(6).toString("hex")}`;
   const legacyDirPath = path.resolve(process.cwd(), "uploads", legacyDirName);
 
   try {
+    const createRes = await createTaskPost(
+      makeJsonReq(
+        "http://localhost:3000/api/tasks",
+        "POST",
+        {
+          title: "R2 File Vault & Tribunal Verification Package",
+          shortDescription:
+            "Automated test listing for private R2 file vault, revision, and dispute checks.",
+          fullDescription:
+            "Verifies private R2 storage isolation, XSS rejection, 4 MB limits, lifecycle deletion locks, and dispute evidence.",
+          serviceType: "Policy Brief",
+          categoryId: category.id,
+          pricingType: "FIXED",
+          basePrice: 3000,
+          deliveryTurnaroundDays: 3,
+          maxRevisions: 2,
+          manualAcceptanceRequired: false,
+          validityType: "SHORT_14D",
+          deliverablesSummary: ["Draft report"],
+          revisionPolicy: "2 revisions included.",
+          cancellationPolicy: "Standard escrow rules apply.",
+          submitMode: "SUBMIT_REVIEW",
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(createRes.status, 201);
+    const { data: createdListingData } = await createRes.json();
+    const listingId = createdListingData.listing.id;
+    createdListingIds.push(listingId);
+
+    const approveRes = await reviewListingPost(
+      makeJsonReq(
+        `http://localhost:3000/api/admin/listings/${listingId}/review`,
+        "POST",
+        {
+          decision: "APPROVE",
+          validityType: "SHORT_14D",
+          note: "Approved for Task 4 storage verification.",
+        },
+        adminCookie
+      ),
+      { params: Promise.resolve({ id: listingId }) }
+    );
+    assert.equal(approveRes.status, 200);
+
+    const bookingARes = await createBookingPost(
+      makeJsonReq(
+        "http://localhost:3000/api/bookings",
+        "POST",
+        {
+          taskId: listingId,
+          requirementsResponses: {
+            topic: "Private R2 File Lifecycle Verification",
+            wordCount: 1500,
+            citationStyle: "APA 7th",
+          },
+        },
+        customerCookie
+      )
+    );
+    assert.equal(bookingARes.status, 201);
+    const { data: bookingAData } = await bookingARes.json();
+    const bookingRef = bookingAData.booking.bookingRef;
+    const bookingId = bookingAData.booking.id;
+    const customerId = bookingAData.booking.customerId;
+    createdBookingIds.push(bookingId);
+    createdBookingRefs.push(bookingRef);
+
+    const bookingBRes = await createBookingPost(
+      makeJsonReq(
+        "http://localhost:3000/api/bookings",
+        "POST",
+        {
+          taskId: listingId,
+          requirementsResponses: {
+            topic: "Cross-Booking IDOR Control Booking",
+            wordCount: 1000,
+            citationStyle: "APA 7th",
+          },
+        },
+        customerCookie
+      )
+    );
+    assert.equal(bookingBRes.status, 201);
+    const { data: bookingBData } = await bookingBRes.json();
+    const otherBookingRef = bookingBData.booking.bookingRef;
+    createdBookingIds.push(bookingBData.booking.id);
+    createdBookingRefs.push(otherBookingRef);
+
+    // 0. Reject malformed JSON, empty contentBase64, non-ASCII mimeType & huge Content-Length
+    const malformedJsonRes = await presignFilePost(
+      new NextRequest(
+        new URL(
+          `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+          "http://localhost:3000"
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            cookie: customerCookie,
+          },
+          body: "{malformed",
+        }
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(malformedJsonRes.status, 400);
+    const malformedJson = await malformedJsonRes.json();
+    assert.equal(malformedJson.error.code, "BAD_REQUEST");
+
+    const emptyBase64Res = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "empty.txt",
+          mimeType: "text/plain",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentBase64: "",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(emptyBase64Res.status, 400);
+    const emptyBase64Json = await emptyBase64Res.json();
+    assert.equal(emptyBase64Json.error.code, "VALIDATION_ERROR");
+
+    const nonAsciiMimeRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "notes.txt",
+          mimeType: "text/plain; charset=ü",
+          fileCategory: "CUSTOMER_BRIEF",
+          contentText: "Non-ASCII charset param should fail",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(nonAsciiMimeRes.status, 400);
+    const nonAsciiMimeJson = await nonAsciiMimeRes.json();
+    assert.equal(nonAsciiMimeJson.error.code, "UNSUPPORTED_FILE_TYPE");
+
+    const oversizedHeaderRes = await presignFilePost(
+      new NextRequest(
+        new URL(
+          `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+          "http://localhost:3000"
+        ),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Content-Length": String(
+              MAX_BROWSER_UPLOAD_BYTES + 2 * 1024 * 1024 + 1
+            ),
+            cookie: customerCookie,
+          },
+          body: JSON.stringify({
+            fileName: "small.txt",
+            mimeType: "text/plain",
+            contentText: "hi",
+          }),
+        }
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(oversizedHeaderRes.status, 400);
+    const oversizedHeaderJson = await oversizedHeaderRes.json();
+    assert.equal(oversizedHeaderJson.error.code, "FILE_TOO_LARGE");
+
     // 1. Reject SVG/HTML active XSS payloads (JSON + Multipart)
     const svgRes = await presignFilePost(
       makeJsonReq(
@@ -1179,6 +1273,23 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     });
     assert.equal(linkedRevFile?.revisionId, validRevData.revision.id);
 
+    // Customer CANNOT delete a REVISION_ATTACHMENT once linked to a BookingRevision -> 409
+    const lockedRevAttachmentDel = await deleteFileDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/files/${revAttachmentId}`,
+        "DELETE",
+        undefined,
+        customerCookie
+      ),
+      { params: Promise.resolve({ fileId: revAttachmentId }) }
+    );
+    assert.equal(lockedRevAttachmentDel.status, 409);
+    const lockedRevAttachmentJson = await lockedRevAttachmentDel.json();
+    assert.equal(
+      lockedRevAttachmentJson.error.code,
+      "FILE_LOCKED_BY_BOOKING_STATUS"
+    );
+
     // Presign with cross-booking revisionId must be rejected -> 400
     const crossRevPresign = await presignFilePost(
       makeJsonReq(
@@ -1217,6 +1328,18 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
     const { data: validRevPresignData } = await validRevPresign.json();
     createdFileIds.push(validRevPresignData.file.id);
     assert.equal(validRevPresignData.file.revisionId, validRevData.revision.id);
+
+    // Admin CAN delete a revision-linked attachment -> 200
+    const adminDelRevAttachment = await deleteFileDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/files/${validRevPresignData.file.id}`,
+        "DELETE",
+        undefined,
+        adminCookie
+      ),
+      { params: Promise.resolve({ fileId: validRevPresignData.file.id }) }
+    );
+    assert.equal(adminDelRevAttachment.status, 200);
 
     // 8. Re-deliver -> Dispute evidence linking -> Lock on DISPUTED -> Admin Tribunal overview -> Admin delete
     const reDeliverRes = await deliverBookingPost(
@@ -1286,6 +1409,27 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
       where: { id: disputeFileId },
     });
     assert.equal(linkedDisputeFile?.disputeId, openDisputeData.dispute.id);
+
+    // Presign passing both revisionId and disputeId simultaneously -> 400
+    const bothRefsPresign = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "both-refs.txt",
+          mimeType: "text/plain",
+          fileCategory: "DISPUTE_EVIDENCE",
+          revisionId: validRevData.revision.id,
+          disputeId: openDisputeData.dispute.id,
+          contentText: "Should reject both revisionId and disputeId",
+        },
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(bothRefsPresign.status, 400);
+    const bothRefsJson = await bothRefsPresign.json();
+    assert.equal(bothRefsJson.error.code, "VALIDATION_ERROR");
 
     // Presign with cross-booking disputeId must fail -> 400
     const crossDisputePresign = await presignFilePost(
@@ -1379,6 +1523,30 @@ test("6. Private Booking File Storage: MIME/XSS Rejection, 4 MB Limit, Lifecycle
       ).catch(() => undefined);
     }
     await fs.rm(legacyDirPath, { recursive: true, force: true }).catch(() => undefined);
+    if (createdBookingIds.length > 0) {
+      await db.refundRecord
+        .deleteMany({ where: { bookingId: { in: createdBookingIds } } })
+        .catch(() => undefined);
+      await db.paymentTransaction
+        .deleteMany({ where: { bookingId: { in: createdBookingIds } } })
+        .catch(() => undefined);
+      await db.creatorEarningsLedger
+        .deleteMany({ where: { bookingId: { in: createdBookingIds } } })
+        .catch(() => undefined);
+      await db.booking
+        .deleteMany({ where: { id: { in: createdBookingIds } } })
+        .catch(() => undefined);
+    }
+    if (createdListingIds.length > 0) {
+      await db.taskListing
+        .deleteMany({ where: { id: { in: createdListingIds } } })
+        .catch(() => undefined);
+    }
+    for (const ref of createdBookingRefs) {
+      await db.notificationOutbox
+        .deleteMany({ where: { linkUrl: { endsWith: `/${ref}` } } })
+        .catch(() => undefined);
+    }
   }
 });
 

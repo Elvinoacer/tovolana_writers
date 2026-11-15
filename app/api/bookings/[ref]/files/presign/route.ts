@@ -52,11 +52,17 @@ function sanitizeDisplayFileName(rawFileName: string): string {
   return base && base.length > 0 ? base.slice(0, 200) : "attachment.bin";
 }
 
-function isPermittedBookingUpload(mimeType: string, rawFileName: string): boolean {
+const MAX_PRESIGN_BODY_BYTES = MAX_BROWSER_UPLOAD_BYTES + 2 * 1024 * 1024;
+
+function isPermittedBookingUpload(rawMimeType: string, rawFileName: string): boolean {
   return (
-    !/[\x00-\x1f\x7f]/.test(mimeType) &&
-    validateBookingUploadMime(mimeType, rawFileName)
+    /^[\x20-\x7e]+$/.test(rawMimeType) &&
+    validateBookingUploadMime(rawMimeType, rawFileName)
   );
+}
+
+function normalizeMimeType(rawMimeType: string): string {
+  return rawMimeType.split(";")[0]?.trim().toLowerCase() || "application/octet-stream";
 }
 
 function fileTooLargeError() {
@@ -96,16 +102,30 @@ export async function POST(
       );
     }
 
+    const contentLengthHeader = request.headers.get("content-length");
+    if (contentLengthHeader) {
+      const contentLength = Number(contentLengthHeader);
+      if (Number.isFinite(contentLength) && contentLength > MAX_PRESIGN_BODY_BYTES) {
+        return fileTooLargeError();
+      }
+    }
+
     const contentType = request.headers.get("content-type") || "";
     let rawFileName = "attachment.txt";
-    let mimeType = "text/plain";
+    let rawMimeType = "text/plain";
     let fileCategory: z.infer<typeof fileCategorySchema> = "CUSTOMER_BRIEF";
     let revisionId: string | undefined;
     let disputeId: string | undefined;
     let buffer: Buffer;
 
     if (contentType.includes("multipart/form-data")) {
-      const form = await request.formData();
+      let form: FormData;
+      try {
+        form = await request.formData();
+      } catch {
+        return fail("BAD_REQUEST", "Malformed multipart/form-data request.", 400);
+      }
+
       const file = form.get("file");
       const cat = form.get("fileCategory");
       const rawRevisionId = form.get("revisionId");
@@ -117,9 +137,15 @@ export async function POST(
       if (file.size > MAX_BROWSER_UPLOAD_BYTES) {
         return fileTooLargeError();
       }
+      if (rawRevisionId !== null && typeof rawRevisionId !== "string") {
+        return fail("VALIDATION_ERROR", "Invalid revisionId field.", 400);
+      }
+      if (rawDisputeId !== null && typeof rawDisputeId !== "string") {
+        return fail("VALIDATION_ERROR", "Invalid disputeId field.", 400);
+      }
 
       rawFileName = file.name;
-      mimeType = (file.type || "application/octet-stream").trim();
+      rawMimeType = (file.type || "application/octet-stream").trim();
       if (typeof cat === "string") {
         if (cat.trim().length > 0) {
           fileCategory = fileCategorySchema.parse(cat.trim());
@@ -135,7 +161,7 @@ export async function POST(
         disputeId = rawDisputeId.trim();
       }
 
-      if (!isPermittedBookingUpload(mimeType, rawFileName)) {
+      if (!isPermittedBookingUpload(rawMimeType, rawFileName)) {
         return unsupportedFileTypeError();
       }
 
@@ -144,28 +170,40 @@ export async function POST(
         return fileTooLargeError();
       }
     } else {
-      const body = fileUploadSchema.parse(await request.json());
+      let rawJson: unknown;
+      try {
+        rawJson = await request.json();
+      } catch {
+        return fail("BAD_REQUEST", "Malformed JSON request body.", 400);
+      }
+
+      const body = fileUploadSchema.parse(rawJson);
       rawFileName = body.fileName;
-      mimeType = body.mimeType.trim();
+      rawMimeType = body.mimeType.trim();
       fileCategory = body.fileCategory;
       revisionId = body.revisionId;
       disputeId = body.disputeId;
 
-      if (!isPermittedBookingUpload(mimeType, rawFileName)) {
+      if (!isPermittedBookingUpload(rawMimeType, rawFileName)) {
         return unsupportedFileTypeError();
       }
 
-      if (body.contentBase64) {
+      if (body.contentBase64 !== undefined) {
+        const cleanedBase64 = body.contentBase64.replace(/\s+/g, "");
+        if (cleanedBase64.length === 0) {
+          return fail(
+            "VALIDATION_ERROR",
+            "contentBase64 cannot be empty.",
+            400
+          );
+        }
         if (
           estimateBase64DecodedBytes(body.contentBase64) >
           MAX_BROWSER_UPLOAD_BYTES
         ) {
           return fileTooLargeError();
         }
-        buffer = Buffer.from(
-          body.contentBase64.replace(/\s+/g, ""),
-          "base64"
-        );
+        buffer = Buffer.from(cleanedBase64, "base64");
         if (buffer.byteLength > MAX_BROWSER_UPLOAD_BYTES) {
           return fileTooLargeError();
         }
@@ -181,6 +219,14 @@ export async function POST(
         }
         buffer = Buffer.from(text, "utf8");
       }
+    }
+
+    if (revisionId && disputeId) {
+      return fail(
+        "VALIDATION_ERROR",
+        "A file cannot reference both revisionId and disputeId.",
+        400
+      );
     }
 
     if (revisionId) {
@@ -211,6 +257,7 @@ export async function POST(
       }
     }
 
+    const mimeType = normalizeMimeType(rawMimeType);
     const storageKey = createStorageKey(booking.id, rawFileName);
     const stored = await writePrivateFile(storageKey, buffer, mimeType);
 

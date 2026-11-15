@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getCurrentUser, requireAuth } from "@/lib/auth";
 import {
@@ -23,6 +24,19 @@ const BLOCKED_INLINE_MIMES = new Set([
   "image/svg+xml",
   "application/javascript",
   "text/javascript",
+  "application/x-javascript",
+  "application/ecmascript",
+  "text/ecmascript",
+  "application/x-msdownload",
+  "application/x-msdos-program",
+  "application/x-executable",
+  "application/x-sh",
+  "application/x-shellscript",
+  "application/x-httpd-php",
+  "text/x-php",
+  "application/x-bat",
+  "application/x-csh",
+  "application/x-python",
   "text/xml",
   "application/xml",
 ]);
@@ -46,6 +60,9 @@ function buildSafeContentDisposition(rawFileName: string): string {
 
 function resolveSafeDownloadMimeType(rawMime: string): string {
   const cleaned = String(rawMime ?? "").replace(/[\r\n\0]/g, "").trim();
+  if (!cleaned || !/^[\x20-\x7e]+$/.test(cleaned)) {
+    return "application/octet-stream";
+  }
   const baseMime = cleaned.split(";")[0]?.trim().toLowerCase() ?? "";
   if (!baseMime || BLOCKED_INLINE_MIMES.has(baseMime)) {
     return "application/octet-stream";
@@ -149,20 +166,38 @@ export async function DELETE(
       const isDeliveredDeliverable =
         fileRecord.fileCategory === "CREATOR_DELIVERABLE" &&
         fileRecord.booking.status === "DELIVERED";
+      const isLinkedEvidence = Boolean(
+        fileRecord.revisionId || fileRecord.disputeId
+      );
       const isWindowExpired =
         Date.now() - fileRecord.createdAt.getTime() > DELETE_WINDOW_MS;
 
-      if (isLockedStatus || isDeliveredDeliverable || isWindowExpired) {
+      if (
+        isLockedStatus ||
+        isDeliveredDeliverable ||
+        isLinkedEvidence ||
+        isWindowExpired
+      ) {
         return fail(
           "FILE_LOCKED_BY_BOOKING_STATUS",
-          "This file is locked by the current booking lifecycle or retention window and can no longer be deleted.",
+          "This file is locked by the current booking lifecycle, linked evidence record, or retention window and can no longer be deleted.",
           409
         );
       }
     }
 
     await deleteStoredObject(fileRecord.storageKey, fileRecord.storageProvider);
-    await db.bookingFile.delete({ where: { id: fileRecord.id } });
+    try {
+      await db.bookingFile.delete({ where: { id: fileRecord.id } });
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === "P2025"
+      ) {
+        return fail("FILE_NOT_FOUND", "File not found.", 404);
+      }
+      throw err;
+    }
 
     return ok({ deletedId: fileRecord.id });
   } catch (err) {

@@ -47,6 +47,8 @@ test("sanitizeFileName and sanitizePathSegment neutralize traversal and unsafe c
   assert.equal(sanitizeFileName("."), "attachment.bin");
   assert.equal(sanitizeFileName(""), "attachment.bin");
   assert.equal(sanitizeFileName("foo..bar\0.pdf"), "foo.bar.pdf");
+  assert.equal(sanitizeFileName("payload.html."), "payload.html");
+  assert.equal(sanitizeFileName("evil.svg..."), "evil.svg");
   assert.ok(!sanitizeFileName("%2e%2e%2fsecret.txt").includes(".."));
   assert.ok(!sanitizeFileName("%2e%2e%2fsecret.txt").includes("/"));
 
@@ -91,6 +93,12 @@ test("assertScopedStorageKey rejects traversal, sibling prefixes, and allows leg
     "gtss/sibling/file.pdf",
     `${prefix}/bookings/../sibling/file.pdf`,
     `${prefix}/bookings/%2e%2e/sibling/file.pdf`,
+    `${prefix}/bookings/%2e%2e%2fsibling%ZZ`,
+    `${prefix}/bookings/%252e%252e%252fsibling/file.pdf`,
+    `${prefix}/bookings/%25252e%25252e%25252fsibling/file.pdf`,
+    `${prefix}/bookings/foo%2fbar.pdf`,
+    `${prefix}/bookings/foo%5cbar.pdf`,
+    `${prefix}/bookings/foo%00bar.pdf`,
     `${prefix}/bookings/..\\sibling\\file.pdf`,
     `${prefix}/bookings/a\0b.txt`,
     `${prefix}/bookings//file.txt`,
@@ -111,11 +119,15 @@ test("assertScopedStorageKey rejects traversal, sibling prefixes, and allows leg
   const legacyKey = "cmwg8zrx8000vwfrq5tp1yqhg/a1b2c3d4e5f6a7b8-brief.txt";
   assert.equal(assertScopedStorageKey(legacyKey, { allowLegacyLocal: true }), legacyKey);
 
-  // Even with allowLegacyLocal: true, traversal/absolute/null-byte paths MUST fail
+  // Even with allowLegacyLocal: true, traversal/malformed-encoding/public-dir paths MUST fail
   for (const dangerous of [
     "../etc/passwd",
     "booking/../../etc/passwd",
     "booking/%2e%2e/secret.txt",
+    "booking/%2e%2e%2fsecret%ZZ",
+    "booking/%252e%252e%252fsecret.txt",
+    "_public",
+    `_public/${prefix}/media/avatars/user1/avatar.png`,
     "booking\\secret.txt",
     "/etc/passwd",
     "booking/file\0.txt",
@@ -145,12 +157,17 @@ test("validateBookingUploadMime blocks active XSS/executable content and accepts
     assert.equal(validateBookingUploadMime(badMime, "file.txt"), false, `Should reject ${badMime}`);
   }
 
-  // Blocked extensions even with octet-stream or spoofed safe MIME
+  // Blocked extensions even with octet-stream or spoofed safe MIME (including trailing dots & XML)
   for (const badExt of [
     "payload.html",
+    "payload.html.",
     "payload.HTM",
     "payload.xhtml",
     "vector.svg",
+    "evil.svg.",
+    "data.xml",
+    "transform.xsl",
+    "transform.xslt",
     "script.js",
     "module.mjs",
     "common.cjs",
@@ -170,7 +187,19 @@ test("validateBookingUploadMime blocks active XSS/executable content and accepts
       false,
       `Should reject text/plain with ${badExt}`
     );
+    assert.equal(
+      validateBookingUploadMime("image/png", badExt),
+      false,
+      `Should reject image/png with ${badExt}`
+    );
   }
+
+  // Paired MIME <-> Extension mismatches for concrete MIMEs
+  assert.equal(validateBookingUploadMime("image/png", "payload.xml"), false);
+  assert.equal(validateBookingUploadMime("image/png", "evil.exe"), false);
+  assert.equal(validateBookingUploadMime("image/png", "fake.jpg"), false);
+  assert.equal(validateBookingUploadMime("application/pdf", "notes.txt"), false);
+  assert.equal(validateBookingUploadMime("image/png", "noext"), false);
 
   // Accepted safe booking document types
   const validCases: Array<[string, string | undefined]> = [
@@ -217,7 +246,10 @@ test("validateMediaUploadMime enforces strict purpose-based allowlists (Review F
     assert.equal(validateMediaUploadMime("application/pdf", purpose), false);
     assert.equal(validateMediaUploadMime("text/plain", purpose), false);
     assert.equal(validateMediaUploadMime("image/png", purpose, "evil.svg"), false);
+    assert.equal(validateMediaUploadMime("image/png", purpose, "evil.svg."), false);
     assert.equal(validateMediaUploadMime("image/png", purpose, "evil.html"), false);
+    assert.equal(validateMediaUploadMime("image/png", purpose, "avatar.jpg"), false);
+    assert.equal(validateMediaUploadMime("image/png", purpose, "avatar"), false);
   }
 
   // CREATOR_PORTFOLIO_DOCUMENT: images + pdf/txt/docx
@@ -232,6 +264,8 @@ test("validateMediaUploadMime enforces strict purpose-based allowlists (Review F
     true
   );
   assert.equal(validateMediaUploadMime("image/jpeg", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT), true);
+  assert.equal(validateMediaUploadMime("text/plain", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT, "fake.png"), false);
+  assert.equal(validateMediaUploadMime("application/pdf", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT, "fake.txt"), false);
   assert.equal(validateMediaUploadMime("image/svg+xml", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT), false);
   assert.equal(validateMediaUploadMime("text/html", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT), false);
   assert.equal(validateMediaUploadMime("application/javascript", MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT), false);
@@ -315,7 +349,9 @@ test("readPrivateFile honors explicit LOCAL legacy rows and NEVER silently falls
     );
   } finally {
     await fs.rm(path.resolve(UPLOADS_ROOT, uniqueFolder), { recursive: true, force: true });
-    await fs.rm(path.resolve(UPLOADS_ROOT, prefix), { recursive: true, force: true });
+    await fs.rm(path.resolve(UPLOADS_ROOT, path.dirname(r2DecoyKey)), { recursive: true, force: true });
+    await fs.rmdir(path.resolve(UPLOADS_ROOT, prefix, "bookings")).catch(() => undefined);
+    await fs.rmdir(path.resolve(UPLOADS_ROOT, prefix)).catch(() => undefined);
   }
 });
 
@@ -338,9 +374,69 @@ test("readPublicLocalMedia reads _public local assets and rejects traversal", as
       /INVALID_STORAGE_PATH/
     );
   } finally {
-    await fs.rm(path.resolve(PUBLIC_LOCAL_ROOT, prefix), { recursive: true, force: true });
+    await fs.rm(path.resolve(PUBLIC_LOCAL_ROOT, path.dirname(key)), { recursive: true, force: true });
+    await fs.rmdir(path.resolve(PUBLIC_LOCAL_ROOT, prefix, "media", "general")).catch(() => undefined);
+    await fs.rmdir(path.resolve(PUBLIC_LOCAL_ROOT, prefix, "media")).catch(() => undefined);
+    await fs.rmdir(path.resolve(PUBLIC_LOCAL_ROOT, prefix)).catch(() => undefined);
     await fs.rmdir(PUBLIC_LOCAL_ROOT).catch(() => undefined);
   }
+});
+
+test("writePublicMedia and createPresignedUploadUrl reject active/mismatched content before S3 or disk I/O", async () => {
+  const prefix = getR2KeyPrefix();
+
+  await assert.rejects(
+    () =>
+      writePublicMedia(
+        `${prefix}/media/general/u1/abcd1234-x.html`,
+        Buffer.from("<script>alert(1)</script>"),
+        "text/html"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
+  await assert.rejects(
+    () =>
+      writePublicMedia(
+        `${prefix}/media/general/u1/abcd1234-x.svg`,
+        Buffer.from("<svg/>"),
+        "image/png"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
+  await assert.rejects(
+    () =>
+      writePublicMedia(
+        `${prefix}/media/general/u1/abcd1234-x.html.`,
+        Buffer.from("hi"),
+        "text/plain"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
+
+  await assert.rejects(
+    () =>
+      createPresignedUploadUrl(
+        `${prefix}/bookings/b1/0123456789abcdef-x.svg`,
+        "image/svg+xml"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
+  await assert.rejects(
+    () =>
+      createPresignedUploadUrl(
+        `${prefix}/bookings/b1/0123456789abcdef-x.html`,
+        "text/html"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
+  await assert.rejects(
+    () =>
+      createPresignedUploadUrl(
+        `${prefix}/bookings/b1/0123456789abcdef-x.xml`,
+        "image/png"
+      ),
+    /UNSUPPORTED_FILE_TYPE/
+  );
 });
 
 test("live R2 private & public roundtrip (write -> read/fetch -> presign -> delete)", async (t) => {

@@ -67,6 +67,9 @@ const BLOCKED_ACTIVE_EXTENSIONS = new Set([
   ".xhtml",
   ".svg",
   ".svgz",
+  ".xml",
+  ".xsl",
+  ".xslt",
   ".js",
   ".mjs",
   ".cjs",
@@ -98,87 +101,69 @@ const BLOCKED_ACTIVE_EXTENSIONS = new Set([
   ".hta",
 ]);
 
+const MIME_EXTENSION_MAP: Record<string, Set<string>> = {
+  "image/jpeg": new Set([".jpg", ".jpeg"]),
+  "image/jpg": new Set([".jpg", ".jpeg"]),
+  "image/png": new Set([".png"]),
+  "image/webp": new Set([".webp"]),
+  "image/avif": new Set([".avif"]),
+  "application/pdf": new Set([".pdf"]),
+  "text/plain": new Set([".txt"]),
+  "text/markdown": new Set([".md", ".markdown"]),
+  "text/x-markdown": new Set([".md", ".markdown"]),
+  "text/csv": new Set([".csv"]),
+  "application/csv": new Set([".csv"]),
+  "application/rtf": new Set([".rtf"]),
+  "text/rtf": new Set([".rtf"]),
+  "application/msword": new Set([".doc"]),
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    new Set([".docx"]),
+  "application/vnd.ms-excel": new Set([".xls"]),
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": new Set([
+    ".xlsx",
+  ]),
+  "application/vnd.ms-powerpoint": new Set([".ppt"]),
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    new Set([".pptx"]),
+  "application/zip": new Set([".zip"]),
+  "application/x-zip-compressed": new Set([".zip"]),
+};
+
 const ALLOWED_BOOKING_MIMES = new Set([
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain",
-  "text/markdown",
-  "text/x-markdown",
-  "text/csv",
-  "application/csv",
-  "application/rtf",
-  "text/rtf",
-  "image/png",
-  "image/jpeg",
-  "image/jpg",
-  "image/webp",
-  "application/zip",
-  "application/x-zip-compressed",
+  ...Object.keys(MIME_EXTENSION_MAP),
   "application/octet-stream",
 ]);
 
 const IMAGE_BASIC_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const IMAGE_BASIC_EXTENSIONS = new Set([".jpg", ".jpeg", ".png", ".webp"]);
 
-const MEDIA_PURPOSE_RULES: Record<
-  MediaAssetPurpose,
-  { mimes: Set<string>; extensions: Set<string> }
-> = {
-  [MediaAssetPurpose.USER_AVATAR]: {
-    mimes: IMAGE_BASIC_MIMES,
-    extensions: IMAGE_BASIC_EXTENSIONS,
-  },
-  [MediaAssetPurpose.CREATOR_PORTFOLIO_IMAGE]: {
-    mimes: IMAGE_BASIC_MIMES,
-    extensions: IMAGE_BASIC_EXTENSIONS,
-  },
-  [MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT]: {
-    mimes: new Set([
-      ...IMAGE_BASIC_MIMES,
-      "application/pdf",
-      "text/plain",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ]),
-    extensions: new Set([...IMAGE_BASIC_EXTENSIONS, ".pdf", ".txt", ".docx"]),
-  },
-  [MediaAssetPurpose.EDITORIAL_ASSET]: {
-    mimes: new Set([...IMAGE_BASIC_MIMES, "image/avif"]),
-    extensions: new Set([...IMAGE_BASIC_EXTENSIONS, ".avif"]),
-  },
-  [MediaAssetPurpose.GENERAL]: {
-    mimes: new Set([
-      ...IMAGE_BASIC_MIMES,
-      "image/avif",
-      "application/pdf",
-      "text/plain",
-      "text/markdown",
-      "text/x-markdown",
-      "text/csv",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    ]),
-    extensions: new Set([
-      ...IMAGE_BASIC_EXTENSIONS,
-      ".avif",
-      ".pdf",
-      ".txt",
-      ".md",
-      ".markdown",
-      ".csv",
-      ".doc",
-      ".docx",
-      ".xlsx",
-    ]),
-  },
+const MEDIA_PURPOSE_ALLOWED_MIMES: Record<MediaAssetPurpose, Set<string>> = {
+  [MediaAssetPurpose.USER_AVATAR]: IMAGE_BASIC_MIMES,
+  [MediaAssetPurpose.CREATOR_PORTFOLIO_IMAGE]: IMAGE_BASIC_MIMES,
+  [MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT]: new Set([
+    ...IMAGE_BASIC_MIMES,
+    "application/pdf",
+    "text/plain",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ]),
+  [MediaAssetPurpose.EDITORIAL_ASSET]: new Set([
+    ...IMAGE_BASIC_MIMES,
+    "image/avif",
+  ]),
+  [MediaAssetPurpose.GENERAL]: new Set([
+    ...IMAGE_BASIC_MIMES,
+    "image/avif",
+    "application/pdf",
+    "text/plain",
+    "text/markdown",
+    "text/x-markdown",
+    "text/csv",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ]),
 };
 
-let r2ClientSingleton: S3Client | null = null;
+let r2ClientSingleton: { cacheKey: string; client: S3Client } | null = null;
 
 function resolveR2Endpoint(): string {
   if (env.r2Endpoint) return env.r2Endpoint;
@@ -189,12 +174,15 @@ function resolveR2Endpoint(): string {
 }
 
 function getR2Client(): S3Client {
-  if (r2ClientSingleton) return r2ClientSingleton;
   const endpoint = resolveR2Endpoint();
   if (!hasR2Config() || !endpoint || !env.r2BucketName) {
     throw new Error("R2_NOT_CONFIGURED");
   }
-  r2ClientSingleton = new S3Client({
+  const cacheKey = `${endpoint}|${env.r2AccessKeyId}|${env.r2SecretAccessKey}`;
+  if (r2ClientSingleton && r2ClientSingleton.cacheKey === cacheKey) {
+    return r2ClientSingleton.client;
+  }
+  const client = new S3Client({
     region: "auto",
     endpoint,
     credentials: {
@@ -205,7 +193,8 @@ function getR2Client(): S3Client {
     requestChecksumCalculation: "WHEN_REQUIRED",
     responseChecksumValidation: "WHEN_REQUIRED",
   });
-  return r2ClientSingleton;
+  r2ClientSingleton = { cacheKey, client };
+  return client;
 }
 
 export function sanitizePathSegment(
@@ -225,7 +214,7 @@ export function sanitizeFileName(name: string): string {
   const cleaned = baseSegment
     .replace(/[^a-zA-Z0-9._-]/g, "_")
     .replace(/\.{2,}/g, ".")
-    .replace(/^\.+/, "");
+    .replace(/^\.+|\.+$/g, "");
   if (!cleaned || /^[._-]+$/.test(cleaned)) {
     return "attachment.bin";
   }
@@ -253,12 +242,14 @@ function hasUnsafeKeySyntax(candidate: string): boolean {
   ) {
     return true;
   }
-  if (/(?:^|\/)(?:%2e|\.)(?:%2e|\.)?(?:$|\/)/i.test(candidate)) {
+  if (/(?:%2e|%2f|%5c|%00)/i.test(candidate)) {
     return true;
   }
   const segments = candidate.split("/");
   return segments.some((seg) => seg === "" || seg === "." || seg === "..");
 }
+
+const MAX_DECODE_PASSES = 5;
 
 export function assertScopedStorageKey(
   storageKey: string,
@@ -271,19 +262,34 @@ export function assertScopedStorageKey(
     throw new Error("INVALID_STORAGE_PATH");
   }
 
-  try {
-    const decoded = decodeURIComponent(storageKey);
+  let current = storageKey;
+  let stabilized = false;
+  for (let pass = 0; pass < MAX_DECODE_PASSES; pass++) {
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(current);
+    } catch {
+      throw new Error("INVALID_STORAGE_PATH");
+    }
     if (hasUnsafeKeySyntax(decoded)) {
       throw new Error("INVALID_STORAGE_PATH");
     }
-  } catch (err) {
-    if (err instanceof Error && err.message === "INVALID_STORAGE_PATH") {
-      throw err;
+    if (decoded === current) {
+      stabilized = true;
+      break;
     }
-    // Literal '%' characters that are not percent-encodings stay valid if raw segment checks passed.
+    current = decoded;
+  }
+  if (!stabilized) {
+    throw new Error("INVALID_STORAGE_PATH");
   }
 
-  if (!options?.allowLegacyLocal) {
+  if (options?.allowLegacyLocal) {
+    const firstSegment = current.split("/")[0];
+    if (firstSegment === "_public") {
+      throw new Error("INVALID_STORAGE_PATH");
+    }
+  } else {
     const prefix = getR2KeyPrefix();
     if (!storageKey.startsWith(`${prefix}/`)) {
       throw new Error("INVALID_STORAGE_PATH");
@@ -316,12 +322,23 @@ export function createMediaStorageKey(
   return `${prefix}/media/${folder}/${safeOwner}/${unique}-${safeName}`;
 }
 
+function isPlaceholderUrl(value: string): boolean {
+  const lower = value.trim().toLowerCase();
+  return (
+    lower.length === 0 ||
+    lower.includes("your-") ||
+    lower.includes("replace-") ||
+    lower.includes("changeme") ||
+    lower.includes("example")
+  );
+}
+
 export function buildPublicR2Url(storageKey: string): string | null {
   const scopedKey = assertScopedStorageKey(storageKey);
   const baseUrl = (env.nextPublicR2PublicUrl || env.r2PublicUrl || "")
     .trim()
     .replace(/\/+$/, "");
-  if (!baseUrl || !/^https?:\/\//i.test(baseUrl)) {
+  if (!baseUrl || !/^https?:\/\//i.test(baseUrl) || isPlaceholderUrl(baseUrl)) {
     return null;
   }
   const encodedPath = scopedKey.split("/").map(encodeURIComponent).join("/");
@@ -332,10 +349,20 @@ function normalizeMime(mimeType: string): string {
   return String(mimeType ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
 }
 
-function getFileExtension(fileName?: string): string {
+function extractBaseName(fileName?: string): string {
   if (!fileName) return "";
   const trimmed = String(fileName).replace(/\0/g, "").trim();
-  const base = trimmed.split(/[/\\]+/).filter(Boolean).pop() ?? "";
+  return trimmed.split(/[/\\]+/).filter(Boolean).pop() ?? "";
+}
+
+function hasTrailingDot(fileName?: string): boolean {
+  const base = extractBaseName(fileName);
+  return base.endsWith(".");
+}
+
+function getFileExtension(fileName?: string): string {
+  const base = extractBaseName(fileName).replace(/\.+$/, "");
+  if (!base) return "";
   const dotIndex = base.lastIndexOf(".");
   if (dotIndex <= 0 || dotIndex >= base.length - 1) {
     return "";
@@ -355,10 +382,24 @@ export function validateBookingUploadMime(
 ): boolean {
   const normalized = normalizeMime(mimeType);
   const ext = getFileExtension(fileName);
-  if (!normalized || isBlockedActiveContent(normalized, ext)) {
+  if (
+    !normalized ||
+    hasTrailingDot(fileName) ||
+    isBlockedActiveContent(normalized, ext)
+  ) {
     return false;
   }
-  return ALLOWED_BOOKING_MIMES.has(normalized);
+  if (!ALLOWED_BOOKING_MIMES.has(normalized)) {
+    return false;
+  }
+  if (fileName === undefined) {
+    return true;
+  }
+  if (normalized === "application/octet-stream") {
+    return true;
+  }
+  const allowedExts = MIME_EXTENSION_MAP[normalized];
+  return Boolean(ext && allowedExts?.has(ext));
 }
 
 export function validateMediaUploadMime(
@@ -368,17 +409,22 @@ export function validateMediaUploadMime(
 ): boolean {
   const normalized = normalizeMime(mimeType);
   const ext = getFileExtension(fileName);
-  if (!normalized || isBlockedActiveContent(normalized, ext)) {
+  if (
+    !normalized ||
+    hasTrailingDot(fileName) ||
+    isBlockedActiveContent(normalized, ext)
+  ) {
     return false;
   }
-  const rule = MEDIA_PURPOSE_RULES[purpose];
-  if (!rule || !rule.mimes.has(normalized)) {
+  const allowedMimes = MEDIA_PURPOSE_ALLOWED_MIMES[purpose];
+  if (!allowedMimes || !allowedMimes.has(normalized)) {
     return false;
   }
-  if (ext && !rule.extensions.has(ext)) {
-    return false;
+  if (fileName === undefined) {
+    return true;
   }
-  return true;
+  const allowedExts = MIME_EXTENSION_MAP[normalized];
+  return Boolean(ext && allowedExts?.has(ext));
 }
 
 export function signStorageAccess(
@@ -446,7 +492,7 @@ async function streamBodyToBuffer(body: unknown): Promise<Buffer> {
   }
   if (Buffer.isBuffer(body)) return body;
   if (body instanceof Uint8Array) return Buffer.from(body);
-  if (Symbol.asyncIterator in (body as object)) {
+  if (typeof body === "object" && body !== null && Symbol.asyncIterator in body) {
     const chunks: Buffer[] = [];
     for await (const chunk of body as AsyncIterable<Uint8Array | string>) {
       chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : Buffer.from(chunk));
@@ -540,6 +586,9 @@ export async function writePublicMedia(
   contentType: string
 ): Promise<StoredObjectResult & { publicUrl: string | null }> {
   const scopedKey = assertScopedStorageKey(storageKey);
+  if (!validateMediaUploadMime(contentType, MediaAssetPurpose.GENERAL, scopedKey)) {
+    throw new Error("UNSUPPORTED_FILE_TYPE");
+  }
   if (hasR2Config()) {
     const stored = await putObjectR2(
       scopedKey,
@@ -611,6 +660,21 @@ export async function createPresignedUploadUrl(
   expiresInSec = 300
 ): Promise<string> {
   const scopedKey = assertScopedStorageKey(storageKey);
+  const normalized = normalizeMime(contentType);
+  const ext = getFileExtension(scopedKey);
+  if (
+    !normalized ||
+    hasTrailingDot(scopedKey) ||
+    isBlockedActiveContent(normalized, ext) ||
+    (!validateBookingUploadMime(contentType, scopedKey) &&
+      !validateMediaUploadMime(
+        contentType,
+        MediaAssetPurpose.GENERAL,
+        scopedKey
+      ))
+  ) {
+    throw new Error("UNSUPPORTED_FILE_TYPE");
+  }
   const client = getR2Client();
   const command = new PutObjectCommand({
     Bucket: env.r2BucketName,

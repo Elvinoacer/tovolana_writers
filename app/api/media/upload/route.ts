@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     let purpose: MediaAssetPurpose;
     let buffer: Buffer;
 
-    if (contentType.includes("multipart/form-data")) {
+    if (contentType.toLowerCase().includes("multipart/form-data")) {
       let form: FormData;
       try {
         form = await request.formData();
@@ -202,8 +202,16 @@ export async function POST(request: NextRequest) {
       }
 
       const cleanedBase64 = body.contentBase64.replace(/\s+/g, "");
-      if (cleanedBase64.length === 0) {
-        return fail("VALIDATION_ERROR", "contentBase64 cannot be empty.", 400);
+      if (
+        cleanedBase64.length === 0 ||
+        cleanedBase64.length % 4 !== 0 ||
+        !/^[A-Za-z0-9+/]+={0,2}$/.test(cleanedBase64)
+      ) {
+        return fail(
+          "VALIDATION_ERROR",
+          "contentBase64 must be valid non-empty base64.",
+          400
+        );
       }
       if (
         estimateBase64DecodedBytes(body.contentBase64) > MAX_BROWSER_UPLOAD_BYTES

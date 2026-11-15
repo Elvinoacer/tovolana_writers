@@ -72,6 +72,22 @@ function buildSafeMediaDisposition(
   return `${dispositionType}; filename="${asciiSafe}"; filename*=UTF-8''${rfc5987}`;
 }
 
+function isMissingStorageObjectError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const candidate = err as {
+    code?: string;
+    Code?: string;
+    name?: string;
+    $metadata?: { httpStatusCode?: number };
+  };
+  return (
+    candidate.code === "ENOENT" ||
+    candidate.name === "NoSuchKey" ||
+    candidate.Code === "NoSuchKey" ||
+    candidate.$metadata?.httpStatusCode === 404
+  );
+}
+
 export async function GET(
   _request: NextRequest,
   context: { params: Promise<{ id: string }> }
@@ -101,7 +117,7 @@ export async function GET(
           ? await readPublicLocalMedia(asset.storageKey)
           : await readPrivateFile(asset.storageKey, asset.storageProvider);
     } catch (err) {
-      if ((err as NodeJS.ErrnoException)?.code === "ENOENT") {
+      if (isMissingStorageObjectError(err)) {
         return fail("MEDIA_NOT_FOUND", "Media object not found.", 404);
       }
       throw err;

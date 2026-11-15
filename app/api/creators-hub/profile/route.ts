@@ -1,9 +1,15 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { MediaAssetPurpose, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { fail, handleApiError, ok } from "@/lib/http";
+
+const ALLOWED_PORTFOLIO_ASSET_PURPOSES = new Set<MediaAssetPurpose>([
+  MediaAssetPurpose.CREATOR_PORTFOLIO_IMAGE,
+  MediaAssetPurpose.CREATOR_PORTFOLIO_DOCUMENT,
+  MediaAssetPurpose.GENERAL,
+]);
 
 function isAllowedPortfolioUrl(raw: string): boolean {
   const trimmed = raw.trim();
@@ -118,7 +124,7 @@ export async function PATCH(request: NextRequest) {
       if (assetIds.length > 0) {
         const assets = await db.mediaAsset.findMany({
           where: { id: { in: assetIds } },
-          select: { id: true, ownerId: true },
+          select: { id: true, ownerId: true, purpose: true },
         });
         const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
         const isAdmin = user.roles.includes("ADMIN");
@@ -137,6 +143,13 @@ export async function PATCH(request: NextRequest) {
               "FORBIDDEN",
               "You can only attach portfolio media assets that you own.",
               403
+            );
+          }
+          if (!ALLOWED_PORTFOLIO_ASSET_PURPOSES.has(asset.purpose)) {
+            return fail(
+              "INVALID_MEDIA_ASSET_PURPOSE",
+              "Only portfolio or general media assets can be attached to portfolio samples.",
+              400
             );
           }
         }

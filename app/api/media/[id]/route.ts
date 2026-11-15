@@ -54,9 +54,10 @@ export async function DELETE(
 
           if (owner) {
             const matchesDeletedAsset =
-              owner.avatarUrl === asset.publicUrl ||
+              (Boolean(asset.publicUrl) &&
+                owner.avatarUrl === asset.publicUrl) ||
               owner.avatarUrl === `/api/media/${asset.id}/raw`;
-            if (matchesDeletedAsset || !remainingAvatar) {
+            if (matchesDeletedAsset) {
               await tx.user.update({
                 where: { id: owner.id },
                 data: {

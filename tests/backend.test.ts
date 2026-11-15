@@ -45,11 +45,15 @@ import {
   GET as creatorHubProfileGet,
   PATCH as creatorHubProfilePatch,
 } from "@/app/api/creators-hub/profile/route";
-import { GET as settingsGet } from "@/app/api/settings/route";
+import {
+  GET as settingsGet,
+  PATCH as settingsPatch,
+} from "@/app/api/settings/route";
 import { GET as tasksListGet } from "@/app/api/tasks/route";
 import { GET as taskDetailGet } from "@/app/api/tasks/[slug]/route";
 import { GET as publicCreatorGet } from "@/app/api/creators/[username]/route";
 import { GET as bookingDetailGet } from "@/app/api/bookings/[ref]/route";
+import { POST as bookingMessagePost } from "@/app/api/bookings/[ref]/messages/route";
 import {
   createMediaStorageKey,
   deleteStoredObject,
@@ -1607,7 +1611,11 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     applicantLogin.headers.get("set-cookie")
   );
 
-  const [customerUser, creatorUser] = await Promise.all([
+  const [adminUser, customerUser, creatorUser] = await Promise.all([
+    db.user.findUniqueOrThrow({
+      where: { email: "admin@tovolana.com" },
+      select: { id: true },
+    }),
     db.user.findUniqueOrThrow({
       where: { email: "free.customer@tovolana.com" },
       select: { id: true, avatarUrl: true },
@@ -1619,6 +1627,7 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
   ]);
   assert.ok(creatorUser.creatorProfile);
 
+  const testStartedAt = new Date();
   const origCustomerAvatar = customerUser.avatarUrl;
   const origCreatorAvatar = creatorUser.avatarUrl;
   const origPortfolioSamples = creatorUser.creatorProfile.portfolioSamples;
@@ -1635,6 +1644,8 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
   const localCleanupPaths: string[] = [];
   const createdListingIds: string[] = [];
   const createdBookingIds: string[] = [];
+  const createdBookingRefs: string[] = [];
+  const createdBookingFileIds: string[] = [];
 
   try {
     // 1. Unauthenticated upload rejected 401
@@ -1813,6 +1824,38 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     );
     assert.equal(emptyB64Res.status, 400);
     assert.equal((await emptyB64Res.json()).error.code, "VALIDATION_ERROR");
+
+    const invalidB64Res = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "corrupt.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: "not-valid-base64!",
+        },
+        customerCookie
+      )
+    );
+    assert.equal(invalidB64Res.status, 400);
+    assert.equal((await invalidB64Res.json()).error.code, "VALIDATION_ERROR");
+
+    const dataUriB64Res = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "prefixed.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: `data:image/png;base64,${pngBase64}`,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(dataUriB64Res.status, 400);
+    assert.equal((await dataUriB64Res.json()).error.code, "VALIDATION_ERROR");
 
     const malformedRes = await mediaUploadPost(
       new NextRequest(
@@ -1996,6 +2039,51 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     );
     assert.equal(repeatDelRes.status, 404);
 
+    // Deleting a non-active USER_AVATAR must preserve an existing external User.avatarUrl
+    const nonActiveAvatarRes = await mediaUploadPost(
+      makeJsonReq(
+        "http://localhost:3000/api/media/upload",
+        "POST",
+        {
+          fileName: "non-active-avatar.png",
+          mimeType: "image/png",
+          purpose: "USER_AVATAR",
+          contentBase64: pngBase64,
+        },
+        customerCookie
+      )
+    );
+    assert.equal(nonActiveAvatarRes.status, 201);
+    const { data: nonActiveAvatarData } = await nonActiveAvatarRes.json();
+    createdAssetIds.push(nonActiveAvatarData.asset.id);
+
+    const externalGoogleAvatar =
+      "https://lh3.googleusercontent.com/test-external-avatar";
+    await db.user.update({
+      where: { id: customerUser.id },
+      data: { avatarUrl: externalGoogleAvatar },
+    });
+
+    const delNonActiveRes = await mediaDelete(
+      makeJsonReq(
+        `http://localhost:3000/api/media/${nonActiveAvatarData.asset.id}`,
+        "DELETE",
+        undefined,
+        customerCookie
+      ),
+      { params: Promise.resolve({ id: nonActiveAvatarData.asset.id }) }
+    );
+    assert.equal(delNonActiveRes.status, 200);
+    const customerWithExternalAvatar = await db.user.findUnique({
+      where: { id: customerUser.id },
+      select: { avatarUrl: true },
+    });
+    assert.equal(customerWithExternalAvatar?.avatarUrl, externalGoogleAvatar);
+    await db.user.update({
+      where: { id: customerUser.id },
+      data: { avatarUrl: null },
+    });
+
     // 6. Offline LOCAL /api/media/[id]/raw streaming (image inline, docx attachment, active MIME neutralized, no redirect loop)
     const publicLocalRoot = path.resolve(process.cwd(), "uploads", "_public");
     const localPngKey = createMediaStorageKey(
@@ -2119,6 +2207,37 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
       )
     );
 
+    if (hasR2Config()) {
+      const missingR2Key = createMediaStorageKey(
+        "general",
+        `missing-r2-${crypto.randomBytes(4).toString("hex")}`,
+        "missing.png"
+      );
+      const missingR2Row = await db.mediaAsset.create({
+        data: {
+          ownerId: customerUser.id,
+          purpose: MediaAssetPurpose.GENERAL,
+          fileName: "missing.png",
+          mimeType: "image/png",
+          sizeBytes: 10,
+          storageProvider: "R2",
+          storageKey: missingR2Key,
+          publicUrl: null,
+        },
+      });
+      createdAssetIds.push(missingR2Row.id);
+
+      const missingR2RawRes = await mediaRawGet(
+        makeJsonReq(
+          `http://localhost:3000/api/media/${missingR2Row.id}/raw`,
+          "GET"
+        ),
+        { params: Promise.resolve({ id: missingR2Row.id }) }
+      );
+      assert.equal(missingR2RawRes.status, 404);
+      assert.equal((await missingR2RawRes.json()).error.code, "MEDIA_NOT_FOUND");
+    }
+
     // 7. Creator avatar + CREATOR_PORTFOLIO_DOCUMENT PDF -> PATCH /api/creators-hub/profile + XSS/IDOR checks + serialization across APIs
     const creatorAvatarRes = await mediaUploadPost(
       makeJsonReq(
@@ -2235,6 +2354,30 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
       )
     );
     assert.equal(foreignAssetAttachRes.status, 403);
+
+    // Block attaching USER_AVATAR / non-portfolio asset purpose -> 400
+    const avatarPortfolioAttachRes = await creatorHubProfilePatch(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/profile",
+        "PATCH",
+        {
+          portfolioSamples: [
+            {
+              title: "Avatar Purpose Attempt",
+              category: "Research Papers",
+              excerpt: "Attempting to attach a USER_AVATAR MediaAsset ID.",
+              attachmentAssetId: creatorAvatarData.asset.id,
+            },
+          ],
+        },
+        creatorCookie
+      )
+    );
+    assert.equal(avatarPortfolioAttachRes.status, 400);
+    assert.equal(
+      (await avatarPortfolioAttachRes.json()).error.code,
+      "INVALID_MEDIA_ASSET_PURPOSE"
+    );
 
     // Valid portfolioSamples save with creator's PDF asset
     const validPortfolioSaveRes = await creatorHubProfilePatch(
@@ -2366,6 +2509,21 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
       creatorAvatarUrl
     );
 
+    // Verify PATCH /api/settings returns updated avatarUrl cleanly
+    const creatorSettingsPatchRes = await settingsPatch(
+      makeJsonReq(
+        "http://localhost:3000/api/settings",
+        "PATCH",
+        { preferredLocale: "en-KE" },
+        creatorCookie
+      )
+    );
+    assert.equal(creatorSettingsPatchRes.status, 200);
+    assert.equal(
+      (await creatorSettingsPatchRes.json()).data.user.avatarUrl,
+      creatorAvatarUrl
+    );
+
     // Create a booking and check /api/bookings/[ref] serialization (avatars + storageProvider/revisionId/disputeId without publicUrl)
     const bookingRes = await createBookingPost(
       makeJsonReq(
@@ -2385,6 +2543,7 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     const { data: bookingCreated } = await bookingRes.json();
     const bookingRef = bookingCreated.booking.bookingRef as string;
     createdBookingIds.push(bookingCreated.booking.id);
+    createdBookingRefs.push(bookingRef);
 
     const bookingFileRes = await presignFilePost(
       makeJsonReq(
@@ -2402,43 +2561,99 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     );
     assert.equal(bookingFileRes.status, 201);
     const { data: bookingFileData } = await bookingFileRes.json();
+    createdBookingFileIds.push(bookingFileData.file.id);
 
-    try {
-      const bookingDetailRes = await bookingDetailGet(
-        makeJsonReq(
-          `http://localhost:3000/api/bookings/${bookingRef}`,
-          "GET",
-          undefined,
-          customerCookie
-        ),
-        { params: Promise.resolve({ ref: bookingRef }) }
-      );
-      assert.equal(bookingDetailRes.status, 200);
-      const bookingDetailJson = await bookingDetailRes.json();
-      const b = bookingDetailJson.data.booking;
-      assert.equal(b.creator.user.avatarUrl, creatorAvatarUrl);
-      assert.equal(b.customer.avatarUrl, null);
-      assert.equal(b.files.length, 1);
-      assert.equal(
-        b.files[0].storageProvider,
-        hasR2Config() ? "R2" : "LOCAL"
-      );
-      assert.ok("revisionId" in b.files[0]);
-      assert.ok("disputeId" in b.files[0]);
-      assert.equal(b.files[0].publicUrl, undefined);
-      assert.ok(!JSON.stringify(b.files).includes("r2.dev"));
-    } finally {
+    const creatorBookingFileRes = await presignFilePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/files/presign`,
+        "POST",
+        {
+          fileName: "creator-outline.txt",
+          mimeType: "text/plain",
+          fileCategory: "CREATOR_DELIVERABLE",
+          contentText: "Creator outline attachment for avatar serialization check",
+        },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(creatorBookingFileRes.status, 201);
+    const { data: creatorBookingFileData } = await creatorBookingFileRes.json();
+    createdBookingFileIds.push(creatorBookingFileData.file.id);
+
+    const creatorMsgRes = await bookingMessagePost(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}/messages`,
+        "POST",
+        { body: "Creator note verifying sender avatarUrl serialization." },
+        creatorCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(creatorMsgRes.status, 201);
+
+    const bookingDetailRes = await bookingDetailGet(
+      makeJsonReq(
+        `http://localhost:3000/api/bookings/${bookingRef}`,
+        "GET",
+        undefined,
+        customerCookie
+      ),
+      { params: Promise.resolve({ ref: bookingRef }) }
+    );
+    assert.equal(bookingDetailRes.status, 200);
+    const bookingDetailJson = await bookingDetailRes.json();
+    const b = bookingDetailJson.data.booking;
+    assert.equal(b.creator.user.avatarUrl, creatorAvatarUrl);
+    assert.equal(b.customer.avatarUrl, null);
+    assert.equal(b.files.length, 2);
+    for (const bf of b.files as Array<{
+      storageProvider: string;
+      revisionId: string | null;
+      disputeId: string | null;
+      publicUrl?: string;
+      uploader: { id: string; avatarUrl: string | null };
+    }>) {
+      assert.equal(bf.storageProvider, hasR2Config() ? "R2" : "LOCAL");
+      assert.ok("revisionId" in bf);
+      assert.ok("disputeId" in bf);
+      assert.equal(bf.publicUrl, undefined);
+      assert.ok("avatarUrl" in bf.uploader);
+    }
+    assert.ok(
+      b.files.some(
+        (bf: { uploader: { avatarUrl: string | null } }) =>
+          bf.uploader.avatarUrl === creatorAvatarUrl
+      )
+    );
+    assert.ok(
+      b.messages.some(
+        (m: { sender: { avatarUrl: string | null } }) =>
+          m.sender.avatarUrl === creatorAvatarUrl
+      )
+    );
+    assert.ok(
+      !JSON.stringify(
+        b.files.map(
+          (bf: { uploader: { id: string; avatarUrl: string | null } }) => ({
+            ...bf,
+            uploader: { ...bf.uploader, avatarUrl: null },
+          })
+        )
+      ).includes("r2.dev")
+    );
+  } finally {
+    for (const fileId of createdBookingFileIds) {
       await deleteFileDelete(
         makeJsonReq(
-          `http://localhost:3000/api/files/${bookingFileData.file.id}`,
+          `http://localhost:3000/api/files/${fileId}`,
           "DELETE",
           undefined,
           adminCookie
         ),
-        { params: Promise.resolve({ fileId: bookingFileData.file.id }) }
+        { params: Promise.resolve({ fileId }) }
       ).catch(() => undefined);
     }
-  } finally {
     for (const assetId of createdAssetIds) {
       const row = await db.mediaAsset
         .findUnique({ where: { id: assetId } })
@@ -2459,9 +2674,21 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
     }
     const prefix = getR2KeyPrefix();
     const publicLocalRoot = path.resolve(process.cwd(), "uploads", "_public");
+    const mediaFolders = ["avatars", "editorial", "portfolios", "general"];
+    for (const folder of mediaFolders) {
+      for (const uid of [customerUser.id, creatorUser.id, adminUser.id]) {
+        await fs
+          .rm(path.resolve(publicLocalRoot, prefix, "media", folder, uid), {
+            recursive: true,
+            force: true,
+          })
+          .catch(() => undefined);
+      }
+      await fs
+        .rmdir(path.resolve(publicLocalRoot, prefix, "media", folder))
+        .catch(() => undefined);
+    }
     for (const dir of [
-      path.resolve(publicLocalRoot, prefix, "media", "general"),
-      path.resolve(publicLocalRoot, prefix, "media", "portfolios"),
       path.resolve(publicLocalRoot, prefix, "media"),
       path.resolve(publicLocalRoot, prefix),
       publicLocalRoot,
@@ -2498,7 +2725,30 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
         .deleteMany({ where: { id: { in: createdBookingIds } } })
         .catch(() => undefined);
     }
+    for (const ref of createdBookingRefs) {
+      await db.notificationOutbox
+        .deleteMany({ where: { linkUrl: { endsWith: `/${ref}` } } })
+        .catch(() => undefined);
+    }
     if (createdListingIds.length > 0) {
+      await db.adminAuditLog
+        .deleteMany({
+          where: {
+            targetType: "TaskListing",
+            targetId: { in: createdListingIds },
+          },
+        })
+        .catch(() => undefined);
+      await db.notificationOutbox
+        .deleteMany({
+          where: {
+            userId: creatorUser.id,
+            eventType: "LISTING_APPROVE",
+            createdAt: { gte: testStartedAt },
+            body: { contains: "Avatar Serialization Verification Package" },
+          },
+        })
+        .catch(() => undefined);
       await db.taskListing
         .deleteMany({ where: { id: { in: createdListingIds } } })
         .catch(() => undefined);

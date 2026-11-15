@@ -1,8 +1,57 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
-import { readPrivateFile, verifyStorageAccess } from "@/lib/storage";
-import { fail, handleApiError } from "@/lib/http";
+import { getCurrentUser, requireAuth } from "@/lib/auth";
+import {
+  deleteStoredObject,
+  readPrivateFile,
+  verifyStorageAccess,
+} from "@/lib/storage";
+import { fail, handleApiError, ok } from "@/lib/http";
+
+const LOCKED_BOOKING_STATUSES = new Set([
+  "COMPLETED",
+  "DISPUTED",
+  "CANCELLED",
+  "REFUNDED",
+]);
+
+const DELETE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+const BLOCKED_INLINE_MIMES = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "image/svg+xml",
+  "application/javascript",
+  "text/javascript",
+  "text/xml",
+  "application/xml",
+]);
+
+function buildSafeContentDisposition(rawFileName: string): string {
+  const cleanedUtf8 =
+    String(rawFileName ?? "")
+      .replace(/[\x00-\x1f\x7f-\x9f/\\]/g, "")
+      .trim() || "attachment.bin";
+  const asciiSafe =
+    cleanedUtf8
+      .replace(/[^\x20-\x7e]/g, "_")
+      .replace(/["\\;]/g, "_")
+      .trim() || "attachment.bin";
+  const rfc5987 = encodeURIComponent(cleanedUtf8).replace(
+    /['()*]/g,
+    (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+  return `attachment; filename="${asciiSafe}"; filename*=UTF-8''${rfc5987}`;
+}
+
+function resolveSafeDownloadMimeType(rawMime: string): string {
+  const cleaned = String(rawMime ?? "").replace(/[\r\n\0]/g, "").trim();
+  const baseMime = cleaned.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (!baseMime || BLOCKED_INLINE_MIMES.has(baseMime)) {
+    return "application/octet-stream";
+  }
+  return cleaned;
+}
 
 export async function GET(
   request: NextRequest,
@@ -49,15 +98,73 @@ export async function GET(
       }
     }
 
-    const data = await readPrivateFile(fileRecord.storageKey);
+    const data = await readPrivateFile(
+      fileRecord.storageKey,
+      fileRecord.storageProvider
+    );
     return new NextResponse(new Uint8Array(data), {
       status: 200,
       headers: {
-        "Content-Type": fileRecord.mimeType,
-        "Content-Disposition": `attachment; filename="${fileRecord.fileName}"`,
+        "Content-Type": resolveSafeDownloadMimeType(fileRecord.mimeType),
+        "Content-Disposition": buildSafeContentDisposition(fileRecord.fileName),
         "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ fileId: string }> }
+) {
+  try {
+    const user = await requireAuth(request);
+    const { fileId } = await context.params;
+
+    const fileRecord = await db.bookingFile.findUnique({
+      where: { id: fileId },
+      include: { booking: true },
+    });
+
+    if (!fileRecord) {
+      return fail("FILE_NOT_FOUND", "File not found.", 404);
+    }
+
+    const isAdmin = user.roles.includes("ADMIN");
+    if (!isAdmin && fileRecord.uploaderId !== user.id) {
+      return fail(
+        "FORBIDDEN",
+        "Only the original uploader or an administrator can delete this file.",
+        403
+      );
+    }
+
+    if (!isAdmin) {
+      const isLockedStatus = LOCKED_BOOKING_STATUSES.has(
+        fileRecord.booking.status
+      );
+      const isDeliveredDeliverable =
+        fileRecord.fileCategory === "CREATOR_DELIVERABLE" &&
+        fileRecord.booking.status === "DELIVERED";
+      const isWindowExpired =
+        Date.now() - fileRecord.createdAt.getTime() > DELETE_WINDOW_MS;
+
+      if (isLockedStatus || isDeliveredDeliverable || isWindowExpired) {
+        return fail(
+          "FILE_LOCKED_BY_BOOKING_STATUS",
+          "This file is locked by the current booking lifecycle or retention window and can no longer be deleted.",
+          409
+        );
+      }
+    }
+
+    await deleteStoredObject(fileRecord.storageKey, fileRecord.storageProvider);
+    await db.bookingFile.delete({ where: { id: fileRecord.id } });
+
+    return ok({ deletedId: fileRecord.id });
   } catch (err) {
     return handleApiError(err);
   }

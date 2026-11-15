@@ -76,6 +76,10 @@ export async function GET(request: NextRequest) {
             include: {
               customer: { select: { id: true, name: true, email: true } },
               creator: { select: { id: true, displayName: true, username: true } },
+              files: {
+                orderBy: { createdAt: "desc" },
+                include: { uploader: { select: { id: true, name: true } } },
+              },
             },
           },
           openedBy: { select: { id: true, name: true, email: true } },

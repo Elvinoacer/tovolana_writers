@@ -6,8 +6,23 @@ import { ScoreRing } from "@/components/ui/EditorialVisuals";
 import React, { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CheckSquare, Plus, RotateCcw, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckSquare,
+  Paperclip,
+  Plus,
+  RotateCcw,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
 import { StatusPill } from "@/components/ui/Badges";
+import {
+  MAX_BROWSER_UPLOAD_LABEL,
+  UploadedBookingFileMeta,
+  deleteBookingFileById,
+  uploadBookingFile,
+} from "@/lib/upload-constants";
 
 interface BookingRevisionContext {
   bookingRef: string;
@@ -17,6 +32,8 @@ interface BookingRevisionContext {
   maxRevisions: number;
   task?: { revisionPolicy: string } | null;
 }
+
+const MAX_REVISION_ATTACHMENTS = 5;
 
 export default function BookingRevisionPage({
   params,
@@ -32,6 +49,11 @@ export default function BookingRevisionPage({
     "Align section headings with the original rubric",
     "Verify APA/citation consistency throughout",
   ]);
+  const [attachments, setAttachments] = useState<UploadedBookingFileMeta[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [deletingAttachmentId, setDeletingAttachmentId] = useState<string | null>(
+    null
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +72,49 @@ export default function BookingRevisionPage({
     setChecklistInput("");
   }
 
+  async function handleAttachmentUpload(
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = "";
+    if (attachments.length >= MAX_REVISION_ATTACHMENTS) {
+      setError(`Maximum ${MAX_REVISION_ATTACHMENTS} evidence files allowed per revision.`);
+      return;
+    }
+    setUploadingAttachment(true);
+    setError(null);
+    try {
+      const uploaded = await uploadBookingFile(
+        bookingRef,
+        file,
+        "REVISION_ATTACHMENT"
+      );
+      setAttachments((prev) => [...prev, uploaded]);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not upload evidence file."
+      );
+    } finally {
+      setUploadingAttachment(false);
+    }
+  }
+
+  async function handleRemoveAttachment(fileId: string) {
+    setDeletingAttachmentId(fileId);
+    setError(null);
+    try {
+      await deleteBookingFileById(fileId);
+      setAttachments((prev) => prev.filter((item) => item.id !== fileId));
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not remove attachment."
+      );
+    } finally {
+      setDeletingAttachmentId(null);
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
@@ -63,6 +128,10 @@ export default function BookingRevisionPage({
           body: JSON.stringify({
             reason,
             checklist,
+            attachmentFileIds:
+              attachments.length > 0
+                ? attachments.map((item) => item.id)
+                : undefined,
           }),
         }
       );
@@ -197,6 +266,74 @@ export default function BookingRevisionPage({
               </ul>
             </div>
 
+            <div className="rounded-xl border border-dashed border-[#d8d0c0] bg-[#fbf9f5] p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#111827]">
+                    <Paperclip className="w-4 h-4 text-orange-700" />
+                    Annotated Drafts / Rubric Evidence (Optional)
+                  </span>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Attach up to {MAX_REVISION_ATTACHMENTS} files (PDF, DOCX, TXT, MD, CSV, XLSX, ZIP, JPG, PNG, WEBP — Max {MAX_BROWSER_UPLOAD_LABEL} each).
+                  </p>
+                </div>
+                <label
+                  className={`inline-flex items-center gap-2 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs font-medium text-[#111827] hover:bg-stone-50 transition-colors ${
+                    uploadingAttachment ||
+                    attachments.length >= MAX_REVISION_ATTACHMENTS
+                      ? "opacity-50 pointer-events-none"
+                      : "cursor-pointer"
+                  }`}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {uploadingAttachment ? "Uploading..." : "Attach File"}
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.zip,.jpg,.jpeg,.png,.webp,.avif"
+                    disabled={
+                      uploadingAttachment ||
+                      attachments.length >= MAX_REVISION_ATTACHMENTS
+                    }
+                    onChange={handleAttachmentUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {attachments.length > 0 && (
+                <ul className="space-y-1.5">
+                  {attachments.map((file) => (
+                    <li
+                      key={file.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                    >
+                      <a
+                        href={`/api/files/${file.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-medium text-teal-800 hover:underline truncate"
+                      >
+                        {file.fileName}{" "}
+                        <span className="text-stone-400 font-normal">
+                          ({(file.sizeBytes / 1024).toFixed(1)} KB)
+                        </span>
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(file.id)}
+                        disabled={deletingAttachmentId === file.id}
+                        aria-label={`Remove ${file.fileName}`}
+                        className="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 disabled:opacity-50"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        {deletingAttachmentId === file.id ? "Removing..." : "Remove"}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
             <div className="flex justify-end gap-3 pt-2">
               <Link
                 href={`/dashboard/bookings/${bookingRef}`}
@@ -206,7 +343,12 @@ export default function BookingRevisionPage({
               </Link>
               <button
                 type="submit"
-                disabled={submitting || reason.trim().length < 10}
+                disabled={
+                  submitting ||
+                  uploadingAttachment ||
+                  deletingAttachmentId !== null ||
+                  reason.trim().length < 10
+                }
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-700 text-white text-sm font-semibold hover:bg-orange-800 disabled:opacity-50 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />

@@ -21,6 +21,7 @@ import {
   ShieldAlert,
   Smartphone,
   Star,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
@@ -31,6 +32,11 @@ import {
   formatKes,
   formatShortDate,
 } from "@/components/ui/Badges";
+import {
+  MAX_BROWSER_UPLOAD_LABEL,
+  canDeleteBookingFile,
+  validateClientBookingFile,
+} from "@/lib/upload-constants";
 
 interface BookingWorkspaceData {
   id: string;
@@ -62,14 +68,18 @@ interface BookingWorkspaceData {
     username: string;
     displayName: string;
     ratingAverage: number;
+    user?: { avatarUrl: string | null } | null;
   };
   files: Array<{
     id: string;
+    uploaderId: string;
     fileName: string;
     fileCategory: string;
     sizeBytes: number;
+    revisionId: string | null;
+    disputeId: string | null;
     createdAt: string;
-    uploader: { id: string; name: string };
+    uploader: { id: string; name: string; avatarUrl?: string | null };
   }>;
   revisions: Array<{
     id: string;
@@ -141,6 +151,7 @@ export default function CustomerBookingWorkspacePage({
   const [msgText, setMsgText] = useState("");
   const [sendingMsg, setSendingMsg] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [rating, setRating] = useState(5);
   const [reviewComment, setReviewComment] = useState("");
@@ -227,9 +238,19 @@ export default function CustomerBookingWorkspacePage({
 
   async function handleUploadFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+
+    const validationError = validateClientBookingFile(file);
+    if (validationError) {
+      setError(validationError);
+      setNotice(null);
+      return;
+    }
+
     setUploading(true);
     setError(null);
+    setNotice(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -249,6 +270,25 @@ export default function CustomerBookingWorkspacePage({
       setError(err instanceof Error ? err.message : "Upload failed.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDeleteFile(fileId: string) {
+    setDeletingFileId(fileId);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+        method: "DELETE",
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error?.message || "Could not delete file.");
+      setNotice("File deleted from booking vault.");
+      await loadBooking();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeletingFileId(null);
     }
   }
 
@@ -373,6 +413,7 @@ export default function CustomerBookingWorkspacePage({
             <CreatorAvatar
               name={booking.creator.displayName}
               username={booking.creator.username}
+              avatarUrl={booking.creator.user?.avatarUrl}
               size="sm"
             />
             <Link
@@ -575,15 +616,25 @@ export default function CustomerBookingWorkspacePage({
           {/* File Vault */}
           <div className="editorial-card p-5 bg-white space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-                <FileText className="w-4 h-4 text-[#1e3a8a]" />
-                Secure File Vault
-              </h2>
-              <label className="btn-primary px-3.5 py-1.5 text-xs gap-1.5 cursor-pointer">
+              <div>
+                <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-[#1e3a8a]" />
+                  Secure File Vault
+                </h2>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, DOCX, TXT, MD, CSV, ZIP, or images.
+                </p>
+              </div>
+              <label
+                className={`btn-primary px-3.5 py-1.5 text-xs gap-1.5 cursor-pointer ${
+                  uploading ? "opacity-50 pointer-events-none" : ""
+                }`}
+              >
                 <Upload className="w-3.5 h-3.5" />
                 {uploading ? "Uploading..." : "Upload Brief"}
                 <input
                   type="file"
+                  disabled={uploading}
                   className="hidden"
                   onChange={handleUploadFile}
                 />
@@ -596,29 +647,47 @@ export default function CustomerBookingWorkspacePage({
               </p>
             ) : (
               <div className="grid grid-cols-1 gap-2.5">
-                {booking.files.map((f) => (
-                  <div
-                    key={f.id}
-                    className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#111827] truncate">
-                        {f.fileName}
-                      </p>
-                      <p className="text-[11px] text-stone-500">
-                        {f.fileCategory.replace(/_/g, " ")} · {f.uploader.name} ·{" "}
-                        {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
-                      </p>
-                    </div>
-                    <a
-                      href={`/api/files/${f.id}`}
-                      className="btn-ghost px-3 py-1.5 text-xs gap-1 shrink-0"
+                {booking.files.map((f) => {
+                  const deletable = canDeleteBookingFile(f, booking.status, user);
+                  return (
+                    <div
+                      key={f.id}
+                      className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Download
-                    </a>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-[#111827] truncate">
+                          {f.fileName}
+                        </p>
+                        <p className="text-[11px] text-stone-500">
+                          {f.fileCategory.replace(/_/g, " ")} · {f.uploader.name} ·{" "}
+                          {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
+                          {(f.revisionId || f.disputeId) && " · Linked Evidence"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`/api/files/${f.id}`}
+                          className="btn-ghost px-3 py-1.5 text-xs gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </a>
+                        {deletable && (
+                          <button
+                            type="button"
+                            disabled={deletingFileId === f.id}
+                            onClick={() => handleDeleteFile(f.id)}
+                            aria-label={`Delete ${f.fileName}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingFileId === f.id ? "Removing..." : "Delete"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

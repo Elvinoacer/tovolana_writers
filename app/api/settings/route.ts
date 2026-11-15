@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { Prisma } from "@prisma/client";
+import { MediaAssetPurpose, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { hashPassword, requireAuth, verifyPassword } from "@/lib/auth";
 import { fail, handleApiError, ok } from "@/lib/http";
@@ -9,6 +9,7 @@ const updateSettingsSchema = z.object({
   name: z.string().min(2).max(80).optional(),
   phone: z.string().max(24).optional(),
   preferredLocale: z.string().max(20).optional(),
+  clearAvatar: z.boolean().optional(),
   notificationPrefs: z
     .object({
       email: z.boolean().optional(),
@@ -24,13 +25,27 @@ const updateSettingsSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth(request);
-    const [customerProfile, authAccounts] = await Promise.all([
+    const [customerProfile, authAccounts, latestAvatarAsset] = await Promise.all([
       db.customerProfile.findUnique({ where: { userId: user.id } }),
       db.authAccount.findMany({
         where: { userId: user.id },
         select: { provider: true, createdAt: true },
       }),
+      db.mediaAsset.findFirst({
+        where: { ownerId: user.id, purpose: MediaAssetPurpose.USER_AVATAR },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, publicUrl: true },
+      }),
     ]);
+
+    const avatarAssetId =
+      latestAvatarAsset &&
+      user.avatarUrl &&
+      ((Boolean(latestAvatarAsset.publicUrl) &&
+        user.avatarUrl === latestAvatarAsset.publicUrl) ||
+        user.avatarUrl === `/api/media/${latestAvatarAsset.id}/raw`)
+        ? latestAvatarAsset.id
+        : null;
 
     return ok({
       user: {
@@ -39,6 +54,7 @@ export async function GET(request: NextRequest) {
         name: user.name,
         phone: user.phone,
         avatarUrl: user.avatarUrl,
+        avatarAssetId,
         emailVerified: user.emailVerified,
         phoneVerified: user.phoneVerified,
         membershipTier: user.membershipTier,
@@ -80,6 +96,7 @@ export async function PATCH(request: NextRequest) {
       data: {
         name: body.name?.trim(),
         phone: body.phone !== undefined ? body.phone.trim() || null : undefined,
+        avatarUrl: body.clearAvatar ? null : undefined,
         passwordHash: nextPasswordHash,
       },
     });

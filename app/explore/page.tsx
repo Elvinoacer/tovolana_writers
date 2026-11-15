@@ -92,6 +92,7 @@ export default async function ExplorePage({
             displayName: true,
             ratingAverage: true,
             completedBookingsCount: true,
+            user: { select: { avatarUrl: true } },
           },
         },
         _count: { select: { reviews: true } },

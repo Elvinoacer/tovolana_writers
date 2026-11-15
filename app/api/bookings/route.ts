@@ -27,7 +27,15 @@ export async function GET(request: NextRequest) {
         where: { creatorId: user.creatorProfile.id },
         include: {
           task: { select: { id: true, slug: true, title: true, status: true, validUntil: true } },
-          customer: { select: { id: true, name: true, email: true, membershipTier: true } },
+          customer: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+              membershipTier: true,
+            },
+          },
           payments: { orderBy: { createdAt: "desc" }, take: 1 },
         },
         orderBy: { createdAt: "desc" },
@@ -39,7 +47,15 @@ export async function GET(request: NextRequest) {
       where: { customerId: user.id },
       include: {
         task: { select: { id: true, slug: true, title: true, status: true, validUntil: true } },
-        creator: { select: { id: true, username: true, displayName: true, ratingAverage: true } },
+        creator: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            ratingAverage: true,
+            user: { select: { avatarUrl: true } },
+          },
+        },
         payments: { orderBy: { createdAt: "desc" }, take: 1 },
       },
       orderBy: { createdAt: "desc" },

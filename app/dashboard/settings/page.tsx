@@ -1,17 +1,25 @@
 "use client";
 
 import { CustomerShell } from "@/components/CustomerShell";
+import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
+  Camera,
   CheckCircle2,
   KeyRound,
   ShieldCheck,
+  Trash2,
+  Upload,
   UserCog,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import {
+  MAX_BROWSER_UPLOAD_LABEL,
+  validateClientAvatarFile,
+} from "@/lib/upload-constants";
 
 export default function CustomerSettingsPage() {
   const { user, refresh, loading: authLoading } = useAuth();
@@ -29,6 +37,10 @@ export default function CustomerSettingsPage() {
   >([]);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [avatarAssetId, setAvatarAssetId] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [removingAvatar, setRemovingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,6 +54,8 @@ export default function CustomerSettingsPage() {
         if (d?.user) {
           setName(d.user.name || "");
           setPhone(d.user.phone || "");
+          setAvatarUrl(d.user.avatarUrl ?? null);
+          setAvatarAssetId(d.user.avatarAssetId ?? null);
         }
         if (d?.customerProfile) {
           setPreferredLocale(d.customerProfile.preferredLocale || "en-KE");
@@ -56,6 +70,69 @@ export default function CustomerSettingsPage() {
       })
       .catch(() => {});
   }, [user]);
+
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const validationError = validateClientAvatarFile(file);
+    if (validationError) {
+      setError(validationError);
+      setNotice(null);
+      return;
+    }
+
+    setUploadingAvatar(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("purpose", "USER_AVATAR");
+      const res = await fetch("/api/media/upload", {
+        method: "POST",
+        body: fd,
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error?.message || "Avatar upload failed.");
+      setAvatarUrl(j.data?.publicUrl ?? j.data?.asset?.publicUrl ?? null);
+      setAvatarAssetId(j.data?.asset?.id ?? null);
+      await refresh();
+      setNotice("Profile photo updated.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Avatar upload failed.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    setRemovingAvatar(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = avatarAssetId
+        ? await fetch(`/api/media/${encodeURIComponent(avatarAssetId)}`, {
+            method: "DELETE",
+          })
+        : await fetch("/api/settings", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ clearAvatar: true }),
+          });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error?.message || "Could not remove photo.");
+      setAvatarUrl(null);
+      setAvatarAssetId(null);
+      await refresh();
+      setNotice("Profile photo removed.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not remove photo.");
+    } finally {
+      setRemovingAvatar(false);
+    }
+  }
 
   async function handleSaveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -190,6 +267,54 @@ export default function CustomerSettingsPage() {
           >
             {user.phoneVerified ? "OTP Verified" : "Verify OTP →"}
           </Link>
+        </div>
+      </div>
+
+      {/* Profile Avatar Card */}
+      <div className="editorial-card p-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <CreatorAvatar
+            name={name || user.name}
+            avatarUrl={avatarUrl ?? user.avatarUrl}
+            size="lg"
+          />
+          <div className="space-y-1">
+            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2 text-[#111827]">
+              <Camera className="w-4 h-4 text-[#1e3a8a]" />
+              Profile Photo
+            </h2>
+            <p className="text-xs text-stone-500">
+              Max {MAX_BROWSER_UPLOAD_LABEL} · JPG, PNG, or WEBP.
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <label
+            className={`btn-primary px-4 py-2 text-xs gap-1.5 cursor-pointer ${
+              uploadingAvatar || removingAvatar ? "opacity-50 pointer-events-none" : ""
+            }`}
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>{uploadingAvatar ? "Uploading..." : "Upload Photo"}</span>
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              disabled={uploadingAvatar || removingAvatar}
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+          </label>
+          {(avatarUrl ?? user.avatarUrl) && (
+            <button
+              type="button"
+              disabled={uploadingAvatar || removingAvatar}
+              onClick={handleRemoveAvatar}
+              className="btn-ghost px-3.5 py-2 text-xs text-rose-700 border-rose-200 hover:bg-rose-50 gap-1.5 disabled:opacity-50"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              {removingAvatar ? "Removing..." : "Remove"}
+            </button>
+          )}
         </div>
       </div>
 

@@ -60,7 +60,11 @@ export default async function TaskDetailPage({
       where: { OR: [{ slug }, { id: slug }] },
       include: {
         category: true,
-        creator: true,
+        creator: {
+          include: {
+            user: { select: { avatarUrl: true } },
+          },
+        },
         reviews: {
           where: { isPublic: true },
           include: { customer: { select: { id: true, name: true } } },
@@ -281,6 +285,7 @@ export default async function TaskDetailPage({
                 <CreatorAvatar
                   name={task.creator.displayName}
                   username={task.creator.username}
+                  avatarUrl={task.creator.user?.avatarUrl}
                   available={task.creator.isAvailable}
                   size="lg"
                 />

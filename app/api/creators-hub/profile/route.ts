@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const [creatorProfile, attempts] = await Promise.all([
+    const [creatorProfile, attempts, latestAvatarAsset] = await Promise.all([
       db.creatorProfile.findUnique({
         where: { id: user.creatorProfile.id },
         include: {
@@ -92,11 +92,27 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         include: { config: { select: { title: true, minWords: true, maxWords: true } } },
       }),
+      db.mediaAsset.findFirst({
+        where: { ownerId: user.id, purpose: MediaAssetPurpose.USER_AVATAR },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, publicUrl: true },
+      }),
     ]);
+
+    const currentAvatarUrl = creatorProfile?.user?.avatarUrl ?? null;
+    const avatarAssetId =
+      latestAvatarAsset &&
+      currentAvatarUrl &&
+      ((Boolean(latestAvatarAsset.publicUrl) &&
+        currentAvatarUrl === latestAvatarAsset.publicUrl) ||
+        currentAvatarUrl === `/api/media/${latestAvatarAsset.id}/raw`)
+        ? latestAvatarAsset.id
+        : null;
 
     return ok({
       creatorProfile,
       attempts,
+      avatarAssetId,
     });
   } catch (err) {
     return handleApiError(err);

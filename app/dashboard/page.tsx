@@ -57,6 +57,7 @@ interface BookingSummary {
     username: string;
     displayName: string;
     ratingAverage: number;
+    user?: { avatarUrl: string | null } | null;
   };
 }
 
@@ -393,6 +394,7 @@ export default function CustomerDashboardPage() {
                         <CreatorAvatar
                           name={booking.creator.displayName}
                           username={booking.creator.username}
+                          avatarUrl={booking.creator.user?.avatarUrl}
                           size="md"
                         />
                         <div className="space-y-1">

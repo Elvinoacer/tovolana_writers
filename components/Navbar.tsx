@@ -239,7 +239,11 @@ export function Navbar() {
                   href="/dashboard/settings"
                   className="flex items-center gap-2 hover:opacity-85 transition-opacity"
                 >
-                  <CreatorAvatar name={user.name} size="sm" />
+                  <CreatorAvatar
+                    name={user.name}
+                    avatarUrl={user.avatarUrl}
+                    size="sm"
+                  />
                   <div className="leading-tight">
                     <div className="flex items-center gap-1.5">
                       <span className="text-xs font-semibold text-[#111827]">

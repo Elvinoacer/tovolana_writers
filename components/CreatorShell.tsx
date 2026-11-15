@@ -110,6 +110,7 @@ export function CreatorShell({
             <CreatorAvatar
               name={user.creatorProfile?.displayName || user.name}
               username={user.creatorProfile?.username}
+              avatarUrl={user.avatarUrl}
               available={user.creatorProfile?.applicationStatus === "APPROVED"}
               size="lg"
             />

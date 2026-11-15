@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Send,
   ShieldCheck,
+  Trash2,
   Upload,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
@@ -25,6 +26,11 @@ import {
   formatKes,
   formatShortDate,
 } from "@/components/ui/Badges";
+import {
+  MAX_BROWSER_UPLOAD_LABEL,
+  canDeleteBookingFile,
+  validateClientBookingFile,
+} from "@/lib/upload-constants";
 
 interface CreatorOrderDetail {
   id: string;
@@ -37,13 +43,17 @@ interface CreatorOrderDetail {
   revisionCount: number;
   maxRevisions: number;
   requirementsResponses: Record<string, unknown>;
-  customer: { name: string };
+  customer: { id?: string; name: string; avatarUrl?: string | null };
   files: Array<{
     id: string;
+    uploaderId: string;
     fileName: string;
     fileCategory: string;
     sizeBytes: number;
+    revisionId: string | null;
+    disputeId: string | null;
     createdAt: string;
+    uploader?: { id: string; name: string; avatarUrl?: string | null };
   }>;
   revisions: Array<{
     id: string;
@@ -78,6 +88,7 @@ export default function CreatorOrderWorkspacePage({
     string | null
   >(null);
   const [uploading, setUploading] = useState(false);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [submittingDelivery, setSubmittingDelivery] = useState(false);
   const [msgText, setMsgText] = useState("");
 
@@ -146,18 +157,23 @@ export default function CreatorOrderWorkspacePage({
     e: React.ChangeEvent<HTMLInputElement>
   ) {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
+
+    const validationError = validateClientBookingFile(file);
+    if (validationError) {
+      setError(validationError);
+      setNotice(null);
+      return;
+    }
+
     setUploading(true);
     setError(null);
+    setNotice(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
-      fd.append(
-        "fileCategory",
-        booking?.status === "REVISION_REQUESTED"
-          ? "REVISION_DELIVERABLE"
-          : "CREATOR_DELIVERABLE"
-      );
+      fd.append("fileCategory", "CREATOR_DELIVERABLE");
       const res = await fetch(
         `/api/bookings/${encodeURIComponent(ref)}/files/presign`,
         {
@@ -174,6 +190,28 @@ export default function CreatorOrderWorkspacePage({
       setError(err instanceof Error ? err.message : "Upload error.");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDeleteFile(fileId: string) {
+    setDeletingFileId(fileId);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
+        method: "DELETE",
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error?.message || "Failed to delete file.");
+      if (uploadedDeliverableId === fileId) {
+        setUploadedDeliverableId(null);
+      }
+      setNotice("File removed from booking vault.");
+      await loadOrder();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Delete failed.");
+    } finally {
+      setDeletingFileId(null);
     }
   }
 
@@ -273,7 +311,11 @@ export default function CreatorOrderWorkspacePage({
           </span>
           <StatusPill status={booking.status} />
           <div className="inline-flex items-center gap-2 pl-1">
-            <CreatorAvatar name={booking.customer.name} size="sm" />
+            <CreatorAvatar
+              name={booking.customer.name}
+              avatarUrl={booking.customer.avatarUrl}
+              size="sm"
+            />
             <span className="text-xs font-semibold text-[#111827]">
               {booking.customer.name}
             </span>
@@ -367,7 +409,7 @@ export default function CreatorOrderWorkspacePage({
 
               <div>
                 <label className="block text-xs font-semibold mb-1.5">
-                  1. Upload Manuscript (.pdf, .docx, .md)
+                  1. Upload Manuscript (.pdf, .docx, .md, .zip)
                 </label>
                 <label className="flex items-center justify-center gap-2 px-4 py-4 rounded-2xl border-2 border-dashed border-teal-400 bg-white text-xs font-semibold text-teal-900 cursor-pointer hover:bg-teal-50 transition-colors">
                   <Upload className="w-4 h-4" />
@@ -376,10 +418,14 @@ export default function CreatorOrderWorkspacePage({
                     : "Choose or Drop Deliverable File"}
                   <input
                     type="file"
+                    disabled={uploading}
                     className="hidden"
                     onChange={handleDeliverableUpload}
                   />
                 </label>
+                <p className="text-[11px] text-stone-500 mt-1">
+                  Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, DOCX, TXT, MD, CSV, ZIP, or images.
+                </p>
               </div>
 
               <div>
@@ -420,27 +466,45 @@ export default function CreatorOrderWorkspacePage({
               <p className="text-xs text-stone-500">No attachments yet.</p>
             ) : (
               <div className="space-y-2.5 text-xs">
-                {booking.files.map((f) => (
-                  <div
-                    key={f.id}
-                    className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate">{f.fileName}</p>
-                      <p className="text-stone-500">
-                        {f.fileCategory.replace(/_/g, " ")} ·{" "}
-                        {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
-                      </p>
-                    </div>
-                    <a
-                      href={`/api/files/${f.id}`}
-                      className="btn-ghost px-3 py-1.5 text-xs text-[#0f766e] gap-1 shrink-0"
+                {booking.files.map((f) => {
+                  const deletable = canDeleteBookingFile(f, booking.status, user);
+                  return (
+                    <div
+                      key={f.id}
+                      className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
                     >
-                      <Download className="w-3.5 h-3.5" />
-                      Download
-                    </a>
-                  </div>
-                ))}
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{f.fileName}</p>
+                        <p className="text-stone-500">
+                          {f.fileCategory.replace(/_/g, " ")} ·{" "}
+                          {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
+                          {(f.revisionId || f.disputeId) && " · Linked Evidence"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <a
+                          href={`/api/files/${f.id}`}
+                          className="btn-ghost px-3 py-1.5 text-xs text-[#0f766e] gap-1"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download
+                        </a>
+                        {deletable && (
+                          <button
+                            type="button"
+                            disabled={deletingFileId === f.id}
+                            onClick={() => handleDeleteFile(f.id)}
+                            aria-label={`Delete ${f.fileName}`}
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            {deletingFileId === f.id ? "Removing..." : "Delete"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -75,7 +75,11 @@ export function CustomerShell({
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
       <div className="editorial-card p-5 sm:p-6 bg-white ink-grid-bg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <CreatorAvatar name={user.name} size="lg" />
+          <CreatorAvatar
+            name={user.name}
+            avatarUrl={user.avatarUrl}
+            size="lg"
+          />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] font-tech uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-[#1e3a8a] border border-blue-200 font-semibold">

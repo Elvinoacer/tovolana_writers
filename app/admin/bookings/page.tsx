@@ -6,13 +6,14 @@ import {
 } from "@/components/ui/EditorialVisuals";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Scale } from "lucide-react";
+import { Download, FileText, Scale, Trash2 } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
 import {
   BookingDeadlineTag,
   StatusPill,
   formatKes,
 } from "@/components/ui/Badges";
+import { deleteBookingFileById } from "@/lib/upload-constants";
 
 interface AdminBookingRow {
   id: string;
@@ -33,6 +34,15 @@ interface AdminBookingRow {
   } | null;
 }
 
+interface AdminDisputeFileRow {
+  id: string;
+  fileName: string;
+  fileCategory: string;
+  sizeBytes: number;
+  createdAt: string;
+  uploader?: { id: string; name: string } | null;
+}
+
 export default function AdminBookingsTribunalPage() {
   const [bookings, setBookings] = useState<AdminBookingRow[]>([]);
   const [disputes, setDisputes] = useState<
@@ -47,11 +57,13 @@ export default function AdminBookingsTribunalPage() {
         currency: string;
         customer: { name: string };
         creator: { displayName: string };
+        files?: AdminDisputeFileRow[];
       };
     }>
   >([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,6 +143,23 @@ export default function AdminBookingsTribunalPage() {
     await loadBookings();
   }
 
+  async function handleDeleteEvidenceFile(fileId: string) {
+    setError(null);
+    setNotice(null);
+    setDeletingFileId(fileId);
+    try {
+      await deleteBookingFileById(fileId);
+      setNotice("Booking evidence file deleted.");
+      await loadBookings();
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to delete evidence file."
+      );
+    } finally {
+      setDeletingFileId(null);
+    }
+  }
+
   return (
     <AdminShell
       title="Booking Oversight & Dispute Tribunal"
@@ -189,6 +218,65 @@ export default function AdminBookingsTribunalPage() {
                 <p className="text-xs text-stone-700 bg-white p-3.5 rounded-xl border border-rose-100">
                   {d.details}
                 </p>
+                <div className="rounded-xl border border-rose-100 bg-white p-3.5 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-tech uppercase text-stone-500">
+                    <span>Booking &amp; Evidence Files</span>
+                    <span>{d.booking.files?.length ?? 0} file(s)</span>
+                  </div>
+                  {d.booking.files && d.booking.files.length > 0 ? (
+                    <ul className="space-y-1.5">
+                      {d.booking.files.map((file) => (
+                        <li
+                          key={file.id}
+                          className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#e6e0d4] bg-[#fbf9f5] px-3 py-2 text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="w-3.5 h-3.5 text-rose-700 shrink-0" />
+                            <div className="min-w-0">
+                              <p className="font-medium text-[#111827] truncate">
+                                {file.fileName}
+                              </p>
+                              <p className="text-[11px] text-stone-500">
+                                {file.fileCategory.replace(/_/g, " ")} &bull;{" "}
+                                {(file.sizeBytes / 1024).toFixed(1)} KB
+                                {file.uploader?.name
+                                  ? ` • Uploaded by ${file.uploader.name}`
+                                  : ""}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <a
+                              href={`/api/files/${file.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 rounded-lg border border-[#e6e0d4] bg-white px-2.5 py-1 font-medium text-teal-800 hover:bg-stone-50"
+                            >
+                              <Download className="w-3 h-3" />
+                              Download
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteEvidenceFile(file.id)}
+                              disabled={deletingFileId === file.id}
+                              aria-label={`Delete ${file.fileName}`}
+                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              {deletingFileId === file.id
+                                ? "Deleting..."
+                                : "Delete"}
+                            </button>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-stone-500">
+                      No files attached to this booking.
+                    </p>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={notes[d.id] ?? ""}

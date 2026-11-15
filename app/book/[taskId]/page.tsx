@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Smartphone,
   Upload,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import {
@@ -28,6 +29,10 @@ import {
   VettedCreatorBadge,
   formatKes,
 } from "@/components/ui/Badges";
+import {
+  MAX_BROWSER_UPLOAD_LABEL,
+  validateClientBookingFile,
+} from "@/lib/upload-constants";
 
 interface RequirementField {
   key?: string;
@@ -65,6 +70,7 @@ interface TaskDetail {
     displayName: string;
     headline: string;
     ratingAverage: number;
+    user?: { avatarUrl: string | null } | null;
   };
 }
 
@@ -203,6 +209,13 @@ export default function BookTaskPage({
 
   async function handleCreateBooking() {
     if (!task) return;
+    if (briefFile) {
+      const fileError = validateClientBookingFile(briefFile);
+      if (fileError) {
+        setError(fileError);
+        return;
+      }
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -228,10 +241,24 @@ export default function BookTaskPage({
         const fd = new FormData();
         fd.append("file", briefFile);
         fd.append("fileCategory", "CUSTOMER_BRIEF");
-        await fetch(`/api/bookings/${booking.bookingRef}/files/presign`, {
-          method: "POST",
-          body: fd,
-        });
+        const uploadRes = await fetch(
+          `/api/bookings/${encodeURIComponent(booking.bookingRef)}/files/presign`,
+          {
+            method: "POST",
+            body: fd,
+          }
+        );
+        if (!uploadRes.ok) {
+          const uploadJson = await uploadRes.json().catch(() => null);
+          setCreatedBooking(booking);
+          setStep(3);
+          setError(
+            `Booking ${booking.bookingRef} created, but brief file upload failed: ${
+              uploadJson?.error?.message || "Upload failed"
+            }. You can re-upload it inside the Booking Workspace.`
+          );
+          return;
+        }
       }
 
       setCreatedBooking(booking);
@@ -507,21 +534,49 @@ export default function BookTaskPage({
                     <label className="block text-sm font-medium text-[#111827] mb-1">
                       Brief File (Optional)
                     </label>
-                    <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 bg-[#faf7f2] text-xs text-stone-700 cursor-pointer hover:bg-stone-100">
-                      <Upload className="w-4 h-4 text-[#1e3a8a]" />
-                      <span className="truncate">
-                        {briefFile
-                          ? briefFile.name
-                          : "Attach rubric, outline, or PDF"}
-                      </span>
-                      <input
-                        type="file"
-                        className="hidden"
-                        onChange={(e) =>
-                          setBriefFile(e.target.files?.[0] ?? null)
-                        }
-                      />
-                    </label>
+                    <div className="flex items-center gap-2">
+                      <label className="flex-1 min-w-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 bg-[#faf7f2] text-xs text-stone-700 cursor-pointer hover:bg-stone-100">
+                        <Upload className="w-4 h-4 text-[#1e3a8a] shrink-0" />
+                        <span className="truncate">
+                          {briefFile
+                            ? briefFile.name
+                            : "Attach rubric, outline, or PDF"}
+                        </span>
+                        <input
+                          type="file"
+                          className="hidden"
+                          onChange={(e) => {
+                            const selected = e.target.files?.[0] ?? null;
+                            if (!selected) {
+                              setBriefFile(null);
+                              return;
+                            }
+                            const fileErr = validateClientBookingFile(selected);
+                            if (fileErr) {
+                              setError(fileErr);
+                              setBriefFile(null);
+                              e.target.value = "";
+                              return;
+                            }
+                            setError(null);
+                            setBriefFile(selected);
+                          }}
+                        />
+                      </label>
+                      {briefFile && (
+                        <button
+                          type="button"
+                          onClick={() => setBriefFile(null)}
+                          aria-label="Remove selected brief file"
+                          className="p-2 rounded-xl border border-[#e6e0d4] bg-white text-stone-500 hover:text-rose-700"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-stone-500 mt-1">
+                      Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, DOCX, TXT, MD, CSV, ZIP, or images.
+                    </p>
                   </div>
                 </div>
 
@@ -814,7 +869,12 @@ export default function BookTaskPage({
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <CreatorAvatar name={task.creator.displayName} size="sm" />
+                  <CreatorAvatar
+                    name={task.creator.displayName}
+                    username={task.creator.username}
+                    avatarUrl={task.creator.user?.avatarUrl}
+                    size="sm"
+                  />
                   <span className="text-xs font-semibold text-[#111827]">
                     {task.creator.displayName}
                   </span>

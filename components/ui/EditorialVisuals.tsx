@@ -91,6 +91,10 @@ function getTheme(slug: string): DisciplineVisualConfig {
   return DISCIPLINE_THEMES["other-services"];
 }
 
+export function getCategoryPhotoSrc(slug: string): string {
+  return getTheme(slug).photoSrc;
+}
+
 function DisciplineIcon({ slug }: { slug: string }) {
   const cls = "w-4 h-4";
   if (slug.includes("academic")) return <BookOpen className={cls} />;
@@ -128,14 +132,14 @@ export function CategoryCoverArt({
         className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
       />
 
-      {/* Directional Legibility & Color-Harmonized Overlay */}
+      {/* Directional Legibility & High-Contrast Scrim */}
       <div
         aria-hidden="true"
         className={`absolute inset-0 bg-gradient-to-t ${theme.gradient}`}
       />
       <div
         aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-b from-black/45 via-transparent to-black/65"
+        className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/15 to-black/75"
       />
 
       <div className="relative z-10 flex items-center justify-between gap-2">
@@ -143,10 +147,7 @@ export function CategoryCoverArt({
           className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full ${theme.accentBg} ${theme.accentText} backdrop-blur-md text-[11px] font-semibold tracking-tight shadow-xs`}
         >
           <DisciplineIcon slug={slug} />
-          <span className="truncate max-w-[165px]">{name}</span>
-        </span>
-        <span className="text-[10px] font-tech uppercase tracking-wider text-white/85 bg-black/35 px-2 py-0.5 rounded-full backdrop-blur-xs border border-white/10">
-          {theme.tag}
+          <span className="truncate max-w-[180px]">{name}</span>
         </span>
       </div>
 
@@ -155,21 +156,34 @@ export function CategoryCoverArt({
   );
 }
 
-const CREATOR_PHOTOS = [
-  "/images/photos/avatar-1.jpg",
-  "/images/photos/avatar-2.jpg",
-  "/images/photos/avatar-3.jpg",
-  "/images/photos/avatar-4.jpg",
+const AVATAR_BG_TONES = [
+  "bg-[#1e293b]",
+  "bg-[#1e3a8a]",
+  "bg-[#0f766e]",
+  "bg-[#312e81]",
+  "bg-[#7c2d12]",
 ];
+
+function getMonogramInitials(name: string): string {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return "TV";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
 
 export function CreatorAvatar({
   name,
   username,
+  avatarUrl,
   available,
   size = "md",
 }: {
   name: string;
   username?: string;
+  avatarUrl?: string | null;
   available?: boolean;
   size?: "sm" | "md" | "lg";
 }) {
@@ -178,7 +192,7 @@ export function CreatorAvatar({
   for (let i = 0; i < seedStr.length; i++) {
     hash = (hash * 31 + seedStr.charCodeAt(i)) % 997;
   }
-  const photoSrc = CREATOR_PHOTOS[hash % CREATOR_PHOTOS.length];
+  const bgTone = AVATAR_BG_TONES[hash % AVATAR_BG_TONES.length];
 
   const dims =
     size === "lg"
@@ -186,20 +200,40 @@ export function CreatorAvatar({
       : size === "sm"
         ? "w-8 h-8 rounded-full"
         : "w-10 h-10 rounded-xl";
+  const textSize =
+    size === "lg" ? "text-lg" : size === "sm" ? "text-[11px]" : "text-xs";
   const imgSize = size === "lg" ? 64 : size === "sm" ? 32 : 40;
+
+  const trimmedAvatarUrl = avatarUrl?.trim() || "";
+  const hasAvatarImage =
+    (trimmedAvatarUrl.startsWith("/") &&
+      !trimmedAvatarUrl.startsWith("//") &&
+      !trimmedAvatarUrl.includes("..")) ||
+    trimmedAvatarUrl.startsWith("https://") ||
+    trimmedAvatarUrl.startsWith("http://");
 
   return (
     <div className="relative inline-flex shrink-0">
       <div
-        className={`${dims} relative overflow-hidden bg-[#1e293b] shadow-sm ring-2 ring-white`}
+        className={`${dims} relative overflow-hidden ${bgTone} shadow-sm ring-2 ring-white flex items-center justify-center`}
       >
-        <Image
-          src={photoSrc}
-          alt={name}
-          width={imgSize}
-          height={imgSize}
-          className="w-full h-full object-cover"
-        />
+        {hasAvatarImage ? (
+          <Image
+            src={trimmedAvatarUrl}
+            alt={name}
+            width={imgSize}
+            height={imgSize}
+            unoptimized={Boolean(trimmedAvatarUrl.startsWith("/api/"))}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span
+            aria-label={name}
+            className={`font-tech font-semibold tracking-wider text-white select-none leading-none ${textSize}`}
+          >
+            {getMonogramInitials(name)}
+          </span>
+        )}
       </div>
       {available !== undefined && (
         <span

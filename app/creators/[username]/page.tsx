@@ -1,10 +1,12 @@
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Award, CheckCircle2, Star } from "lucide-react";
+import { Award, CheckCircle2, ExternalLink, FileText, Star } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isUserProActive } from "@/lib/pricing";
+import { isSafeMediaDisplayUrl } from "@/lib/upload-constants";
 import { TaskCard } from "@/components/TaskCard";
 import { VettedCreatorBadge } from "@/components/ui/Badges";
 import { CreatorAvatar, ScoreRing } from "@/components/ui/EditorialVisuals";
@@ -26,6 +28,7 @@ export default async function PublicCreatorProfilePage({
     db.creatorProfile.findUnique({
       where: { username },
       include: {
+        user: { select: { avatarUrl: true } },
         listings: {
           where: {
             status: "PUBLISHED",
@@ -40,6 +43,7 @@ export default async function PublicCreatorProfilePage({
                 displayName: true,
                 ratingAverage: true,
                 completedBookingsCount: true,
+                user: { select: { avatarUrl: true } },
               },
             },
             _count: { select: { reviews: true } },
@@ -69,6 +73,11 @@ export default async function PublicCreatorProfilePage({
         title: string;
         category: string;
         excerpt: string;
+        url?: string;
+        attachmentUrl?: string;
+        attachmentName?: string;
+        attachmentAssetId?: string;
+        mimeType?: string;
       }>)
     : [];
 
@@ -94,6 +103,7 @@ export default async function PublicCreatorProfilePage({
             <CreatorAvatar
               name={creator.displayName}
               username={creator.username}
+              avatarUrl={creator.user?.avatarUrl}
               available={creator.isAvailable}
               size="lg"
             />
@@ -162,22 +172,87 @@ export default async function PublicCreatorProfilePage({
             Writing Samples
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {samples.map((s, idx) => (
-              <div
-                key={idx}
-                className="editorial-card p-6 bg-white border-l-4 border-l-[#0f766e] space-y-2"
-              >
-                <span className="text-[10px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200 font-semibold">
-                  {s.category}
-                </span>
-                <h3 className="font-editorial text-lg font-semibold text-[#111827]">
-                  {s.title}
-                </h3>
-                <p className="text-xs text-stone-600 leading-relaxed">
-                  {s.excerpt}
-                </p>
-              </div>
-            ))}
+            {samples.map((s, idx) => {
+              const safeAttachment = isSafeMediaDisplayUrl(s.attachmentUrl)
+                ? s.attachmentUrl
+                : null;
+              const safeExternalUrl = isSafeMediaDisplayUrl(s.url)
+                ? s.url
+                : null;
+              const isImageAttachment = Boolean(
+                safeAttachment &&
+                  (s.mimeType?.startsWith("image/") ||
+                    /\.(jpg|jpeg|png|webp)(\?|$)/i.test(safeAttachment))
+              );
+
+              return (
+                <div
+                  key={idx}
+                  className="editorial-card p-6 bg-white border-l-4 border-l-[#0f766e] space-y-3"
+                >
+                  <span className="inline-block text-[10px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200 font-semibold">
+                    {s.category}
+                  </span>
+                  <h3 className="font-editorial text-lg font-semibold text-[#111827]">
+                    {s.title}
+                  </h3>
+                  <p className="text-xs text-stone-600 leading-relaxed">
+                    {s.excerpt}
+                  </p>
+
+                  {isImageAttachment && safeAttachment && (
+                    <a
+                      href={safeAttachment}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block overflow-hidden rounded-xl border border-[#e6e0d4] bg-[#faf7f2]"
+                    >
+                      <Image
+                        src={safeAttachment}
+                        alt={s.attachmentName || s.title}
+                        width={640}
+                        height={320}
+                        unoptimized={Boolean(safeAttachment.startsWith("/api/"))}
+                        className="w-full h-44 object-cover hover:scale-[1.02] transition-transform duration-300"
+                      />
+                    </a>
+                  )}
+
+                  {(safeAttachment || safeExternalUrl) && (
+                    <div className="pt-1 flex flex-wrap items-center gap-2">
+                      {safeAttachment && (
+                        <a
+                          href={safeAttachment}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-semibold text-[#0f766e] hover:bg-teal-50 transition-colors"
+                        >
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate max-w-[220px]">
+                            {s.attachmentName ||
+                              (isImageAttachment
+                                ? "View Sample Image"
+                                : "Open Sample File")}
+                          </span>
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      )}
+                      {safeExternalUrl && safeExternalUrl !== safeAttachment && (
+                        <a
+                          href={safeExternalUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e6e0d4] text-xs font-medium text-[#1e3a8a] hover:bg-blue-50 transition-colors"
+                        >
+                          <span>Reference Link</span>
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </section>
       )}

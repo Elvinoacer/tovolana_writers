@@ -94,6 +94,14 @@ h3,
   background-size: 22px 22px;
 }
 
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Tactile Micro-Motion Buttons */
 .btn-primary,
 .btn-creator,

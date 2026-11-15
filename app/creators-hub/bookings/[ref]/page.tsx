@@ -97,8 +97,15 @@ export default function CreatorOrderWorkspacePage({
       const res = await fetch(`/api/bookings/${encodeURIComponent(ref)}`, {
         cache: "no-store",
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Order not found.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Order not found (${res.status}).`
+        );
+      }
+      if (!j?.data?.booking) {
+        throw new Error("Invalid booking response.");
+      }
       setBooking(j.data.booking);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load order.");
@@ -112,8 +119,15 @@ export default function CreatorOrderWorkspacePage({
     let active = true;
     fetch(`/api/bookings/${encodeURIComponent(ref)}`, { cache: "no-store" })
       .then(async (res) => {
-        const j = await res.json();
-        if (!res.ok) throw new Error(j.error?.message || "Order not found.");
+        const j = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(
+            j?.error?.message || `Order not found (${res.status}).`
+          );
+        }
+        if (!j?.data?.booking) {
+          throw new Error("Invalid booking response.");
+        }
         return j.data.booking;
       })
       .then((b) => {
@@ -140,9 +154,9 @@ export default function CreatorOrderWorkspacePage({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ decision }),
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => null);
     if (!res.ok) {
-      setError(j.error?.message || "Action failed.");
+      setError(j?.error?.message || `Action failed (${res.status}).`);
       return;
     }
     setNotice(
@@ -181,9 +195,11 @@ export default function CreatorOrderWorkspacePage({
           body: fd,
         }
       );
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Upload failed.");
-      setUploadedDeliverableId(j.data.file.id);
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.error?.message || `Upload failed (${res.status}).`);
+      }
+      setUploadedDeliverableId(j?.data?.file?.id ?? null);
       setNotice(`Uploaded deliverable "${file.name}" securely.`);
       await loadOrder();
     } catch (err) {
@@ -201,8 +217,12 @@ export default function CreatorOrderWorkspacePage({
       const res = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
         method: "DELETE",
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Failed to delete file.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Failed to delete file (${res.status}).`
+        );
+      }
       if (uploadedDeliverableId === fileId) {
         setUploadedDeliverableId(null);
       }
@@ -237,8 +257,12 @@ export default function CreatorOrderWorkspacePage({
           }),
         }
       );
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Delivery submit failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Delivery submit failed (${res.status}).`
+        );
+      }
       setNotice("Completed work submitted! Customer notified for review.");
       setDeliverySummary("");
       await loadOrder();

@@ -64,6 +64,9 @@ export default function AdminBookingsTribunalPage() {
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
+  const [confirmDeleteFileId, setConfirmDeleteFileId] = useState<string | null>(
+    null
+  );
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,9 +74,9 @@ export default function AdminBookingsTribunalPage() {
     try {
       const res = await fetch("/api/admin/overview", { cache: "no-store" });
       if (res.ok) {
-        const j = await res.json();
-        setBookings(j.data?.activeBookings ?? []);
-        setDisputes(j.data?.openDisputes ?? []);
+        const j = await res.json().catch(() => null);
+        setBookings(j?.data?.activeBookings ?? []);
+        setDisputes(j?.data?.openDisputes ?? []);
       }
     } finally {
       setLoading(false);
@@ -83,7 +86,7 @@ export default function AdminBookingsTribunalPage() {
   useEffect(() => {
     let active = true;
     fetch("/api/admin/overview", { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
+      .then((res) => (res.ok ? res.json().catch(() => null) : null))
       .then((j) => {
         if (!active || !j?.data) return;
         setBookings(j.data.activeBookings ?? []);
@@ -134,9 +137,11 @@ export default function AdminBookingsTribunalPage() {
           `Tribunal determination: ${outcome.replace(/_/g, " ")}`,
       }),
     });
-    const j = await res.json();
+    const j = await res.json().catch(() => null);
     if (!res.ok) {
-      setError(j.error?.message || "Resolution failed.");
+      setError(
+        j?.error?.message || `Resolution failed (${res.status}).`
+      );
       return;
     }
     setNotice(`Dispute resolved cleanly: ${outcome}`);
@@ -157,6 +162,7 @@ export default function AdminBookingsTribunalPage() {
       );
     } finally {
       setDeletingFileId(null);
+      setConfirmDeleteFileId(null);
     }
   }
 
@@ -255,18 +261,43 @@ export default function AdminBookingsTribunalPage() {
                               <Download className="w-3 h-3" />
                               Download
                             </a>
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteEvidenceFile(file.id)}
-                              disabled={deletingFileId === file.id}
-                              aria-label={`Delete ${file.fileName}`}
-                              className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              {deletingFileId === file.id
-                                ? "Deleting..."
-                                : "Delete"}
-                            </button>
+                            {confirmDeleteFileId === file.id ? (
+                              <div className="inline-flex items-center gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteEvidenceFile(file.id)
+                                  }
+                                  disabled={deletingFileId === file.id}
+                                  aria-label={`Confirm Delete ${file.fileName}`}
+                                  className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-700 px-2.5 py-1 font-medium text-white hover:bg-rose-800 disabled:opacity-50"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                  {deletingFileId === file.id
+                                    ? "Deleting..."
+                                    : "Confirm Delete"}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setConfirmDeleteFileId(null)}
+                                  disabled={deletingFileId === file.id}
+                                  className="inline-flex items-center rounded-lg border border-[#e6e0d4] bg-white px-2 py-1 font-medium text-stone-600 hover:bg-stone-50 disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setConfirmDeleteFileId(file.id)}
+                                disabled={deletingFileId === file.id}
+                                aria-label={`Delete ${file.fileName}`}
+                                className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            )}
                           </div>
                         </li>
                       ))}

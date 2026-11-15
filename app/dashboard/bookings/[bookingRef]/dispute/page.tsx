@@ -48,9 +48,9 @@ export default function BookingDisputePage({
     fetch(`/api/bookings/${encodeURIComponent(bookingRef)}`, {
       cache: "no-store",
     })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
       .then((j) => {
-        const b = j.data?.booking ?? null;
+        const b = j?.data?.booking ?? null;
         setBooking(b);
         if (
           b &&
@@ -132,9 +132,11 @@ export default function BookingDisputePage({
           }),
         }
       );
-      const j = await res.json();
+      const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j.error?.message || "Failed to file case.");
+        throw new Error(
+          j?.error?.message || `Failed to file case (${res.status}).`
+        );
       }
       router.push(`/dashboard/bookings/${bookingRef}`);
     } catch (err) {

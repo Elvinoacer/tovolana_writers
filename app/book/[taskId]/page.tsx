@@ -5,7 +5,7 @@ import {
   CreatorAvatar,
 } from "@/components/ui/EditorialVisuals";
 
-import React, { use, useEffect, useState } from "react";
+import React, { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -148,6 +148,7 @@ export default function BookTaskPage({
   const [rushSelected, setRushSelected] = useState(false);
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   const [briefFile, setBriefFile] = useState<File | null>(null);
+  const briefInputRef = useRef<HTMLInputElement | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<{
@@ -173,9 +174,14 @@ export default function BookTaskPage({
       cache: "no-store",
     })
       .then(async (res) => {
-        const json = await res.json();
+        const json = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(json.error?.message || "Could not load service.");
+          throw new Error(
+            json?.error?.message || `Could not load service (${res.status}).`
+          );
+        }
+        if (!json?.data) {
+          throw new Error("Invalid service payload.");
         }
         return json.data;
       })
@@ -231,12 +237,17 @@ export default function BookTaskPage({
           rushExtraCharge: rushFee,
         }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(json.error?.message || "Booking creation failed.");
+        throw new Error(
+          json?.error?.message || `Booking creation failed (${res.status}).`
+        );
       }
 
-      const booking = json.data.booking;
+      const booking = json?.data?.booking;
+      if (!booking?.bookingRef) {
+        throw new Error("Server returned an invalid booking response.");
+      }
       if (briefFile) {
         const fd = new FormData();
         fd.append("file", briefFile);
@@ -286,11 +297,13 @@ export default function BookTaskPage({
           }),
         }
       );
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(json.error?.message || "Payment initiation failed.");
+        throw new Error(
+          json?.error?.message || `Payment initiation failed (${res.status}).`
+        );
       }
-      setCheckoutInfo(json.data);
+      setCheckoutInfo(json?.data ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Checkout failed.");
     } finally {
@@ -311,9 +324,11 @@ export default function BookTaskPage({
           state,
         }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(json.error?.message || "Webhook simulation failed.");
+        throw new Error(
+          json?.error?.message || `Webhook simulation failed (${res.status}).`
+        );
       }
       if (state === "COMPLETE") {
         router.push(`/dashboard/bookings/${createdBooking.bookingRef}`);
@@ -543,6 +558,7 @@ export default function BookTaskPage({
                             : "Attach rubric, outline, or PDF"}
                         </span>
                         <input
+                          ref={briefInputRef}
                           type="file"
                           className="hidden"
                           onChange={(e) => {
@@ -556,6 +572,9 @@ export default function BookTaskPage({
                               setError(fileErr);
                               setBriefFile(null);
                               e.target.value = "";
+                              if (briefInputRef.current) {
+                                briefInputRef.current.value = "";
+                              }
                               return;
                             }
                             setError(null);
@@ -566,7 +585,12 @@ export default function BookTaskPage({
                       {briefFile && (
                         <button
                           type="button"
-                          onClick={() => setBriefFile(null)}
+                          onClick={() => {
+                            setBriefFile(null);
+                            if (briefInputRef.current) {
+                              briefInputRef.current.value = "";
+                            }
+                          }}
                           aria-label="Remove selected brief file"
                           className="p-2 rounded-xl border border-[#e6e0d4] bg-white text-stone-500 hover:text-rose-700"
                         >

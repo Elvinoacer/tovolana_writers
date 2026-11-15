@@ -1,5 +1,6 @@
 import React from "react";
 import Image from "next/image";
+import { isAllowedNextImageSrc } from "@/lib/upload-constants";
 import {
   Award,
   BookOpen,
@@ -205,12 +206,7 @@ export function CreatorAvatar({
   const imgSize = size === "lg" ? 64 : size === "sm" ? 32 : 40;
 
   const trimmedAvatarUrl = avatarUrl?.trim() || "";
-  const hasAvatarImage =
-    (trimmedAvatarUrl.startsWith("/") &&
-      !trimmedAvatarUrl.startsWith("//") &&
-      !trimmedAvatarUrl.includes("..")) ||
-    trimmedAvatarUrl.startsWith("https://") ||
-    trimmedAvatarUrl.startsWith("http://");
+  const hasAvatarImage = isAllowedNextImageSrc(trimmedAvatarUrl);
 
   return (
     <div className="relative inline-flex shrink-0">

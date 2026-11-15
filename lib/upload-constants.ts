@@ -80,8 +80,8 @@ const BLOCKED_ACTIVE_MIMES = new Set([
 ]);
 
 const AVATAR_MIME_BY_EXT: Record<string, string[]> = {
-  ".jpg": ["image/jpeg", "image/jpg"],
-  ".jpeg": ["image/jpeg", "image/jpg"],
+  ".jpg": ["image/jpeg"],
+  ".jpeg": ["image/jpeg"],
   ".png": ["image/png"],
   ".webp": ["image/webp"],
 };
@@ -95,7 +95,10 @@ const PORTFOLIO_DOC_MIME_BY_EXT: Record<string, string[]> = {
 };
 
 const BOOKING_MIME_BY_EXT: Record<string, string[]> = {
-  ...AVATAR_MIME_BY_EXT,
+  ".jpg": ["image/jpeg", "image/jpg"],
+  ".jpeg": ["image/jpeg", "image/jpg"],
+  ".png": ["image/png"],
+  ".webp": ["image/webp"],
   ".avif": ["image/avif"],
   ".pdf": ["application/pdf"],
   ".txt": ["text/plain"],
@@ -280,12 +283,105 @@ export function canDeleteBookingFile(
   return Date.now() - createdMs <= BOOKING_FILE_DELETE_WINDOW_MS;
 }
 
+const SAFE_RASTER_IMAGE_MIMES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/avif",
+]);
+
+const SAFE_RASTER_IMAGE_EXT_RE = /\.(jpg|jpeg|png|webp|avif)$/i;
+
+const ALLOWED_NEXT_IMAGE_EXACT_HOSTS = new Set([
+  "lh3.googleusercontent.com",
+  "images.unsplash.com",
+  "pub-cc07856d657b4a7197710051042b3eda.r2.dev",
+]);
+
+function getConfiguredPublicR2Hostname(): string | null {
+  const raw = (process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "").trim();
+  if (!raw) return null;
+  try {
+    const normalized =
+      raw.startsWith("https://") || raw.startsWith("http://")
+        ? raw
+        : `https://${raw}`;
+    const parsed = new URL(normalized);
+    return parsed.hostname ? parsed.hostname.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isSafeRasterImageMimeOrExt(
+  mimeType?: string | null,
+  urlOrName?: string | null
+): boolean {
+  const normalizedMime = normalizeClientMime(mimeType ?? "");
+  if (normalizedMime) {
+    return SAFE_RASTER_IMAGE_MIMES.has(normalizedMime);
+  }
+  const candidate = String(urlOrName ?? "").trim();
+  if (!candidate) return false;
+  let pathname = candidate;
+  try {
+    if (candidate.startsWith("https://") || candidate.startsWith("http://")) {
+      pathname = new URL(candidate).pathname;
+    } else {
+      pathname = candidate.split(/[?#]/)[0] ?? "";
+    }
+  } catch {
+    pathname = candidate.split(/[?#]/)[0] ?? "";
+  }
+  return SAFE_RASTER_IMAGE_EXT_RE.test(pathname);
+}
+
+export function isAllowedNextImageSrc(url?: string | null): url is string {
+  if (!url) return false;
+  const trimmed = url.trim();
+  if (
+    !trimmed ||
+    /[\x00-\x1f\x7f\s\\]/.test(trimmed) ||
+    trimmed.includes("..")
+  ) {
+    return false;
+  }
+  if (trimmed.startsWith("//")) return false;
+  if (trimmed.startsWith("/api/media/") || trimmed.startsWith("/images/")) {
+    return true;
+  }
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:") return false;
+    const host = parsed.hostname.toLowerCase();
+    if (!host) return false;
+    if (ALLOWED_NEXT_IMAGE_EXACT_HOSTS.has(host)) return true;
+    if (host.endsWith(".r2.dev") && host.length > ".r2.dev".length) {
+      return true;
+    }
+    const configuredHost = getConfiguredPublicR2Hostname();
+    if (configuredHost && host === configuredHost) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 export function isSafeMediaDisplayUrl(url?: string | null): url is string {
   if (!url) return false;
   const trimmed = url.trim();
-  if (!trimmed || /[\x00-\x1f\x7f\s]/.test(trimmed)) return false;
+  if (
+    !trimmed ||
+    /[\x00-\x1f\x7f\s\\]/.test(trimmed) ||
+    trimmed.includes("..")
+  ) {
+    return false;
+  }
   if (trimmed.startsWith("/api/media/")) {
-    return !trimmed.startsWith("//") && !trimmed.includes("..");
+    return !trimmed.startsWith("//");
   }
   try {
     const parsed = new URL(trimmed);
@@ -327,11 +423,16 @@ export async function uploadBookingFile(
       body: fd,
     }
   );
-  const j = await res.json();
+  const j = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(j.error?.message || "File upload failed.");
+    throw new Error(
+      j?.error?.message || `File upload failed (${res.status}).`
+    );
   }
-  const uploaded = j.data?.file;
+  const uploaded = j?.data?.file;
+  if (!uploaded?.id) {
+    throw new Error("Server returned an invalid file upload response.");
+  }
   return {
     id: uploaded.id,
     fileName: uploaded.fileName || file.name,
@@ -344,8 +445,10 @@ export async function deleteBookingFileById(fileId: string): Promise<void> {
   const res = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
     method: "DELETE",
   });
-  const j = await res.json();
+  const j = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(j.error?.message || "Could not delete file.");
+    throw new Error(
+      j?.error?.message || `Could not delete file (${res.status}).`
+    );
   }
 }

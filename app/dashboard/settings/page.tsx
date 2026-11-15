@@ -3,7 +3,7 @@
 import { CustomerShell } from "@/components/CustomerShell";
 import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Bell,
@@ -44,20 +44,30 @@ export default function CustomerSettingsPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loadedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    const userId = user?.id ?? null;
+    if (!userId) {
+      loadedUserIdRef.current = null;
+      return;
+    }
+    if (loadedUserIdRef.current === userId) return;
+    let active = true;
     fetch("/api/settings", { cache: "no-store" })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
       .then((j) => {
-        const d = j.data;
-        if (d?.user) {
+        if (!active) return;
+        const d = j?.data;
+        if (!d) return;
+        loadedUserIdRef.current = userId;
+        if (d.user) {
           setName(d.user.name || "");
           setPhone(d.user.phone || "");
           setAvatarUrl(d.user.avatarUrl ?? null);
           setAvatarAssetId(d.user.avatarAssetId ?? null);
         }
-        if (d?.customerProfile) {
+        if (d.customerProfile) {
           setPreferredLocale(d.customerProfile.preferredLocale || "en-KE");
           if (d.customerProfile.notificationPrefs) {
             setPrefs((prev) => ({
@@ -66,10 +76,13 @@ export default function CustomerSettingsPage() {
             }));
           }
         }
-        setAuthAccounts(d?.authAccounts ?? []);
+        setAuthAccounts(d.authAccounts ?? []);
       })
       .catch(() => {});
-  }, [user]);
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -94,10 +107,14 @@ export default function CustomerSettingsPage() {
         method: "POST",
         body: fd,
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Avatar upload failed.");
-      setAvatarUrl(j.data?.publicUrl ?? j.data?.asset?.publicUrl ?? null);
-      setAvatarAssetId(j.data?.asset?.id ?? null);
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Avatar upload failed (${res.status}).`
+        );
+      }
+      setAvatarUrl(j?.data?.publicUrl ?? j?.data?.asset?.publicUrl ?? null);
+      setAvatarAssetId(j?.data?.asset?.id ?? null);
       await refresh();
       setNotice("Profile photo updated.");
     } catch (err) {
@@ -121,8 +138,12 @@ export default function CustomerSettingsPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ clearAvatar: true }),
           });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Could not remove photo.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Could not remove photo (${res.status}).`
+        );
+      }
       setAvatarUrl(null);
       setAvatarAssetId(null);
       await refresh();
@@ -150,8 +171,10 @@ export default function CustomerSettingsPage() {
           notificationPrefs: prefs,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Update failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.error?.message || `Update failed (${res.status}).`);
+      }
       await refresh();
       setNotice("Profile & notification preferences saved.");
     } catch (err) {
@@ -175,13 +198,19 @@ export default function CustomerSettingsPage() {
           newPassword,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Password update failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Password update failed (${res.status}).`
+        );
+      }
       setCurrentPassword("");
       setNewPassword("");
       setNotice("Account password updated securely.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Password update failed.");
+      setError(
+        err instanceof Error ? err.message : "Password update failed."
+      );
     } finally {
       setSaving(false);
     }

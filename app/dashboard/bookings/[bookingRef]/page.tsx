@@ -169,9 +169,14 @@ export default function CustomerBookingWorkspacePage({
         `/api/bookings/${encodeURIComponent(bookingRef)}`,
         { cache: "no-store" }
       );
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(json.error?.message || "Failed to load booking.");
+        throw new Error(
+          json?.error?.message || `Failed to load booking (${res.status}).`
+        );
+      }
+      if (!json?.data?.booking) {
+        throw new Error("Invalid booking payload.");
       }
       setBooking(json.data.booking);
     } catch (e) {
@@ -188,9 +193,14 @@ export default function CustomerBookingWorkspacePage({
       cache: "no-store",
     })
       .then(async (res) => {
-        const json = await res.json();
+        const json = await res.json().catch(() => null);
         if (!res.ok) {
-          throw new Error(json.error?.message || "Failed to load booking.");
+          throw new Error(
+            json?.error?.message || `Failed to load booking (${res.status}).`
+          );
+        }
+        if (!json?.data?.booking) {
+          throw new Error("Invalid booking payload.");
         }
         return json.data.booking;
       })
@@ -224,8 +234,10 @@ export default function CustomerBookingWorkspacePage({
         }
       );
       if (!res.ok) {
-        const j = await res.json();
-        throw new Error(j.error?.message || "Failed to send message.");
+        const j = await res.json().catch(() => null);
+        throw new Error(
+          j?.error?.message || `Failed to send message (${res.status}).`
+        );
       }
       setMsgText("");
       await loadBooking();
@@ -262,8 +274,10 @@ export default function CustomerBookingWorkspacePage({
           body: fd,
         }
       );
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Upload failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.error?.message || `Upload failed (${res.status}).`);
+      }
       setNotice(`Uploaded ${file.name} securely to booking vault.`);
       await loadBooking();
     } catch (err) {
@@ -281,8 +295,12 @@ export default function CustomerBookingWorkspacePage({
       const res = await fetch(`/api/files/${encodeURIComponent(fileId)}`, {
         method: "DELETE",
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Could not delete file.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Could not delete file (${res.status}).`
+        );
+      }
       setNotice("File deleted from booking vault.");
       await loadBooking();
     } catch (err) {
@@ -306,9 +324,13 @@ export default function CustomerBookingWorkspacePage({
           }),
         }
       );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error?.message || "Checkout failed.");
-      setPendingApiRef(json.data.transaction?.apiRef ?? null);
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          json?.error?.message || `Checkout failed (${res.status}).`
+        );
+      }
+      setPendingApiRef(json?.data?.transaction?.apiRef ?? null);
       setNotice("IntaSend escrow checkout initiated.");
       await loadBooking();
     } catch (err) {
@@ -346,8 +368,12 @@ export default function CustomerBookingWorkspacePage({
           }),
         }
       );
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Completion failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Completion failed (${res.status}).`
+        );
+      }
       setNotice("Delivery approved! Creator escrow released.");
       await loadBooking();
     } catch (err) {

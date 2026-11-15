@@ -6,7 +6,11 @@ import { Award, CheckCircle2, ExternalLink, FileText, Star } from "lucide-react"
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { isUserProActive } from "@/lib/pricing";
-import { isSafeMediaDisplayUrl } from "@/lib/upload-constants";
+import {
+  isAllowedNextImageSrc,
+  isSafeMediaDisplayUrl,
+  isSafeRasterImageMimeOrExt,
+} from "@/lib/upload-constants";
 import { TaskCard } from "@/components/TaskCard";
 import { VettedCreatorBadge } from "@/components/ui/Badges";
 import { CreatorAvatar, ScoreRing } from "@/components/ui/EditorialVisuals";
@@ -173,16 +177,22 @@ export default async function PublicCreatorProfilePage({
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {samples.map((s, idx) => {
-              const safeAttachment = isSafeMediaDisplayUrl(s.attachmentUrl)
-                ? s.attachmentUrl
+              const trimmedAttachment = s.attachmentUrl?.trim() || "";
+              const safeAttachment = isSafeMediaDisplayUrl(trimmedAttachment)
+                ? trimmedAttachment
                 : null;
-              const safeExternalUrl = isSafeMediaDisplayUrl(s.url)
-                ? s.url
+              const trimmedExternal = s.url?.trim() || "";
+              const safeExternalUrl = isSafeMediaDisplayUrl(trimmedExternal)
+                ? trimmedExternal
                 : null;
-              const isImageAttachment = Boolean(
+              const isRasterAttachment = Boolean(
                 safeAttachment &&
-                  (s.mimeType?.startsWith("image/") ||
-                    /\.(jpg|jpeg|png|webp)(\?|$)/i.test(safeAttachment))
+                  isSafeRasterImageMimeOrExt(s.mimeType, safeAttachment)
+              );
+              const canPreviewNextImage = Boolean(
+                isRasterAttachment &&
+                  safeAttachment &&
+                  isAllowedNextImageSrc(safeAttachment)
               );
 
               return (
@@ -200,7 +210,7 @@ export default async function PublicCreatorProfilePage({
                     {s.excerpt}
                   </p>
 
-                  {isImageAttachment && safeAttachment && (
+                  {canPreviewNextImage && safeAttachment && (
                     <a
                       href={safeAttachment}
                       target="_blank"
@@ -212,7 +222,7 @@ export default async function PublicCreatorProfilePage({
                         alt={s.attachmentName || s.title}
                         width={640}
                         height={320}
-                        unoptimized={Boolean(safeAttachment.startsWith("/api/"))}
+                        unoptimized={safeAttachment.startsWith("/api/")}
                         className="w-full h-44 object-cover hover:scale-[1.02] transition-transform duration-300"
                       />
                     </a>
@@ -230,7 +240,7 @@ export default async function PublicCreatorProfilePage({
                           <FileText className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate max-w-[220px]">
                             {s.attachmentName ||
-                              (isImageAttachment
+                              (isRasterAttachment
                                 ? "View Sample Image"
                                 : "Open Sample File")}
                           </span>

@@ -61,8 +61,8 @@ export default function BookingRevisionPage({
     fetch(`/api/bookings/${encodeURIComponent(bookingRef)}`, {
       cache: "no-store",
     })
-      .then((r) => r.json())
-      .then((j) => setBooking(j.data?.booking ?? null))
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
+      .then((j) => setBooking(j?.data?.booking ?? null))
       .catch(() => {});
   }, [bookingRef]);
 
@@ -135,9 +135,11 @@ export default function BookingRevisionPage({
           }),
         }
       );
-      const j = await res.json();
+      const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j.error?.message || "Revision request failed.");
+        throw new Error(
+          j?.error?.message || `Revision request failed (${res.status}).`
+        );
       }
       router.push(`/dashboard/bookings/${bookingRef}`);
     } catch (err) {

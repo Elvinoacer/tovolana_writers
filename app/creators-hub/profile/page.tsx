@@ -3,7 +3,7 @@
 import { CreatorShell } from "@/components/CreatorShell";
 import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -21,7 +21,9 @@ import {
 import { useAuth } from "@/components/AuthContext";
 import {
   MAX_BROWSER_UPLOAD_LABEL,
+  isAllowedNextImageSrc,
   isSafeMediaDisplayUrl,
+  isSafeRasterImageMimeOrExt,
   validateClientAvatarFile,
   validateClientPortfolioFile,
 } from "@/lib/upload-constants";
@@ -82,23 +84,34 @@ export default function CreatorProfileEditorPage() {
   const [saving, setSaving] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const loadedUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     fetch("/api/categories", { cache: "no-store" })
-      .then((r) => r.json())
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
       .then((j) =>
-        setAllCategories((j.data?.categories ?? []).map((c: { name: string }) => c.name))
+        setAllCategories(
+          (j?.data?.categories ?? []).map((c: { name: string }) => c.name)
+        )
       )
       .catch(() => {});
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    const userId = user?.id ?? null;
+    if (!userId) {
+      loadedUserIdRef.current = null;
+      return;
+    }
+    if (loadedUserIdRef.current === userId) return;
+    let active = true;
     fetch("/api/creators-hub/profile", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? r.json().catch(() => null) : null))
       .then((j) => {
+        if (!active) return;
         const p = j?.data?.creatorProfile;
         if (!p) return;
+        loadedUserIdRef.current = userId;
         setUsername(p.username || "");
         setDisplayName(p.displayName || "");
         setHeadline(p.headline || "");
@@ -121,7 +134,10 @@ export default function CreatorProfileEditorPage() {
         setAvatarAssetId(j?.data?.avatarAssetId ?? null);
       })
       .catch(() => {});
-  }, [user]);
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
 
   async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -146,10 +162,14 @@ export default function CreatorProfileEditorPage() {
         method: "POST",
         body: fd,
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Avatar upload failed.");
-      setAvatarUrl(j.data?.publicUrl ?? j.data?.asset?.publicUrl ?? null);
-      setAvatarAssetId(j.data?.asset?.id ?? null);
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Avatar upload failed (${res.status}).`
+        );
+      }
+      setAvatarUrl(j?.data?.publicUrl ?? j?.data?.asset?.publicUrl ?? null);
+      setAvatarAssetId(j?.data?.asset?.id ?? null);
       await refresh();
       setNotice("Creator avatar updated.");
     } catch (err) {
@@ -173,8 +193,12 @@ export default function CreatorProfileEditorPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ clearAvatar: true }),
           });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Could not remove avatar.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(
+          j?.error?.message || `Could not remove avatar (${res.status}).`
+        );
+      }
       setAvatarUrl(null);
       setAvatarAssetId(null);
       await refresh();
@@ -219,9 +243,11 @@ export default function CreatorProfileEditorPage() {
         method: "POST",
         body: fd,
       });
-      const j = await res.json();
+      const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j.error?.message || "Attachment upload failed.");
+        throw new Error(
+          j?.error?.message || `Attachment upload failed (${res.status}).`
+        );
       }
 
       if (previousPendingId) {
@@ -230,11 +256,12 @@ export default function CreatorProfileEditorPage() {
         }).catch(() => undefined);
       }
 
-      const asset = j.data?.asset;
-      const publicUrl = j.data?.publicUrl ?? asset?.publicUrl;
+      const asset = j?.data?.asset;
+      const publicUrl = j?.data?.publicUrl ?? asset?.publicUrl;
       setNewSample((prev) => ({
         ...prev,
-        attachmentUrl: publicUrl,
+        attachmentUrl:
+          typeof publicUrl === "string" ? publicUrl.trim() : undefined,
         attachmentName: asset?.fileName || file.name,
         attachmentAssetId: asset?.id,
         mimeType: asset?.mimeType || uploadFile.type,
@@ -298,8 +325,10 @@ export default function CreatorProfileEditorPage() {
           portfolioSamples: cleanedSamples,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j.error?.message || "Update failed.");
+      const j = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(j?.error?.message || `Update failed (${res.status}).`);
+      }
 
       if (pendingDeletedAssetIds.length > 0) {
         await Promise.all(
@@ -520,11 +549,14 @@ export default function CreatorProfileEditorPage() {
               Portfolio Excerpts
             </h2>
             {samples.map((s, idx) => {
-              const safeAttachment = isSafeMediaDisplayUrl(s.attachmentUrl)
-                ? s.attachmentUrl
+              const trimmedAttachment = s.attachmentUrl?.trim() || "";
+              const safeAttachment = isSafeMediaDisplayUrl(trimmedAttachment)
+                ? trimmedAttachment
                 : null;
               const isImageAttachment = Boolean(
-                safeAttachment && s.mimeType?.startsWith("image/")
+                safeAttachment &&
+                  isAllowedNextImageSrc(safeAttachment) &&
+                  isSafeRasterImageMimeOrExt(s.mimeType, safeAttachment)
               );
               return (
                 <div

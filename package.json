@@ -10,6 +10,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
+    "storage:sync-r2": "tsx scripts/sync-r2.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {

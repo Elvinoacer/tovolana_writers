@@ -127,6 +127,14 @@ enum FileCategory {
   DISPUTE_EVIDENCE
 }
 
+enum MediaAssetPurpose {
+  USER_AVATAR
+  CREATOR_PORTFOLIO_IMAGE
+  CREATOR_PORTFOLIO_DOCUMENT
+  EDITORIAL_ASSET
+  GENERAL
+}
+
 model User {
   id             String         @id @default(cuid())
   email          String         @unique
@@ -160,6 +168,7 @@ model User {
   pushTokens           DevicePushToken[]
   authoredReviews      Review[]
   auditLogsAsActor     AdminAuditLog[]
+  mediaAssets          MediaAsset[]
 }
 
 model AuthAccount {
@@ -394,20 +403,45 @@ model Booking {
 }
 
 model BookingFile {
-  id           String       @id @default(cuid())
-  bookingId    String
-  uploaderId   String
-  fileCategory FileCategory
-  fileName     String
-  mimeType     String
-  sizeBytes    Int
-  storageKey   String       @unique
-  createdAt    DateTime     @default(now())
+  id              String       @id @default(cuid())
+  bookingId       String
+  uploaderId      String
+  fileCategory    FileCategory
+  fileName        String
+  mimeType        String
+  sizeBytes       Int
+  storageKey      String       @unique
+  storageProvider String       @default("R2")
+  bucket          String?
+  etag            String?
+  revisionId      String?
+  disputeId       String?
+  createdAt       DateTime     @default(now())
 
   booking  Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   uploader User    @relation(fields: [uploaderId], references: [id])
 
   @@index([bookingId])
+}
+
+model MediaAsset {
+  id              String            @id @default(cuid())
+  ownerId         String?
+  purpose         MediaAssetPurpose @default(GENERAL)
+  fileName        String
+  mimeType        String
+  sizeBytes       Int
+  storageProvider String            @default("R2")
+  bucket          String?
+  storageKey      String            @unique
+  publicUrl       String?
+  etag            String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  owner User? @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, purpose])
 }
 
 model BookingRevision {

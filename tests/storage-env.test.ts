@@ -3,6 +3,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { env, hasR2Config, MAX_BROWSER_UPLOAD_BYTES } from "@/lib/env";
 import { MAX_BROWSER_UPLOAD_BYTES as CONST_MAX_BYTES } from "@/lib/upload-constants";
+import { MediaAssetPurpose } from "@prisma/client";
+import type { BookingFile, MediaAsset } from "@prisma/client";
 import nextConfig from "../next.config";
 
 test("lib/env exposes Cloudflare R2 configuration & next.config allows R2 & Google avatars", () => {
@@ -94,3 +96,40 @@ test("env.r2KeyPrefix has no leading or trailing slashes", () => {
   assert.ok(!env.r2KeyPrefix.startsWith("/"));
   assert.ok(!env.r2KeyPrefix.endsWith("/"));
 });
+
+test("Prisma schema exports MediaAssetPurpose and updated BookingFile/MediaAsset shapes", () => {
+  assert.deepEqual(Object.values(MediaAssetPurpose).sort(), [
+    "CREATOR_PORTFOLIO_DOCUMENT",
+    "CREATOR_PORTFOLIO_IMAGE",
+    "EDITORIAL_ASSET",
+    "GENERAL",
+    "USER_AVATAR",
+  ]);
+
+  // Static type assertion check for BookingFile R2 fields
+  const sampleBookingFile: Partial<BookingFile> = {
+    storageProvider: "R2",
+    bucket: "tovolana-assets",
+    etag: "etag-123",
+    revisionId: "rev-123",
+    disputeId: null,
+  };
+  assert.equal(sampleBookingFile.storageProvider, "R2");
+
+  // Static type assertion check for MediaAsset model
+  const sampleMediaAsset: Partial<MediaAsset> = {
+    id: "asset-123",
+    ownerId: "user-123",
+    purpose: MediaAssetPurpose.USER_AVATAR,
+    fileName: "avatar.png",
+    mimeType: "image/png",
+    sizeBytes: 1024,
+    storageProvider: "R2",
+    bucket: "tovolana-assets",
+    storageKey: "avatars/asset-123-avatar.png",
+    publicUrl: "https://pub.r2.dev/avatars/asset-123-avatar.png",
+    etag: "etag-abc",
+  };
+  assert.equal(sampleMediaAsset.purpose, MediaAssetPurpose.USER_AVATAR);
+});
+

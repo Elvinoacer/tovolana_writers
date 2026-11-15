@@ -2,7 +2,11 @@ import "dotenv/config";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { env, hasR2Config, MAX_BROWSER_UPLOAD_BYTES } from "@/lib/env";
-import { MAX_BROWSER_UPLOAD_BYTES as CONST_MAX_BYTES } from "@/lib/upload-constants";
+import {
+  MAX_BROWSER_UPLOAD_BYTES as CONST_MAX_BYTES,
+  isAllowedNextImageSrc,
+  isSafeRasterImageMimeOrExt,
+} from "@/lib/upload-constants";
 import { MediaAssetPurpose } from "@prisma/client";
 import type { BookingFile, MediaAsset } from "@prisma/client";
 import nextConfig from "../next.config";
@@ -131,5 +135,28 @@ test("Prisma schema exports MediaAssetPurpose and updated BookingFile/MediaAsset
     etag: "etag-abc",
   };
   assert.equal(sampleMediaAsset.purpose, MediaAssetPurpose.USER_AVATAR);
+});
+
+test("isAllowedNextImageSrc and isSafeRasterImageMimeOrExt prevent next/image host & SVG crashes", () => {
+  assert.equal(
+    isAllowedNextImageSrc("https://other-bucket.r2.dev/sample.png"),
+    false
+  );
+  assert.equal(isAllowedNextImageSrc("/images/photo.jpg?v=1"), false);
+  assert.equal(isAllowedNextImageSrc("/images/photo.jpg"), true);
+  assert.equal(
+    isAllowedNextImageSrc(
+      "https://pub-cc07856d657b4a7197710051042b3eda.r2.dev/tovolana_writers/media/avatars/u1/a.png"
+    ),
+    true
+  );
+  assert.equal(isAllowedNextImageSrc("/api/media/abc/raw"), true);
+  assert.equal(
+    isSafeRasterImageMimeOrExt(
+      "image/svg+xml",
+      "https://pub-cc07856d657b4a7197710051042b3eda.r2.dev/x.svg"
+    ),
+    false
+  );
 });
 

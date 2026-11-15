@@ -348,8 +348,11 @@ export function isAllowedNextImageSrc(url?: string | null): url is string {
     return false;
   }
   if (trimmed.startsWith("//")) return false;
-  if (trimmed.startsWith("/api/media/") || trimmed.startsWith("/images/")) {
+  if (trimmed.startsWith("/api/media/")) {
     return true;
+  }
+  if (trimmed.startsWith("/images/")) {
+    return !/[?#]/.test(trimmed);
   }
   try {
     const parsed = new URL(trimmed);
@@ -357,9 +360,6 @@ export function isAllowedNextImageSrc(url?: string | null): url is string {
     const host = parsed.hostname.toLowerCase();
     if (!host) return false;
     if (ALLOWED_NEXT_IMAGE_EXACT_HOSTS.has(host)) return true;
-    if (host.endsWith(".r2.dev") && host.length > ".r2.dev".length) {
-      return true;
-    }
     const configuredHost = getConfiguredPublicR2Hostname();
     if (configuredHost && host === configuredHost) {
       return true;

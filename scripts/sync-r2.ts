@@ -1,22 +1,9 @@
-import "dotenv/config";
 import fs from "fs/promises";
 import path from "path";
 import { MediaAssetPurpose } from "@prisma/client";
-import { closeDbConnections, db } from "@/lib/db";
-import { env, hasR2Config, MAX_BROWSER_UPLOAD_BYTES } from "@/lib/env";
-import {
-  assertScopedStorageKey,
-  createStorageKey,
-  deleteStoredObject,
-  getR2KeyPrefix,
-  readPrivateFile,
-  sanitizeFileName,
-  sanitizePathSegment,
-  validateBookingUploadMime,
-  validateMediaUploadMime,
-  writePrivateFile,
-  writePublicMedia,
-} from "@/lib/storage";
+
+type DbClient = typeof import("@/lib/db")["db"];
+type StorageModule = typeof import("@/lib/storage");
 
 const UPLOADS_ROOT = path.resolve(process.cwd(), "uploads");
 const PUBLIC_LOCAL_ROOT = path.resolve(UPLOADS_ROOT, "_public");
@@ -61,6 +48,27 @@ function parseCliArgs(argv: string[]): SyncOptions {
   return { withEditorial, pruneUnlinked };
 }
 
+async function loadEnvironment(): Promise<void> {
+  try {
+    const { loadEnvConfig } = await import("@next/env");
+    loadEnvConfig(
+      process.cwd(),
+      process.env.NODE_ENV !== "production",
+      { info: () => undefined, error: console.error }
+    );
+    return;
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException)?.code;
+    if (code !== "MODULE_NOT_FOUND" && code !== "ERR_MODULE_NOT_FOUND") {
+      throw err;
+    }
+  }
+
+  const dotenv = await import("dotenv");
+  dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
+  dotenv.config({ path: path.resolve(process.cwd(), ".env") });
+}
+
 function resolveContainedPath(root: string, relativeKey: string): string {
   const resolvedRoot = path.resolve(root);
   const targetPath = path.resolve(resolvedRoot, relativeKey);
@@ -102,12 +110,15 @@ async function removeEmptyParentDirs(
   return removed;
 }
 
-async function migrateLocalBookingFiles(): Promise<{
+async function migrateLocalBookingFiles(
+  db: DbClient,
+  storage: StorageModule
+): Promise<{
   scanned: number;
   migrated: number;
   failed: number;
 }> {
-  const prefix = getR2KeyPrefix();
+  const prefix = storage.getR2KeyPrefix();
   const localFiles = await db.bookingFile.findMany({
     where: { storageProvider: "LOCAL" },
     orderBy: { createdAt: "asc" },
@@ -118,18 +129,22 @@ async function migrateLocalBookingFiles(): Promise<{
 
   for (const file of localFiles) {
     try {
-      if (!validateBookingUploadMime(file.mimeType, file.fileName)) {
+      if (!storage.validateBookingUploadMime(file.mimeType, file.fileName)) {
         throw new Error(
           `Blocked or mismatched MIME/extension (${file.mimeType}, ${file.fileName})`
         );
       }
 
-      const buffer = await readPrivateFile(file.storageKey, "LOCAL");
+      const buffer = await storage.readPrivateFile(file.storageKey, "LOCAL");
       const targetKey = file.storageKey.startsWith(`${prefix}/bookings/`)
-        ? assertScopedStorageKey(file.storageKey)
-        : createStorageKey(file.bookingId, file.fileName);
+        ? storage.assertScopedStorageKey(file.storageKey)
+        : storage.createStorageKey(file.bookingId, file.fileName);
 
-      const stored = await writePrivateFile(targetKey, buffer, file.mimeType);
+      const stored = await storage.writePrivateFile(
+        targetKey,
+        buffer,
+        file.mimeType
+      );
 
       try {
         await db.bookingFile.update({
@@ -143,19 +158,27 @@ async function migrateLocalBookingFiles(): Promise<{
           },
         });
       } catch (dbErr) {
-        await deleteStoredObject(
-          stored.storageKey,
-          stored.storageProvider
-        ).catch(() => undefined);
+        await storage
+          .deleteStoredObject(stored.storageKey, stored.storageProvider)
+          .catch(() => undefined);
         throw dbErr;
       }
 
-      await deleteStoredObject(file.storageKey, "LOCAL");
-      const legacyLocalPath = resolveContainedPath(
-        UPLOADS_ROOT,
-        assertScopedStorageKey(file.storageKey, { allowLegacyLocal: true })
-      );
-      await removeEmptyParentDirs(path.dirname(legacyLocalPath), UPLOADS_ROOT);
+      try {
+        await storage.deleteStoredObject(file.storageKey, "LOCAL");
+        const legacyLocalPath = resolveContainedPath(
+          UPLOADS_ROOT,
+          storage.assertScopedStorageKey(file.storageKey, {
+            allowLegacyLocal: true,
+          })
+        );
+        await removeEmptyParentDirs(path.dirname(legacyLocalPath), UPLOADS_ROOT);
+      } catch (cleanupErr) {
+        console.warn(
+          `[booking-file] Warning: migrated DB to R2 for ${file.id} (${stored.storageKey}) but failed local cleanup (${file.storageKey}):`,
+          cleanupErr instanceof Error ? cleanupErr.message : cleanupErr
+        );
+      }
 
       migrated += 1;
       console.log(
@@ -199,7 +222,10 @@ async function collectFilesSorted(dir: string): Promise<string[]> {
   return files;
 }
 
-function buildEditorialStorageKey(relativeFilePath: string): {
+function buildEditorialStorageKey(
+  storage: StorageModule,
+  relativeFilePath: string
+): {
   storageKey: string;
   safeFileName: string;
 } {
@@ -208,18 +234,22 @@ function buildEditorialStorageKey(relativeFilePath: string): {
     throw new Error(`Invalid editorial relative path: ${relativeFilePath}`);
   }
   const rawName = segments[segments.length - 1];
-  const safeFileName = sanitizeFileName(rawName);
+  const safeFileName = storage.sanitizeFileName(rawName);
   const safeDirs = segments
     .slice(0, -1)
-    .map((seg) => sanitizePathSegment(seg, "dir"));
+    .map((seg) => storage.sanitizePathSegment(seg, "dir"));
   const safeRelPath = [...safeDirs, safeFileName].join("/");
-  const storageKey = assertScopedStorageKey(
-    `${getR2KeyPrefix()}/media/editorial/${safeRelPath}`
+  const storageKey = storage.assertScopedStorageKey(
+    `${storage.getR2KeyPrefix()}/media/editorial/${safeRelPath}`
   );
   return { storageKey, safeFileName };
 }
 
-async function syncEditorialAssets(): Promise<{
+async function syncEditorialAssets(
+  db: DbClient,
+  storage: StorageModule,
+  maxUploadBytes: number
+): Promise<{
   scanned: number;
   created: number;
   updated: number;
@@ -227,7 +257,7 @@ async function syncEditorialAssets(): Promise<{
   failed: number;
 }> {
   const allFiles = await collectFilesSorted(EDITORIAL_ROOT);
-  const prefix = getR2KeyPrefix();
+  const prefix = storage.getR2KeyPrefix();
   let created = 0;
   let updated = 0;
   let skipped = 0;
@@ -243,12 +273,15 @@ async function syncEditorialAssets(): Promise<{
 
     const relPath = path.relative(EDITORIAL_ROOT, fullPath);
     try {
-      const { storageKey, safeFileName } = buildEditorialStorageKey(relPath);
+      const { storageKey, safeFileName } = buildEditorialStorageKey(
+        storage,
+        relPath
+      );
       if (!storageKey.startsWith(`${prefix}/media/editorial/`)) {
         throw new Error(`Unexpected editorial storageKey scope: ${storageKey}`);
       }
       if (
-        !validateMediaUploadMime(
+        !storage.validateMediaUploadMime(
           mimeType,
           MediaAssetPurpose.EDITORIAL_ASSET,
           safeFileName
@@ -258,9 +291,9 @@ async function syncEditorialAssets(): Promise<{
       }
 
       const buffer = await fs.readFile(fullPath);
-      if (buffer.byteLength === 0 || buffer.byteLength > MAX_BROWSER_UPLOAD_BYTES) {
+      if (buffer.byteLength === 0 || buffer.byteLength > maxUploadBytes) {
         throw new Error(
-          `Editorial asset size (${buffer.byteLength} bytes) is out of allowed bounds (1..${MAX_BROWSER_UPLOAD_BYTES}).`
+          `Editorial asset size (${buffer.byteLength} bytes) is out of allowed bounds (1..${maxUploadBytes}).`
         );
       }
 
@@ -269,33 +302,42 @@ async function syncEditorialAssets(): Promise<{
         select: { id: true },
       });
 
-      const stored = await writePublicMedia(storageKey, buffer, mimeType);
-      await db.mediaAsset.upsert({
-        where: { storageKey: stored.storageKey },
-        update: {
-          ownerId: null,
-          purpose: MediaAssetPurpose.EDITORIAL_ASSET,
-          fileName: safeFileName,
-          mimeType,
-          sizeBytes: stored.sizeBytes,
-          storageProvider: stored.storageProvider,
-          bucket: stored.bucket,
-          publicUrl: stored.publicUrl,
-          etag: stored.etag,
-        },
-        create: {
-          ownerId: null,
-          purpose: MediaAssetPurpose.EDITORIAL_ASSET,
-          fileName: safeFileName,
-          mimeType,
-          sizeBytes: stored.sizeBytes,
-          storageProvider: stored.storageProvider,
-          bucket: stored.bucket,
-          storageKey: stored.storageKey,
-          publicUrl: stored.publicUrl,
-          etag: stored.etag,
-        },
-      });
+      const stored = await storage.writePublicMedia(storageKey, buffer, mimeType);
+      try {
+        await db.mediaAsset.upsert({
+          where: { storageKey: stored.storageKey },
+          update: {
+            ownerId: null,
+            purpose: MediaAssetPurpose.EDITORIAL_ASSET,
+            fileName: safeFileName,
+            mimeType,
+            sizeBytes: stored.sizeBytes,
+            storageProvider: stored.storageProvider,
+            bucket: stored.bucket,
+            publicUrl: stored.publicUrl,
+            etag: stored.etag,
+          },
+          create: {
+            ownerId: null,
+            purpose: MediaAssetPurpose.EDITORIAL_ASSET,
+            fileName: safeFileName,
+            mimeType,
+            sizeBytes: stored.sizeBytes,
+            storageProvider: stored.storageProvider,
+            bucket: stored.bucket,
+            storageKey: stored.storageKey,
+            publicUrl: stored.publicUrl,
+            etag: stored.etag,
+          },
+        });
+      } catch (dbErr) {
+        if (!existing) {
+          await storage
+            .deleteStoredObject(stored.storageKey, stored.storageProvider)
+            .catch(() => undefined);
+        }
+        throw dbErr;
+      }
 
       if (existing) {
         updated += 1;
@@ -369,7 +411,10 @@ async function pruneDirectoryRecursive(
   return { deletedFiles, deletedDirs, preservedFiles };
 }
 
-async function pruneUnlinkedLocalFiles(): Promise<{
+async function pruneUnlinkedLocalFiles(
+  db: DbClient,
+  storage: StorageModule
+): Promise<{
   deletedFiles: number;
   deletedDirs: number;
   preservedFiles: number;
@@ -398,7 +443,7 @@ async function pruneUnlinkedLocalFiles(): Promise<{
 
   for (const row of remainingLocalBookings) {
     try {
-      const scoped = assertScopedStorageKey(row.storageKey, {
+      const scoped = storage.assertScopedStorageKey(row.storageKey, {
         allowLegacyLocal: true,
       });
       protectedFiles.add(resolveContainedPath(UPLOADS_ROOT, scoped));
@@ -409,7 +454,7 @@ async function pruneUnlinkedLocalFiles(): Promise<{
 
   for (const row of remainingLocalMedia) {
     try {
-      const scoped = assertScopedStorageKey(row.storageKey);
+      const scoped = storage.assertScopedStorageKey(row.storageKey);
       protectedFiles.add(resolveContainedPath(PUBLIC_LOCAL_ROOT, scoped));
     } catch {
       // Invalid key cannot map cleanly; skip adding unsafe path
@@ -421,6 +466,11 @@ async function pruneUnlinkedLocalFiles(): Promise<{
 
 async function main() {
   const options = parseCliArgs(process.argv.slice(2));
+  await loadEnvironment();
+
+  const { env, hasR2Config, MAX_BROWSER_UPLOAD_BYTES } = await import(
+    "@/lib/env"
+  );
 
   if (!hasR2Config()) {
     console.error(
@@ -430,45 +480,51 @@ async function main() {
     return;
   }
 
-  const prefix = getR2KeyPrefix();
-  console.log(
-    `Starting R2 sync (bucket=${env.r2BucketName}, prefix=${prefix}/, withEditorial=${options.withEditorial}, pruneUnlinked=${options.pruneUnlinked})`
-  );
+  const [{ closeDbConnections, db }, storage] = await Promise.all([
+    import("@/lib/db"),
+    import("@/lib/storage"),
+  ]);
 
-  const bookingStats = await migrateLocalBookingFiles();
-  console.log(
-    `Booking files summary: scanned=${bookingStats.scanned}, migrated=${bookingStats.migrated}, failed=${bookingStats.failed}`
-  );
-
-  let editorialFailed = 0;
-  if (options.withEditorial) {
-    const editorialStats = await syncEditorialAssets();
-    editorialFailed = editorialStats.failed;
+  try {
+    const prefix = storage.getR2KeyPrefix();
     console.log(
-      `Editorial assets summary: scanned=${editorialStats.scanned}, created=${editorialStats.created}, updated=${editorialStats.updated}, skipped=${editorialStats.skipped}, failed=${editorialStats.failed}`
+      `Starting R2 sync (bucket=${env.r2BucketName}, prefix=${prefix}/, withEditorial=${options.withEditorial}, pruneUnlinked=${options.pruneUnlinked})`
     );
-  }
 
-  if (options.pruneUnlinked) {
-    const pruneStats = await pruneUnlinkedLocalFiles();
+    const bookingStats = await migrateLocalBookingFiles(db, storage);
     console.log(
-      `Local uploads prune summary: deletedFiles=${pruneStats.deletedFiles}, deletedDirs=${pruneStats.deletedDirs}, preservedLocalFiles=${pruneStats.preservedFiles}`
+      `Booking files summary: scanned=${bookingStats.scanned}, migrated=${bookingStats.migrated}, failed=${bookingStats.failed}`
     );
-  }
 
-  if (bookingStats.failed > 0 || editorialFailed > 0) {
-    process.exitCode = 1;
+    let editorialFailed = 0;
+    if (options.withEditorial) {
+      const editorialStats = await syncEditorialAssets(
+        db,
+        storage,
+        MAX_BROWSER_UPLOAD_BYTES
+      );
+      editorialFailed = editorialStats.failed;
+      console.log(
+        `Editorial assets summary: scanned=${editorialStats.scanned}, created=${editorialStats.created}, updated=${editorialStats.updated}, skipped=${editorialStats.skipped}, failed=${editorialStats.failed}`
+      );
+    }
+
+    if (options.pruneUnlinked) {
+      const pruneStats = await pruneUnlinkedLocalFiles(db, storage);
+      console.log(
+        `Local uploads prune summary: deletedFiles=${pruneStats.deletedFiles}, deletedDirs=${pruneStats.deletedDirs}, preservedLocalFiles=${pruneStats.preservedFiles}`
+      );
+    }
+
+    if (bookingStats.failed > 0 || editorialFailed > 0) {
+      process.exitCode = 1;
+    }
+  } finally {
+    await closeDbConnections();
   }
 }
 
-main()
-  .catch((err) => {
-    console.error(
-      "R2 sync failed:",
-      err instanceof Error ? err.message : err
-    );
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await closeDbConnections();
-  });
+main().catch((err) => {
+  console.error("R2 sync failed:", err instanceof Error ? err.message : err);
+  process.exitCode = 1;
+});

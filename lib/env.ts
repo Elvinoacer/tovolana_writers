@@ -1,7 +1,13 @@
+export { MAX_BROWSER_UPLOAD_BYTES } from "./upload-constants";
+
 export const env = {
   appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   databaseUrl: process.env.DATABASE_URL || "",
-  directUrl: process.env.DIRECT_URL || process.env.DATABASE_URL || "",
+  directUrl:
+    process.env.DATABASE_URL_UNPOOLED ||
+    process.env.DIRECT_URL ||
+    process.env.DATABASE_URL ||
+    "",
   redisUrl: process.env.REDIS_URL || "redis://127.0.0.1:6379",
   upstashRestUrl: process.env.UPSTASH_REDIS_REST_URL || "",
   upstashRestToken: process.env.UPSTASH_REDIS_REST_TOKEN || "",
@@ -39,7 +45,57 @@ export const env = {
     "tovolana-storage-signing-secret",
   storageBucketUrl: process.env.STORAGE_BUCKET_URL || "",
   cronSecret: process.env.CRON_SECRET || "tovolana-cron-secret",
+  r2AccountId: process.env.R2_ACCOUNT_ID || "",
+  r2AccessKeyId: process.env.R2_ACCESS_KEY_ID || "",
+  r2SecretAccessKey: process.env.R2_SECRET_ACCESS_KEY || "",
+  r2BucketName: process.env.R2_BUCKET_NAME || "",
+  r2PublicUrl:
+    process.env.R2_PUBLIC_URL || process.env.NEXT_PUBLIC_R2_PUBLIC_URL || "",
+  nextPublicR2PublicUrl:
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL || process.env.R2_PUBLIC_URL || "",
+  r2Endpoint:
+    process.env.R2_ENDPOINT ||
+    (process.env.R2_ACCOUNT_ID
+      ? `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`
+      : ""),
+  r2KeyPrefix:
+    (process.env.R2_KEY_PREFIX || "tovolana_writers").replace(
+      /^\/+|\/+$/g,
+      ""
+    ) || "tovolana_writers",
 };
+
+function isPlaceholder(value: string | undefined | null): boolean {
+  if (!value) return true;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed.length === 0) return true;
+  return (
+    trimmed.startsWith("your-") ||
+    trimmed.startsWith("replace-") ||
+    trimmed.includes("changeme") ||
+    trimmed.includes("example")
+  );
+}
+
+export function hasR2Config(
+  config: {
+    r2AccountId?: string;
+    r2Endpoint?: string;
+    r2AccessKeyId?: string;
+    r2SecretAccessKey?: string;
+    r2BucketName?: string;
+  } = env
+): boolean {
+  const hasAccountOrEndpoint =
+    !isPlaceholder(config.r2AccountId) || !isPlaceholder(config.r2Endpoint);
+
+  return (
+    hasAccountOrEndpoint &&
+    !isPlaceholder(config.r2AccessKeyId) &&
+    !isPlaceholder(config.r2SecretAccessKey) &&
+    !isPlaceholder(config.r2BucketName)
+  );
+}
 
 export function hasLiveIntaSendKeys(): boolean {
   return (

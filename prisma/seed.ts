@@ -10,11 +10,16 @@ function hashPassword(password: string): string {
   return `${salt}:${derived}`;
 }
 
-const connectionString = process.env.DATABASE_URL || process.env.DIRECT_URL;
+const connectionString =
+  process.env.DATABASE_URL_UNPOOLED ||
+  process.env.DIRECT_URL ||
+  process.env.DATABASE_URL;
 if (!connectionString) {
-  throw new Error("DATABASE_URL or DIRECT_URL is required to seed the database.");
+  throw new Error(
+    "DATABASE_URL_UNPOOLED, DIRECT_URL, or DATABASE_URL is required to seed the database."
+  );
 }
-const pool = new Pool({ connectionString });
+const pool = new Pool({ connectionString, connectionTimeoutMillis: 15_000 });
 const db = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {

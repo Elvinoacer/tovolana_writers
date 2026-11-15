@@ -70,8 +70,8 @@ function isPlaceholder(value: string | undefined | null): boolean {
   const trimmed = value.trim().toLowerCase();
   if (trimmed.length === 0) return true;
   return (
-    trimmed.startsWith("your-") ||
-    trimmed.startsWith("replace-") ||
+    trimmed.includes("your-") ||
+    trimmed.includes("replace-") ||
     trimmed.includes("changeme") ||
     trimmed.includes("example")
   );

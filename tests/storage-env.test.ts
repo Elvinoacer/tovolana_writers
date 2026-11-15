@@ -56,6 +56,30 @@ test("hasR2Config validates presence of required fields and rejects placeholders
 
   assert.equal(
     hasR2Config({
+      r2AccountId: "your-account-id",
+      r2Endpoint: "https://your-account-id.r2.cloudflarestorage.com",
+      r2AccessKeyId: "key",
+      r2SecretAccessKey: "secret",
+      r2BucketName: "my-bucket",
+    }),
+    false,
+    "should reject placeholder inside endpoint URL"
+  );
+
+  assert.equal(
+    hasR2Config({
+      r2AccountId: "",
+      r2Endpoint: "https://replace-with-account-id.r2.cloudflarestorage.com",
+      r2AccessKeyId: "key",
+      r2SecretAccessKey: "secret",
+      r2BucketName: "my-bucket",
+    }),
+    false,
+    "should reject empty account id with placeholder endpoint"
+  );
+
+  assert.equal(
+    hasR2Config({
       r2AccountId: "123456",
       r2AccessKeyId: "key",
       r2SecretAccessKey: "secret",

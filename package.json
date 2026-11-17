@@ -13,6 +13,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "storage:sync-r2": "tsx scripts/sync-r2.ts",
     "codebase:export": "tsx scripts/export-codebase.ts",
+    "bundle": "tsx scripts/bundle-file.ts",
+    "bundle:once": "tsx scripts/bundle-file.ts --once",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {

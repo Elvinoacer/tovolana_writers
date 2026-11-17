@@ -118,6 +118,9 @@ export function Navbar() {
             <Link href="/explore" className={navLinkClass("/explore")}>
               Explore
             </Link>
+            <Link href="/bidding" className={navLinkClass("/bidding")}>
+              Live Bidding
+            </Link>
             <Link href="/membership" className={navLinkClass("/membership")}>
               Free &amp; Pro
             </Link>
@@ -376,6 +379,13 @@ export function Navbar() {
             className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
           >
             Explore Services
+          </Link>
+          <Link
+            href="/bidding"
+            onClick={() => setMobileOpen(false)}
+            className="block px-3 py-2.5 rounded-xl text-sm font-medium hover:bg-stone-200/60"
+          >
+            Live Bidding Auction
           </Link>
           <Link
             href="/membership"

@@ -11,7 +11,8 @@ import { StatusPill, formatKes, formatShortDate } from "@/components/ui/Badges";
 interface LedgerEntryRow {
   id: string;
   grossAmount: number;
-  platformCut: number;
+  platformFee?: number;
+  platformCut?: number;
   netAmount: number;
   status: string;
   createdAt: string;
@@ -27,6 +28,9 @@ interface PayoutRow {
   amount: number;
   currency: string;
   destinationPhone: string;
+  payoutSpeed?: string;
+  expressFee?: number;
+  netDisbursed?: number;
   status: string;
   requestedAt: string;
 }
@@ -42,6 +46,9 @@ export default function CreatorEarningsPage() {
   const [ledger, setLedger] = useState<LedgerEntryRow[]>([]);
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [phoneOverride, setPhoneOverride] = useState<string | null>(null);
+  const [payoutSpeed, setPayoutSpeed] = useState<"STANDARD" | "INSTANT_EXPRESS">(
+    "STANDARD"
+  );
   const phone = phoneOverride ?? user?.phone ?? "";
   const setPhone = (v: string) => setPhoneOverride(v);
   const [fetched, setFetched] = useState(false);
@@ -96,11 +103,15 @@ export default function CreatorEarningsPage() {
       const res = await fetch("/api/creators-hub/earnings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ destinationPhone: phone }),
+        body: JSON.stringify({ destinationPhone: phone, payoutSpeed }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j.error?.message || "Payout request failed.");
-      setNotice("M-Pesa B2C payout request queued cleanly.");
+      setNotice(
+        payoutSpeed === "INSTANT_EXPRESS"
+          ? "Instant Express M-Pesa B2C payout settled immediately!"
+          : "M-Pesa B2C payout request queued cleanly (3–5 business days)."
+      );
       await loadEarnings();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payout request failed.");
@@ -217,29 +228,102 @@ export default function CreatorEarningsPage() {
 
       <form
         onSubmit={handleRequestPayout}
-        className="editorial-card p-6 bg-white flex flex-col sm:flex-row items-end gap-4"
+        className="editorial-card p-6 bg-white space-y-4"
       >
-        <div className="flex-1 w-full">
-          <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-            M-Pesa B2C Phone (Min KES 100)
-          </label>
-          <input
-            type="tel"
-            required
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+254712345678"
-            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setPayoutSpeed("STANDARD")}
+            className={`text-left p-4 rounded-xl border transition-colors ${
+              payoutSpeed === "STANDARD"
+                ? "border-[#0f766e] bg-teal-50/60"
+                : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-[#111827]">Standard M-Pesa Batch</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 font-tech">
+                KES 0 Fee
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 mt-1">
+              Queued in 3–5 business days · 100% net payout
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPayoutSpeed("INSTANT_EXPRESS")}
+            className={`text-left p-4 rounded-xl border transition-colors ${
+              payoutSpeed === "INSTANT_EXPRESS"
+                ? "border-[#b45309] bg-amber-50/70"
+                : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+            }`}
+          >
+            <div className="flex items-center justify-between text-xs font-semibold">
+              <span className="text-[#111827]">Instant Express M-Pesa</span>
+              <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-950 font-tech">
+                2.5% (Min KES 50)
+              </span>
+            </div>
+            <p className="text-xs text-stone-600 mt-1">
+              Settles immediately to M-Pesa · Net{" "}
+              <span className="font-tech font-semibold text-[#111827]">
+                {formatKes(
+                  Math.max(
+                    0,
+                    summary.availableBalance -
+                      (summary.availableBalance > 0
+                        ? Math.max(
+                            50,
+                            Math.round(summary.availableBalance * 0.025)
+                          )
+                        : 0)
+                  ),
+                  summary.currency
+                )}
+              </span>
+            </p>
+          </button>
         </div>
-        <button
-          type="submit"
-          disabled={busy || summary.availableBalance < 100}
-          className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
-        >
-          <ArrowDownRight className="w-4 h-4" />
-          Withdraw {formatKes(summary.availableBalance, summary.currency)}
-        </button>
+
+        <div className="flex flex-col sm:flex-row items-end gap-4">
+          <div className="flex-1 w-full">
+            <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+              M-Pesa B2C Phone (Min KES 100)
+            </label>
+            <input
+              type="tel"
+              required
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+254712345678"
+              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={busy || summary.availableBalance < 100}
+            className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
+          >
+            <ArrowDownRight className="w-4 h-4" />
+            {payoutSpeed === "INSTANT_EXPRESS"
+              ? `Instant Withdraw ${formatKes(
+                  Math.max(
+                    0,
+                    summary.availableBalance -
+                      (summary.availableBalance > 0
+                        ? Math.max(
+                            50,
+                            Math.round(summary.availableBalance * 0.025)
+                          )
+                        : 0)
+                  ),
+                  summary.currency
+                )}`
+              : `Withdraw ${formatKes(summary.availableBalance, summary.currency)}`}
+          </button>
+        </div>
       </form>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -265,8 +349,8 @@ export default function CreatorEarningsPage() {
                       {e.booking.taskTitleSnapshot}
                     </p>
                     <p className="text-stone-400">
-                      Gross {formatKes(e.grossAmount)} · Cut{" "}
-                      {formatKes(e.platformCut)}
+                      Gross {formatKes(e.grossAmount)} · Fee{" "}
+                      {formatKes(e.platformFee ?? e.platformCut ?? 0)}
                     </p>
                   </div>
                   <div className="text-right">
@@ -294,20 +378,42 @@ export default function CreatorEarningsPage() {
               {payouts.map((p) => (
                 <div
                   key={p.id}
-                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between"
+                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-2"
                 >
                   <div>
-                    <p className="font-tech font-medium">
-                      {p.destinationPhone}
-                    </p>
-                    <p className="text-stone-500">
+                    <div className="flex items-center gap-2">
+                      <p className="font-tech font-medium">
+                        {p.destinationPhone}
+                      </p>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                          p.payoutSpeed === "INSTANT_EXPRESS"
+                            ? "bg-amber-100 text-amber-900"
+                            : "bg-stone-200 text-stone-700"
+                        }`}
+                      >
+                        {p.payoutSpeed === "INSTANT_EXPRESS"
+                          ? "Express"
+                          : "Standard"}
+                      </span>
+                    </div>
+                    <p className="text-stone-500 mt-0.5">
                       {formatShortDate(p.requestedAt)}
+                      {typeof p.expressFee === "number" && p.expressFee > 0
+                        ? ` · Fee ${formatKes(p.expressFee, p.currency)}`
+                        : ""}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-tech font-bold">
-                      {formatKes(p.amount, p.currency)}
+                      {formatKes(p.netDisbursed ?? p.amount, p.currency)}
                     </p>
+                    {p.netDisbursed !== undefined &&
+                      p.netDisbursed !== p.amount && (
+                        <p className="text-[10px] text-stone-400 font-tech">
+                          Gross {formatKes(p.amount, p.currency)}
+                        </p>
+                      )}
                     <StatusPill status={p.status} />
                   </div>
                 </div>

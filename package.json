@@ -11,6 +11,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "storage:sync-r2": "tsx scripts/sync-r2.ts",
+    "codebase:export": "tsx scripts/export-codebase.ts",
     "test": "tsx --test tests/*.test.ts"
   },
   "dependencies": {

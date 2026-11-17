@@ -1172,6 +1172,306 @@ async function main() {
     });
   }
 
+  // Monetization Upgrade Seed: Standout Creator Profiles, Connects Ledger & Open Bidding Briefs
+  await db.creatorProfile.update({
+    where: { id: creatorProfile1.id },
+    data: {
+      creatorTier: "ELITE",
+      connectsBalance: 85,
+      totalConnectsSpent: 45,
+      taglineBadge: "Former Journal Peer Reviewer · 99% On-Time",
+      educationCredentials: "MSc Economics, University of Nairobi · PhD Candidate",
+      yearsExperience: 7,
+      responseTimeMinutes: 15,
+      onTimeDeliveryRate: 99,
+      profileCompletenessScore: 95,
+      availableNowBadgeUntil: daysFromNow(2),
+      featuredProfileUntil: daysFromNow(7),
+      creatorPlusUntil: daysFromNow(25),
+    },
+  });
+
+  await db.creatorProfile.update({
+    where: { id: creatorProfile2.id },
+    data: {
+      creatorTier: "TOP_RATED",
+      connectsBalance: 45,
+      totalConnectsSpent: 20,
+      taglineBadge: "Senior Technical & FinTech Policy Analyst",
+      educationCredentials: "BSc Financial Engineering, JKUAT · CFA Level II",
+      yearsExperience: 5,
+      responseTimeMinutes: 25,
+      onTimeDeliveryRate: 97,
+      profileCompletenessScore: 85,
+      featuredProfileUntil: daysFromNow(4),
+    },
+  });
+
+  const [litFull, artFull, essayFull] = await Promise.all([
+    db.taskListing.findUniqueOrThrow({
+      where: { id: litListing.id },
+      select: { categoryId: true },
+    }),
+    db.taskListing.findUniqueOrThrow({
+      where: { id: articleListing.id },
+      select: { categoryId: true },
+    }),
+    db.taskListing.findUniqueOrThrow({
+      where: { id: essayListing.id },
+      select: { categoryId: true },
+    }),
+  ]);
+
+  const brief1 = await db.openBrief.upsert({
+    where: { briefRef: "BRF-2026-9001" },
+    update: {},
+    create: {
+      briefRef: "BRF-2026-9001",
+      customerId: proCustomer.id,
+      categoryId: litFull.categoryId,
+      title: "Systematic Literature Matrix on East African Carbon Markets (3,500 Words)",
+      description:
+        "Seeking a peer-review caliber synthesis comparing smallholder carbon credit protocols, Article 6.4 governance, and MRV telemetry across Kenya and Tanzania from 2020–2026.",
+      academicLevel: "Postgraduate / Masters",
+      wordCount: 3500,
+      citationStyle: "APA 7th",
+      budgetMin: 8500,
+      budgetMax: 12000,
+      currency: "KES",
+      deadlineDays: 3,
+      requiredConnects: 6,
+      isUrgent: true,
+      isSealed: false,
+      ndaRequired: true,
+      allowTripwireOutline: true,
+      status: "OPEN",
+      expiresAt: daysFromNow(14),
+    },
+  });
+
+  const brief2 = await db.openBrief.upsert({
+    where: { briefRef: "BRF-2026-9002" },
+    update: {},
+    create: {
+      briefRef: "BRF-2026-9002",
+      customerId: freeCustomer.id,
+      categoryId: artFull.categoryId,
+      title: "Executive Whitepaper: Instant Mobile Credit Scoring & CBK Digital Lending Rules",
+      description:
+        "Board-ready 2,200-word analytical brief breaking down risk scoring compliance, APR transparency disclosures, and M-Pesa API settlement architecture for fintech founders.",
+      academicLevel: "Executive / Industry",
+      wordCount: 2200,
+      citationStyle: "Harvard",
+      budgetMin: 6000,
+      budgetMax: 9500,
+      currency: "KES",
+      deadlineDays: 4,
+      requiredConnects: 4,
+      isUrgent: false,
+      isSealed: false,
+      ndaRequired: false,
+      allowTripwireOutline: true,
+      status: "OPEN",
+      expiresAt: daysFromNow(14),
+    },
+  });
+
+  const brief3 = await db.openBrief.upsert({
+    where: { briefRef: "BRF-2026-9003" },
+    update: {},
+    create: {
+      briefRef: "BRF-2026-9003",
+      customerId: proCustomer.id,
+      categoryId: essayFull.categoryId,
+      title: "Sealed MBA Case Critique: Cold-Chain Agritech Unit Economics in Rift Valley",
+      description:
+        "Confidential strategic memo evaluating solar cold-storage SaaS margins, farmer co-op churn, and blended finance debt structuring.",
+      academicLevel: "MBA / Executive",
+      wordCount: 1800,
+      citationStyle: "Chicago",
+      budgetMin: 4500,
+      budgetMax: 7000,
+      currency: "KES",
+      deadlineDays: 2,
+      requiredConnects: 4,
+      isUrgent: false,
+      isSealed: true,
+      ndaRequired: true,
+      allowTripwireOutline: true,
+      status: "OPEN",
+      expiresAt: daysFromNow(10),
+    },
+  });
+
+  await db.taskBid.upsert({
+    where: {
+      openBriefId_creatorProfileId: {
+        openBriefId: brief1.id,
+        creatorProfileId: creatorProfile1.id,
+      },
+    },
+    update: {},
+    create: {
+      openBriefId: brief1.id,
+      creatorProfileId: creatorProfile1.id,
+      proposedPrice: 10500,
+      currency: "KES",
+      deliveryDays: 2,
+      pitch:
+        "I have peer-reviewed 14 environmental economics manuscripts covering East African Article 6.4 registries. I can deliver a 25-source synthesis matrix plus an annotated KES 490 first-page outline within 10 hours.",
+      sampleHook:
+        "Proposed thesis maps Verra VM0042 baselines against Kenya Forestry Service county benefit-sharing rules...",
+      baseConnectsSpent: 6,
+      boostConnects: 8,
+      isSealed: false,
+      isFeatured: true,
+      rankScore: 158,
+    },
+  });
+
+  await db.taskBid.upsert({
+    where: {
+      openBriefId_creatorProfileId: {
+        openBriefId: brief1.id,
+        creatorProfileId: creatorProfile2.id,
+      },
+    },
+    update: {},
+    create: {
+      openBriefId: brief1.id,
+      creatorProfileId: creatorProfile2.id,
+      proposedPrice: 9800,
+      currency: "KES",
+      deliveryDays: 3,
+      pitch:
+        "My background in financial engineering covers carbon derivative pricing and satellite MRV audit trails. Happy to provide structured quantitative tables cleanly cited in APA 7th.",
+      sampleHook:
+        "Includes quantitative comparison table of MRV verification costs per tonne across 3 pilot corridors...",
+      baseConnectsSpent: 6,
+      boostConnects: 2,
+      isSealed: false,
+      isFeatured: false,
+      rankScore: 112,
+    },
+  });
+
+  await db.taskBid.upsert({
+    where: {
+      openBriefId_creatorProfileId: {
+        openBriefId: brief2.id,
+        creatorProfileId: creatorProfile2.id,
+      },
+    },
+    update: {},
+    create: {
+      openBriefId: brief2.id,
+      creatorProfileId: creatorProfile2.id,
+      proposedPrice: 7800,
+      currency: "KES",
+      deliveryDays: 2,
+      pitch:
+        "As a FinTech policy analyst, I track CBK DCP licensing circulars closely and can deliver a clean executive flow diagram + M-Pesa reconciliation breakdown.",
+      sampleHook:
+        "Section 1 benchmarks CBK DCP disclosure rules against 2025 East African mobile credit cohorts...",
+      baseConnectsSpent: 4,
+      boostConnects: 6,
+      isSealed: false,
+      isFeatured: true,
+      rankScore: 146,
+    },
+  });
+
+  await db.taskBid.upsert({
+    where: {
+      openBriefId_creatorProfileId: {
+        openBriefId: brief2.id,
+        creatorProfileId: creatorProfile1.id,
+      },
+    },
+    update: {},
+    create: {
+      openBriefId: brief2.id,
+      creatorProfileId: creatorProfile1.id,
+      proposedPrice: 8200,
+      currency: "KES",
+      deliveryDays: 3,
+      pitch:
+        "I can frame the regulatory whitepaper for institutional investors with empirical comparative tables and executive callout boxes.",
+      baseConnectsSpent: 4,
+      boostConnects: 0,
+      isSealed: false,
+      isFeatured: false,
+      rankScore: 118,
+    },
+  });
+
+  await db.taskBid.upsert({
+    where: {
+      openBriefId_creatorProfileId: {
+        openBriefId: brief3.id,
+        creatorProfileId: creatorProfile1.id,
+      },
+    },
+    update: {},
+    create: {
+      openBriefId: brief3.id,
+      creatorProfileId: creatorProfile1.id,
+      proposedPrice: 5800,
+      currency: "KES",
+      deliveryDays: 2,
+      pitch:
+        "Sealed executive analysis: full unit-economics sensitivity table comparing pay-as-you-store vs. cooperative SaaS leases under strict NDA.",
+      baseConnectsSpent: 4,
+      boostConnects: 4,
+      isSealed: true,
+      isFeatured: true,
+      rankScore: 136,
+    },
+  });
+
+  const existingConnectsTx = await db.connectsTransaction.count();
+  if (existingConnectsTx === 0) {
+    await db.connectsTransaction.createMany({
+      data: [
+        {
+          creatorProfileId: creatorProfile1.id,
+          type: "BUNDLE_PURCHASE",
+          amount: 100,
+          balanceAfter: 130,
+          description: "Purchased Studio Authority Pack (100 Connects + Featured Boost)",
+        },
+        {
+          creatorProfileId: creatorProfile1.id,
+          type: "PROFILE_BOOST",
+          amount: -20,
+          balanceAfter: 110,
+          description: "Activated Featured Profile & Available Now Spotlight",
+        },
+        {
+          creatorProfileId: creatorProfile1.id,
+          type: "BID_BOOST_STAKE",
+          amount: -25,
+          balanceAfter: 85,
+          description: "Staked Connects on BRF-2026-9001 & BRF-2026-9003 for Rank #1",
+        },
+        {
+          creatorProfileId: creatorProfile2.id,
+          type: "BUNDLE_PURCHASE",
+          amount: 50,
+          balanceAfter: 65,
+          description: "Purchased Growth Bidder Pack (50 Connects)",
+        },
+        {
+          creatorProfileId: creatorProfile2.id,
+          type: "BID_BOOST_STAKE",
+          amount: -20,
+          balanceAfter: 45,
+          description: "Submitted & boosted competitive proposals on BRF-2026-9001 & BRF-2026-9002",
+        },
+      ],
+    });
+  }
+
   console.log("Seeded Tovolana Writers PostgreSQL database cleanly.");
 }
 

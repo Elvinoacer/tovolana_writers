@@ -126,6 +126,40 @@ const DEFAULT_FIELDS: RequirementField[] = [
   },
 ];
 
+const VALID_ADDON_IDS = new Set([
+  "originality_report",
+  "executive_summary",
+  "nda_sealed",
+  "elite_writer",
+  "priority_rush",
+]);
+
+function readInitialBookingQuery(): {
+  mode: "FULL_ESCROW" | "MILESTONE_SPLIT" | "TRIPWIRE_OUTLINE";
+  addons: string[];
+} {
+  if (typeof window === "undefined") {
+    return { mode: "FULL_ESCROW", addons: ["originality_report"] };
+  }
+  const params = new URLSearchParams(window.location.search);
+  const modeParam = params.get("mode");
+  const mode =
+    modeParam === "FULL_ESCROW" ||
+    modeParam === "MILESTONE_SPLIT" ||
+    modeParam === "TRIPWIRE_OUTLINE"
+      ? modeParam
+      : "FULL_ESCROW";
+
+  const addons = params.has("addons")
+    ? (params.get("addons") ?? "")
+        .split(",")
+        .map((id) => id.trim())
+        .filter((id) => VALID_ADDON_IDS.has(id))
+    : ["originality_report"];
+
+  return { mode, addons };
+}
+
 export default function BookTaskPage({
   params,
 }: {
@@ -145,7 +179,13 @@ export default function BookTaskPage({
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [responses, setResponses] = useState<Record<string, string>>({});
   const [requestedDeadline, setRequestedDeadline] = useState("");
-  const [rushSelected, setRushSelected] = useState(false);
+  const [selectedAddOns, setSelectedAddOns] = useState<string[]>(
+    () => readInitialBookingQuery().addons
+  );
+  const [checkoutMode, setCheckoutMode] = useState<
+    "FULL_ESCROW" | "MILESTONE_SPLIT" | "TRIPWIRE_OUTLINE"
+  >(() => readInitialBookingQuery().mode);
+  const rushSelected = selectedAddOns.includes("priority_rush");
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   const [briefFile, setBriefFile] = useState<File | null>(null);
   const briefInputRef = useRef<HTMLInputElement | null>(null);
@@ -210,8 +250,91 @@ export default function BookTaskPage({
       : DEFAULT_FIELDS;
 
   const activeTier = userIsPro ? proPricing : freePricing;
-  const rushFee = rushSelected && task ? Math.round(task.basePrice * 0.2) : 0;
-  const computedTotal = (activeTier?.totalPayable ?? 0) + rushFee;
+
+  const CLIENT_CHECKOUT_ADDONS_UI = [
+    {
+      id: "originality_report",
+      label: "Originality & AI-Free Authenticity Report",
+      description:
+        "Official similarity & human-authorship verification PDF bundled with final delivery.",
+      pricingKind: "FLAT" as const,
+      value: 450,
+      badge: "Most Selected",
+    },
+    {
+      id: "executive_summary",
+      label: "1-Page Executive Summary & Key Takeaways",
+      description:
+        "Distilled board-ready brief highlighting core arguments, data points, and citations.",
+      pricingKind: "FLAT" as const,
+      value: 850,
+    },
+    {
+      id: "nda_sealed",
+      label: "Strict NDA & Sealed Confidential Workspace",
+      description:
+        "Locks non-disclosure terms and keeps project files & briefs excluded from samples.",
+      pricingKind: "FLAT" as const,
+      value: 600,
+    },
+    {
+      id: "elite_writer",
+      label: "Top 5% Elite Writer Guarantee",
+      description:
+        "Routes priority quality review and assigns top-decile rubric & rating specialists.",
+      pricingKind: "PERCENTAGE" as const,
+      value: 15,
+      badge: "Top Rated",
+    },
+    {
+      id: "priority_rush",
+      label: "Priority Express Rush Turnaround",
+      description:
+        "Halves standard delivery turnaround window with urgent milestone SLA alerts.",
+      pricingKind: "PERCENTAGE" as const,
+      value: 20,
+      badge: "Fastest",
+    },
+  ];
+
+  const itemizedAddOns = task
+    ? selectedAddOns
+        .map((id) => {
+          const cfg = CLIENT_CHECKOUT_ADDONS_UI.find((item) => item.id === id);
+          if (!cfg) return null;
+          const amount =
+            cfg.pricingKind === "FLAT"
+              ? cfg.value
+              : Math.round(task.basePrice * (cfg.value / 100) * 100) / 100;
+          return { id: cfg.id, label: cfg.label, amount };
+        })
+        .filter((x): x is { id: string; label: string; amount: number } =>
+          Boolean(x)
+        )
+    : [];
+
+  const addOnsTotal =
+    Math.round(
+      itemizedAddOns.reduce((sum, item) => sum + item.amount, 0) * 100
+    ) / 100;
+  const fullOrderTotal =
+    Math.round(((activeTier?.totalPayable ?? 0) + addOnsTotal) * 100) / 100;
+  const proFullOrderTotal =
+    Math.round(((proPricing?.totalPayable ?? 0) + addOnsTotal) * 100) / 100;
+
+  const computedTotal =
+    checkoutMode === "TRIPWIRE_OUTLINE"
+      ? 490
+      : checkoutMode === "MILESTONE_SPLIT"
+        ? Math.round(fullOrderTotal * 0.25 * 100) / 100
+        : fullOrderTotal;
+  const remainingBalance =
+    checkoutMode === "FULL_ESCROW"
+      ? 0
+      : Math.max(
+          0,
+          Math.round((fullOrderTotal - computedTotal) * 100) / 100
+        );
 
   async function handleCreateBooking() {
     if (!task) return;
@@ -234,7 +357,9 @@ export default function BookTaskPage({
           requestedDeadline: requestedDeadline
             ? new Date(requestedDeadline).toISOString()
             : undefined,
-          rushExtraCharge: rushFee,
+          rushExtraCharge: 0,
+          selectedAddOns,
+          checkoutMode,
         }),
       });
       const json = await res.json().catch(() => null);
@@ -604,24 +729,131 @@ export default function BookTaskPage({
                   </div>
                 </div>
 
-                <label className="flex items-start gap-3 p-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={rushSelected}
-                    onChange={(e) => setRushSelected(e.target.checked)}
-                    className="mt-1"
-                  />
-                  <div className="text-xs">
-                    <span className="font-semibold text-[#111827]">
-                      Priority Rush (+20% ·{" "}
-                      {formatKes(Math.round(task.basePrice * 0.2), task.currency)}
-                      )
-                    </span>
-                    <p className="text-stone-600 mt-0.5">
-                      Halves standard delivery turnaround where eligible.
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#1e3a8a]">
+                      Optional Value Add-Ons
+                    </p>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Bundle verified quality guarantees &amp; turnaround accelerators into your escrow order.
                     </p>
                   </div>
-                </label>
+                  <div className="space-y-2.5">
+                    {CLIENT_CHECKOUT_ADDONS_UI.map((addon) => {
+                      const checked = selectedAddOns.includes(addon.id);
+                      const addonCost =
+                        addon.pricingKind === "FLAT"
+                          ? addon.value
+                          : Math.round(
+                              task.basePrice * (addon.value / 100) * 100
+                            ) / 100;
+                      return (
+                        <label
+                          key={addon.id}
+                          className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                            checked
+                              ? "border-[#1e3a8a] bg-blue-50/40"
+                              : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setSelectedAddOns((prev) =>
+                                e.target.checked
+                                  ? [...prev, addon.id]
+                                  : prev.filter((x) => x !== addon.id)
+                              );
+                            }}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="font-semibold text-[#111827] flex items-center gap-1.5">
+                                {addon.label}
+                                {addon.badge && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-900">
+                                    {addon.badge}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="font-tech font-semibold text-[#1e3a8a]">
+                                +{formatKes(addonCost, task.currency)}
+                              </span>
+                            </div>
+                            <p className="text-stone-600 mt-0.5">
+                              {addon.description}
+                            </p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0f766e]">
+                      Escrow Commitment Plan
+                    </p>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Start with a low-risk KES 490 outline or lock 25% deposit — balance settles only after milestone review.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    {[
+                      {
+                        mode: "FULL_ESCROW" as const,
+                        title: "Full Escrow",
+                        tag: "100% Today",
+                        amount: fullOrderTotal,
+                        desc: "Full escrow funding upfront with zero split balance remaining.",
+                      },
+                      {
+                        mode: "MILESTONE_SPLIT" as const,
+                        title: "25% Deposit Lock",
+                        tag: "Flexible",
+                        amount: Math.round(fullOrderTotal * 0.25 * 100) / 100,
+                        desc: "Reserve creator slot with 25% today; 75% unlocked at draft delivery.",
+                      },
+                      {
+                        mode: "TRIPWIRE_OUTLINE" as const,
+                        title: "First-Page Outline",
+                        tag: "KES 490 Start",
+                        amount: 490,
+                        desc: "Audit quality first with an outline + opening page before funding full project.",
+                      },
+                    ].map((plan) => {
+                      const active = checkoutMode === plan.mode;
+                      return (
+                        <button
+                          key={plan.mode}
+                          type="button"
+                          onClick={() => setCheckoutMode(plan.mode)}
+                          className={`text-left p-3.5 rounded-xl border transition-colors ${
+                            active
+                              ? "border-[#0f766e] bg-teal-50/60"
+                              : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 text-[11px] font-semibold">
+                            <span className="text-[#111827]">{plan.title}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-white border border-[#e6e0d4] text-[#0f766e]">
+                              {plan.tag}
+                            </span>
+                          </div>
+                          <p className="font-tech text-base font-bold text-[#1e3a8a] mt-1">
+                            {formatKes(plan.amount, task.currency)}
+                          </p>
+                          <p className="text-[11px] text-stone-600 mt-1 leading-snug">
+                            {plan.desc}
+                          </p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end pt-2">
@@ -941,18 +1173,43 @@ export default function BookTaskPage({
                     </span>
                   </div>
                 )}
-                {rushFee > 0 && (
-                  <div className="flex justify-between text-blue-900">
-                    <span>Priority Rush</span>
-                    <span className="font-tech">
-                      +{formatKes(rushFee, task.currency)}
+                {itemizedAddOns.map((addon) => (
+                  <div
+                    key={addon.id}
+                    className="flex justify-between gap-2 text-xs text-blue-900"
+                  >
+                    <span className="line-clamp-1">{addon.label}</span>
+                    <span className="font-tech shrink-0">
+                      +{formatKes(addon.amount, task.currency)}
                     </span>
                   </div>
+                ))}
+                {checkoutMode !== "FULL_ESCROW" && (
+                  <>
+                    <div className="flex justify-between text-xs text-stone-500 pt-1 border-t border-dashed border-[#e6e0d4]">
+                      <span>Full Order Value</span>
+                      <span className="font-tech">
+                        {formatKes(fullOrderTotal, task.currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-[#0f766e]">
+                      <span>Remaining After Milestone</span>
+                      <span className="font-tech font-medium">
+                        {formatKes(remainingBalance, task.currency)}
+                      </span>
+                    </div>
+                  </>
                 )}
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-[#111827]">Total Payable</span>
+                <span className="font-semibold text-[#111827]">
+                  {checkoutMode === "FULL_ESCROW"
+                    ? "Total Payable"
+                    : checkoutMode === "MILESTONE_SPLIT"
+                      ? "25% Deposit Due Now"
+                      : "Outline Trial Due Now"}
+                </span>
                 <span className="font-tech text-2xl font-bold text-[#1e3a8a]">
                   {formatKes(computedTotal, task.currency)}
                 </span>
@@ -964,9 +1221,9 @@ export default function BookTaskPage({
                   <span>
                     Pro pays{" "}
                     <strong className="font-tech">
-                      {formatKes(proPricing.totalPayable, task.currency)}
-                    </strong>
-                    .{" "}
+                      {formatKes(proFullOrderTotal, task.currency)}
+                    </strong>{" "}
+                    full order.{" "}
                     <Link href="/membership" className="underline font-semibold">
                       Compare Pro
                     </Link>

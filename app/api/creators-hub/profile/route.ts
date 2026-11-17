@@ -3,6 +3,7 @@ import { z } from "zod";
 import { MediaAssetPurpose, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { computeCreatorProfileStandoutScore } from "@/lib/pricing";
 import { fail, handleApiError, ok } from "@/lib/http";
 
 const ALLOWED_PORTFOLIO_ASSET_PURPOSES = new Set<MediaAssetPurpose>([
@@ -41,6 +42,19 @@ const updateProfileSchema = z.object({
   writingCategories: z.array(z.string().min(2)).min(1).optional(),
   isAvailable: z.boolean().optional(),
   autoAcceptBookings: z.boolean().optional(),
+  taglineBadge: z.string().max(90).nullable().optional(),
+  educationCredentials: z.string().max(180).nullable().optional(),
+  introVideoUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || isAllowedPortfolioUrl(v), {
+      message: "Intro pitch URL must be https:// or http://.",
+    })
+    .nullable()
+    .optional(),
+  yearsExperience: z.number().int().min(0).max(50).optional(),
+  responseTimeMinutes: z.number().int().min(1).max(1440).optional(),
   portfolioSamples: z
     .array(
       z.object({
@@ -109,10 +123,18 @@ export async function GET(request: NextRequest) {
         ? latestAvatarAsset.id
         : null;
 
+    const standoutReport = creatorProfile
+      ? computeCreatorProfileStandoutScore({
+          ...creatorProfile,
+          avatarUrl: creatorProfile.user?.avatarUrl ?? null,
+        })
+      : null;
+
     return ok({
       creatorProfile,
       attempts,
       avatarAssetId,
+      standoutReport,
     });
   } catch (err) {
     return handleApiError(err);
@@ -172,6 +194,41 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
+    const existing = await db.creatorProfile.findUniqueOrThrow({
+      where: { id: user.creatorProfile.id },
+      include: { user: { select: { avatarUrl: true } } },
+    });
+
+    const nextTagline =
+      body.taglineBadge !== undefined
+        ? body.taglineBadge?.trim() || null
+        : existing.taglineBadge;
+    const nextCredentials =
+      body.educationCredentials !== undefined
+        ? body.educationCredentials?.trim() || null
+        : existing.educationCredentials;
+    const nextIntroVideo =
+      body.introVideoUrl !== undefined
+        ? body.introVideoUrl?.trim() || null
+        : existing.introVideoUrl;
+
+    const standoutReport = computeCreatorProfileStandoutScore({
+      displayName: body.displayName?.trim() ?? existing.displayName,
+      headline: body.headline?.trim() ?? existing.headline,
+      bio: body.bio?.trim() ?? existing.bio,
+      writingCategories: body.writingCategories ?? existing.writingCategories,
+      portfolioSamples: body.portfolioSamples ?? existing.portfolioSamples,
+      taglineBadge: nextTagline,
+      educationCredentials: nextCredentials,
+      introVideoUrl: nextIntroVideo,
+      yearsExperience: body.yearsExperience ?? existing.yearsExperience,
+      responseTimeMinutes:
+        body.responseTimeMinutes ?? existing.responseTimeMinutes,
+      avatarUrl: existing.user?.avatarUrl ?? null,
+      availableNowBadgeUntil: existing.availableNowBadgeUntil,
+      featuredProfileUntil: existing.featuredProfileUntil,
+    });
+
     const updated = await db.creatorProfile.update({
       where: { id: user.creatorProfile.id },
       data: {
@@ -181,6 +238,12 @@ export async function PATCH(request: NextRequest) {
         writingCategories: body.writingCategories,
         isAvailable: body.isAvailable,
         autoAcceptBookings: body.autoAcceptBookings,
+        taglineBadge: nextTagline,
+        educationCredentials: nextCredentials,
+        introVideoUrl: nextIntroVideo,
+        yearsExperience: body.yearsExperience,
+        responseTimeMinutes: body.responseTimeMinutes,
+        profileCompletenessScore: standoutReport.score,
         portfolioSamples: body.portfolioSamples as
           | Prisma.InputJsonValue
           | undefined,
@@ -196,7 +259,7 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
-    return ok({ creatorProfile: updated });
+    return ok({ creatorProfile: updated, standoutReport });
   } catch (err) {
     return handleApiError(err);
   }

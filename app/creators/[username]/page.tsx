@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { Award, CheckCircle2, ExternalLink, FileText, Star } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { isUserProActive } from "@/lib/pricing";
+import { isFutureTimestamp, isUserProActive } from "@/lib/pricing";
 import {
   isAllowedNextImageSrc,
   isSafeMediaDisplayUrl,
@@ -45,8 +45,13 @@ export default async function PublicCreatorProfilePage({
                 id: true,
                 username: true,
                 displayName: true,
+                headline: true,
                 ratingAverage: true,
                 completedBookingsCount: true,
+                assessmentScore: true,
+                creatorTier: true,
+                isAvailable: true,
+                onTimeDeliveryRate: true,
                 user: { select: { avatarUrl: true } },
               },
             },
@@ -85,6 +90,9 @@ export default async function PublicCreatorProfilePage({
       }>)
     : [];
 
+  const availableNowActive = isFutureTimestamp(creator.availableNowBadgeUntil);
+  const featuredSpotlightActive = isFutureTimestamp(creator.featuredProfileUntil);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 animate-reveal">
       {/* Editorial Creator Banner */}
@@ -92,6 +100,39 @@ export default async function PublicCreatorProfilePage({
         <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <VettedCreatorBadge />
+            {creator.creatorTier && (
+              <span
+                className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                  creator.creatorTier === "ELITE"
+                    ? "bg-amber-50 text-amber-900 border-amber-300"
+                    : creator.creatorTier === "TOP_RATED"
+                      ? "bg-blue-50 text-[#1e3a8a] border-blue-200"
+                      : "bg-teal-50 text-[#0f766e] border-teal-200"
+                }`}
+              >
+                {creator.creatorTier === "ELITE"
+                  ? "Elite Tier"
+                  : creator.creatorTier === "TOP_RATED"
+                    ? "Top Rated"
+                    : "Rising Talent"}
+              </span>
+            )}
+            {availableNowActive && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-600 text-white">
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                Available Now
+              </span>
+            )}
+            {featuredSpotlightActive && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#1e3a8a] text-white">
+                Featured Spotlight
+              </span>
+            )}
+            {creator.taglineBadge && (
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#faf7f2] text-stone-800 border border-[#e6e0d4]">
+                {creator.taglineBadge}
+              </span>
+            )}
             <span
               className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                 creator.isAvailable
@@ -127,6 +168,62 @@ export default async function PublicCreatorProfilePage({
           <p className="text-sm text-stone-600 leading-relaxed max-w-2xl">
             {creator.bio}
           </p>
+
+          <div className="flex flex-wrap gap-2 pt-1 text-xs">
+            {creator.educationCredentials && (
+              <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 font-medium">
+                {creator.educationCredentials}
+              </span>
+            )}
+            {typeof creator.yearsExperience === "number" &&
+              creator.yearsExperience > 0 && (
+                <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] font-tech text-stone-700">
+                  {creator.yearsExperience}+ yrs experience
+                </span>
+              )}
+            {typeof creator.responseTimeMinutes === "number" && (
+              <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] font-tech text-stone-700">
+                ~{creator.responseTimeMinutes}m avg response
+              </span>
+            )}
+            {typeof creator.onTimeDeliveryRate === "number" && (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-tech text-emerald-900">
+                {creator.onTimeDeliveryRate}% on-time SLA
+              </span>
+            )}
+            {typeof creator.profileCompletenessScore === "number" && (
+              <span className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 font-tech text-[#1e3a8a]">
+                {creator.profileCompletenessScore}% Standout Score
+              </span>
+            )}
+            {creator.introVideoUrl && (
+              <a
+                href={creator.introVideoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold hover:bg-amber-100"
+              >
+                Watch Intro Pitch ↗
+              </a>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-[#1e3a8a]/20 bg-[#faf7f2] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold text-[#111827]">
+                Need {creator.displayName} on a custom brief?
+              </p>
+              <p className="text-xs text-stone-600">
+                Post a brief from a KES 490 First-Page Outline & invite vetted writers to compete.
+              </p>
+            </div>
+            <Link
+              href="/bidding"
+              className="btn-primary px-4 py-2 text-xs whitespace-nowrap text-center"
+            >
+              Invite to Bid (From KES 490)
+            </Link>
+          </div>
 
           <div className="flex flex-wrap gap-1.5">
             {creator.writingCategories.map((cat) => (

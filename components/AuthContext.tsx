@@ -21,6 +21,9 @@ export interface ClientUser {
     displayName: string;
     applicationStatus: string;
     assessmentScore: number | null;
+    connectsBalance?: number;
+    creatorTier?: string;
+    profileCompletenessScore?: number;
   } | null;
 }
 

@@ -44,7 +44,7 @@ export default async function HomePage() {
     : false;
   const now = new Date();
 
-  const [config, categories, featuredTasks, stats] = await Promise.all([
+  const [config, categories, featuredTasks, stats, openBriefs] = await Promise.all([
     db.platformConfig.findUnique({ where: { id: "global" } }),
     db.category.findMany({
       where: { isActive: true },
@@ -73,8 +73,13 @@ export default async function HomePage() {
             id: true,
             username: true,
             displayName: true,
+            headline: true,
             ratingAverage: true,
             completedBookingsCount: true,
+            assessmentScore: true,
+            creatorTier: true,
+            isAvailable: true,
+            onTimeDeliveryRate: true,
             user: { select: { avatarUrl: true } },
           },
         },
@@ -87,6 +92,15 @@ export default async function HomePage() {
       db.creatorProfile.count({ where: { applicationStatus: "APPROVED" } }),
       db.taskListing.count({ where: { status: "PUBLISHED" } }),
     ]),
+    db.openBrief.findMany({
+      where: { status: "OPEN" },
+      orderBy: [{ isUrgent: "desc" }, { createdAt: "desc" }],
+      take: 2,
+      include: {
+        category: { select: { name: true } },
+        _count: { select: { bids: true } },
+      },
+    }),
   ]);
 
   const [creatorsCount, publishedCount] = stats;
@@ -210,6 +224,133 @@ export default async function HomePage() {
             />
           ))}
         </div>
+      </section>
+
+      {/* 3 Ways to Commission — Engineered for First-Visit Client Conversion */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 space-y-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-[#b45309]">
+              Zero-Friction Escrow Funnel
+            </p>
+            <h2 className="font-editorial text-2xl sm:text-3xl font-semibold text-[#111827] mt-1">
+              3 Ways to Commission — Start From Just KES 490
+            </h2>
+          </div>
+          <Link
+            href="/bidding"
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#1e3a8a] hover:underline"
+          >
+            Browse Open Bidding Briefs →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="editorial-card p-6 bg-white space-y-3 border-t-4 border-t-[#b45309]">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-[#b45309] text-[11px] font-semibold">
+              Most Popular First Step
+            </span>
+            <h3 className="font-editorial text-xl font-semibold text-[#111827]">
+              KES 490 First-Page Outline
+            </h3>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Test quality before committing full budget. Receive an annotated thesis structure, methodology map &amp; opening page in 12 hours via M-Pesa.
+            </p>
+            <Link
+              href="/explore"
+              className="inline-block text-xs font-semibold text-[#1e3a8a] hover:underline pt-1"
+            >
+              Pick a Service &amp; Start at KES 490 →
+            </Link>
+          </div>
+
+          <div className="editorial-card p-6 bg-white space-y-3 border-t-4 border-t-[#1e3a8a]">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-[#1e3a8a] text-[11px] font-semibold">
+              Competitive Marketplace
+            </span>
+            <h3 className="font-editorial text-xl font-semibold text-[#111827]">
+              Post a Brief &amp; Compare Live Bids
+            </h3>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Describe your project for free and watch vetted specialists compete with ranked proposals, samples, and custom milestone pricing.
+            </p>
+            <Link
+              href="/bidding"
+              className="inline-block text-xs font-semibold text-[#1e3a8a] hover:underline pt-1"
+            >
+              Post a Free Brief Now →
+            </Link>
+          </div>
+
+          <div className="editorial-card p-6 bg-white space-y-3 border-t-4 border-t-[#0f766e]">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-teal-50 border border-teal-200 text-[#0f766e] text-[11px] font-semibold">
+              25% Deposit or Full Escrow
+            </span>
+            <h3 className="font-editorial text-xl font-semibold text-[#111827]">
+              Protected Milestone Escrow
+            </h3>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              Lock in a top specialist with 25% down or full escrow. Add AI-free originality reports, executive summaries, or strict NDA at checkout.
+            </p>
+            <Link
+              href="/membership"
+              className="inline-block text-xs font-semibold text-[#0f766e] hover:underline pt-1"
+            >
+              Compare Client Pro (50% Lower Fees) →
+            </Link>
+          </div>
+        </div>
+
+        {openBriefs.length > 0 && (
+          <div className="editorial-card p-6 bg-[#faf7f2] border border-[#e6e0d4] space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-[#0f766e]">
+                  Live Bidding Floor
+                </p>
+                <h3 className="font-editorial text-lg font-semibold text-[#111827]">
+                  Active Client Briefs Accepting Proposals Right Now
+                </h3>
+              </div>
+              <Link
+                href="/bidding"
+                className="btn-primary px-4 py-2 text-xs whitespace-nowrap"
+              >
+                Enter Bidding Floor
+              </Link>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {openBriefs.map((brief) => (
+                <Link
+                  key={brief.id}
+                  href={`/bidding/${brief.id}`}
+                  className="p-4 rounded-xl bg-white border border-[#e6e0d4] hover:border-[#1e3a8a]/50 transition-colors flex flex-col justify-between gap-2"
+                >
+                  <div className="flex items-center justify-between gap-2 text-xs">
+                    <span className="font-semibold text-[#1e3a8a]">
+                      {brief.category.name}
+                    </span>
+                    <span className="font-tech text-stone-500">
+                      {brief._count.bids} bids · {brief.requiredConnects} Connects
+                    </span>
+                  </div>
+                  <p className="font-editorial font-semibold text-[#111827] line-clamp-1">
+                    {brief.title}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-stone-600 pt-1">
+                    <span className="font-tech font-semibold text-[#0f766e]">
+                      KES {Number(brief.budgetMin).toLocaleString()} –{" "}
+                      {Number(brief.budgetMax).toLocaleString()}
+                    </span>
+                    <span className="text-[#1e3a8a] font-medium">
+                      View Ranked Bids →
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Full-Bleed 5-iPhone Real Journey Showcase */}

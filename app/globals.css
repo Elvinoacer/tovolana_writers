@@ -19,8 +19,9 @@
 @theme inline {
   --color-background: var(--bg-canvas);
   --color-foreground: var(--ink-primary);
-  --font-serif: var(--font-fraunces), Georgia, serif;
-  --font-sans: var(--font-plus-jakarta), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-plus-jakarta), var(--font-inter), system-ui, sans-serif;
+  --font-serif: var(--font-plus-jakarta), var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
 }
 
@@ -40,12 +41,14 @@ h1,
 h2,
 h3,
 .font-editorial {
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
 }
 
 .font-tech {
-  font-family: var(--font-mono);
+  font-family: var(--font-display);
   font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" on, "cv05" on;
 }
 
 /* Editorial Surfaces */
@@ -90,7 +93,10 @@ h3,
 }
 
 .ink-grid-bg {
-  background-image: radial-gradient(rgba(17, 24, 39, 0.08) 1px, transparent 1px);
+  background-image: radial-gradient(
+    rgba(17, 24, 39, 0.08) 1px,
+    transparent 1px
+  );
   background-size: 22px 22px;
 }
 
@@ -248,5 +254,25 @@ h3,
   }
   .editorial-card-interactive:hover {
     transform: none !important;
+  }
+}
+
+/* app/globals.css */
+@layer utilities {
+  .font-sans {
+    font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .font-editorial {
+    font-family: var(--font-plus-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  .font-tech {
+    font-family: var(--font-plus-jakarta), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings:
+      "tnum" on,
+      "cv05" on;
   }
 }

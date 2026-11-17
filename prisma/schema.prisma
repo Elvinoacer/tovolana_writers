@@ -83,6 +83,47 @@ enum PaymentStatus {
 enum PaymentPurpose {
   BOOKING_ESCROW
   PRO_SUBSCRIPTION
+  CONNECTS_PURCHASE
+  CREATOR_BOOST
+}
+
+enum CreatorTier {
+  STANDARD
+  RISING_TALENT
+  TOP_RATED
+  ELITE
+}
+
+enum OpenBriefStatus {
+  OPEN
+  AWARDED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum TaskBidStatus {
+  ACTIVE
+  SHORTLISTED
+  ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+enum ConnectTransactionType {
+  INITIAL_GRANT
+  BUNDLE_PURCHASE
+  EARNINGS_SWAP
+  BID_SUBMITTED
+  BID_BOOST_STAKE
+  BID_SEALED_UPGRADE
+  BID_FEATURED_UPGRADE
+  PROFILE_BOOST
+  AVAILABILITY_BADGE
+  CREATOR_PLUS_UNLOCK
+  REFUND
+  ADMIN_ADJUSTMENT
 }
 
 enum PaymentChannel {
@@ -169,6 +210,7 @@ model User {
   authoredReviews      Review[]
   auditLogsAsActor     AdminAuditLog[]
   mediaAssets          MediaAsset[]
+  openBriefs           OpenBrief[]
 }
 
 model AuthAccount {
@@ -249,16 +291,31 @@ model CreatorProfile {
   ratingAverage             Float                    @default(5.0)
   completedBookingsCount    Int                      @default(0)
   portfolioSamples          Json?
+  connectsBalance           Int                      @default(20)
+  totalConnectsSpent        Int                      @default(0)
+  creatorTier               CreatorTier              @default(STANDARD)
+  profileCompletenessScore  Int                      @default(70)
+  taglineBadge              String?
+  introVideoUrl             String?
+  educationCredentials      String?
+  yearsExperience           Int                      @default(3)
+  responseTimeMinutes       Int                      @default(30)
+  onTimeDeliveryRate        Float                    @default(98.5)
+  availableNowBadgeUntil    DateTime?
+  featuredProfileUntil      DateTime?
+  creatorPlusUntil          DateTime?
   createdAt                 DateTime                 @default(now())
   updatedAt                 DateTime                 @updatedAt
 
-  user               User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  assessmentAttempts CreatorAssessmentAttempt[]
-  listings           TaskListing[]
-  bookings           Booking[]                  @relation("CreatorBookings")
-  earningsLedger     CreatorEarningsLedger[]
-  payouts            CreatorPayout[]
-  reviewsReceived    Review[]
+  user                User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assessmentAttempts  CreatorAssessmentAttempt[]
+  listings            TaskListing[]
+  bookings            Booking[]                  @relation("CreatorBookings")
+  earningsLedger      CreatorEarningsLedger[]
+  payouts             CreatorPayout[]
+  reviewsReceived     Review[]
+  bids                TaskBid[]
+  connectTransactions ConnectsTransaction[]
 }
 
 model AssessmentConfig {
@@ -316,7 +373,8 @@ model Category {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  listings TaskListing[]
+  listings   TaskListing[]
+  openBriefs OpenBrief[]
 }
 
 model TaskListing {
@@ -374,6 +432,12 @@ model Booking {
   proDiscount            Float         @default(0)
   totalPayable           Float
   creatorNetAmount       Float
+  checkoutMode           String        @default("FULL_ESCROW")
+  selectedAddOns         Json          @default("[]")
+  addOnsTotal            Float         @default(0)
+  creatorCommissionPct   Float         @default(0)
+  openBriefId            String?
+  awardedBidId           String?
   requirementsResponses  Json
   agreedDeliveryDeadline DateTime
   status                 BookingStatus @default(PENDING_PAYMENT)
@@ -587,6 +651,9 @@ model CreatorPayout {
   amount           Float
   currency         String       @default("KES")
   destinationPhone String
+  payoutSpeed      String       @default("STANDARD")
+  expressFee       Float        @default(0)
+  netDisbursed     Float        @default(0)
   status           PayoutStatus @default(REQUESTED)
   providerRef      String?
   requestedAt      DateTime     @default(now())
@@ -689,4 +756,82 @@ model AdminAuditLog {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+model OpenBrief {
+  id                   String          @id @default(cuid())
+  briefRef             String          @unique
+  customerId           String
+  categoryId           String
+  title                String
+  description          String
+  academicLevel        String          @default("Postgraduate / Masters")
+  wordCount            Int             @default(2000)
+  citationStyle        String          @default("APA 7th")
+  budgetMin            Float
+  budgetMax            Float
+  currency             String          @default("KES")
+  deadlineDays         Int             @default(3)
+  requiredConnects     Int             @default(4)
+  isUrgent             Boolean         @default(false)
+  isSealed             Boolean         @default(false)
+  ndaRequired          Boolean         @default(false)
+  allowTripwireOutline Boolean         @default(true)
+  status               OpenBriefStatus @default(OPEN)
+  awardedBidId         String?
+  bookingId            String?
+  expiresAt            DateTime
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  customer User      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  category Category  @relation(fields: [categoryId], references: [id])
+  bids     TaskBid[]
+
+  @@index([status, expiresAt])
+  @@index([categoryId, status])
+  @@index([customerId])
+}
+
+model TaskBid {
+  id                String        @id @default(cuid())
+  openBriefId       String
+  creatorProfileId  String
+  proposedPrice     Float
+  currency          String        @default("KES")
+  deliveryDays      Int
+  pitch             String
+  sampleHook        String?
+  baseConnectsSpent Int           @default(4)
+  boostConnects     Int           @default(0)
+  isSealed          Boolean       @default(false)
+  isFeatured        Boolean       @default(false)
+  rankScore         Float         @default(0)
+  status            TaskBidStatus @default(ACTIVE)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  openBrief      OpenBrief      @relation(fields: [openBriefId], references: [id], onDelete: Cascade)
+  creatorProfile CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([openBriefId, creatorProfileId])
+  @@index([openBriefId, rankScore])
+  @@index([creatorProfileId])
+}
+
+model ConnectsTransaction {
+  id                   String                 @id @default(cuid())
+  creatorProfileId     String
+  type                 ConnectTransactionType
+  amount               Int
+  balanceAfter         Int
+  description          String
+  bundleCode           String?
+  paymentTransactionId String?
+  bidId                String?
+  createdAt            DateTime               @default(now())
+
+  creatorProfile CreatorProfile @relation(fields: [creatorProfileId], references: [id], onDelete: Cascade)
+
+  @@index([creatorProfileId, createdAt])
 }

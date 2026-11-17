@@ -8,9 +8,11 @@ import {
   Briefcase,
   Feather,
   FilePlus2,
+  Gavel,
   ListChecks,
   UserCheck,
   Wallet,
+  Zap,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import { StatusPill } from "@/components/ui/Badges";
@@ -18,6 +20,8 @@ import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
 const CREATOR_TABS = [
   { href: "/creators-hub", label: "Studio Overview", icon: Briefcase },
+  { href: "/bidding", label: "Live Bidding", icon: Gavel },
+  { href: "/creators-hub/connects", label: "Connects & Boosts", icon: Zap },
   { href: "/creators-hub/listings/new", label: "New Listing", icon: FilePlus2 },
   { href: "/creators-hub/listings", label: "My Listings", icon: ListChecks },
   { href: "/creators-hub/earnings", label: "Earnings & M-Pesa", icon: Wallet },
@@ -120,7 +124,16 @@ export function CreatorShell({
                   Creators Hub Studio
                 </span>
                 {user.creatorProfile && (
-                  <StatusPill status={user.creatorProfile.applicationStatus} />
+                  <>
+                    <StatusPill status={user.creatorProfile.applicationStatus} />
+                    <Link
+                      href="/creators-hub/connects"
+                      className="inline-flex items-center gap-1 text-[11px] font-tech font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition-colors"
+                    >
+                      <Zap className="w-3 h-3 text-amber-600" />
+                      {user.creatorProfile.connectsBalance ?? 0} Connects
+                    </Link>
+                  </>
                 )}
               </div>
               <h1 className="font-editorial text-2xl sm:text-3xl font-semibold text-[#111827] mt-1">

@@ -7,6 +7,9 @@ import { fail, handleApiError, ok } from "@/lib/http";
 
 const payoutRequestSchema = z.object({
   destinationPhone: z.string().min(9).max(20),
+  payoutSpeed: z
+    .enum(["STANDARD", "INSTANT_EXPRESS"])
+    .default("STANDARD"),
 });
 
 export async function GET(request: NextRequest) {
@@ -91,6 +94,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const isExpress = body.payoutSpeed === "INSTANT_EXPRESS";
+    const expressFee = isExpress
+      ? Math.max(50, Math.round(totalAvailable * 0.025))
+      : 0;
+    const netDisbursed = Math.max(0, totalAvailable - expressFee);
+    const now = new Date();
+
     const payout = await db.$transaction(async (tx) => {
       const created = await tx.creatorPayout.create({
         data: {
@@ -98,7 +108,14 @@ export async function POST(request: NextRequest) {
           amount: totalAvailable,
           currency: "KES",
           destinationPhone: phone,
-          status: "REQUESTED",
+          payoutSpeed: body.payoutSpeed,
+          expressFee,
+          netDisbursed,
+          status: isExpress ? "PAID" : "REQUESTED",
+          paidAt: isExpress ? now : null,
+          providerRef: isExpress
+            ? `MPESA-EXPRESS-${Date.now().toString(36).toUpperCase()}`
+            : null,
         },
       });
 
@@ -107,7 +124,7 @@ export async function POST(request: NextRequest) {
           id: { in: availableEntries.map((e) => e.id) },
         },
         data: {
-          status: "REQUESTED",
+          status: isExpress ? "PAID" : "REQUESTED",
           payoutId: created.id,
         },
       });

@@ -1,39 +1,49 @@
 import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  ArrowLeft,
-  ArrowRight,
-  CalendarClock,
+  BadgeCheck,
   CheckCircle2,
-  ClipboardList,
+  ChevronRight,
   Clock,
   Crown,
+  ExternalLink,
   FileText,
   Layers,
-  RefreshCw,
-  ShieldAlert,
+  Pencil,
+  RotateCcw,
+  ShieldCheck,
   Star,
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
-import { calculateBookingPricing, isUserProActive } from "@/lib/pricing";
 import {
-  formatKes,
+  calculateBookingPricing,
+  isFutureTimestamp,
+  isUserProActive,
+} from "@/lib/pricing";
+import { isSafeMediaDisplayUrl } from "@/lib/upload-constants";
+import {
   ListingValidityTag,
   StatusPill,
+  VettedCreatorBadge,
+  formatShortDate,
 } from "@/components/ui/Badges";
 import {
-  CategoryCoverArt,
   CreatorAvatar,
+  EscrowStepVisualizer,
   ScoreRing,
+  getCategoryPhotoSrc,
 } from "@/components/ui/EditorialVisuals";
+import { TaskCard } from "@/components/TaskCard";
+import { TaskCommissionSidebar } from "@/components/TaskCommissionSidebar";
 
 export const dynamic = "force-dynamic";
 
 function isStillValidUntil(validUntil: Date | null): boolean {
   if (!validUntil) return true;
-  return validUntil.getTime() > new Date().getTime();
+  return validUntil.getTime() > Date.now();
 }
 
 interface RequirementField {
@@ -42,6 +52,28 @@ interface RequirementField {
   type: string;
   required?: boolean;
   options?: string[];
+}
+
+interface PortfolioSample {
+  title?: string;
+  category?: string;
+  excerpt?: string;
+  url?: string;
+  attachmentUrl?: string;
+  attachmentName?: string;
+}
+
+function getCreatorTierLabel(tier: string | null | undefined): string {
+  switch (tier) {
+    case "ELITE":
+      return "Elite Tier";
+    case "TOP_RATED":
+      return "Top Rated";
+    case "RISING_TALENT":
+      return "Rising Talent";
+    default:
+      return "Vetted Writer";
+  }
 }
 
 export default async function TaskDetailPage({
@@ -54,6 +86,8 @@ export default async function TaskDetailPage({
   const userIsPro = user
     ? isUserProActive(user.membershipTier, user.proExpiresAt)
     : false;
+  const isAdmin = user?.roles.includes("ADMIN") ?? false;
+  const now = new Date();
 
   const [task, config] = await Promise.all([
     db.taskListing.findFirst({
@@ -67,7 +101,9 @@ export default async function TaskDetailPage({
         },
         reviews: {
           where: { isPublic: true },
-          include: { customer: { select: { id: true, name: true } } },
+          include: {
+            customer: { select: { id: true, name: true, avatarUrl: true } },
+          },
           orderBy: { createdAt: "desc" },
         },
       },
@@ -82,11 +118,59 @@ export default async function TaskDetailPage({
   const isOwner = Boolean(
     user?.creatorProfile && task.creatorId === user.creatorProfile.id
   );
-  const isAdmin = user?.roles.includes("ADMIN") ?? false;
 
   if (!isPublished && !isOwner && !isAdmin && task.status !== "EXPIRED") {
     notFound();
   }
+
+  const relatedCandidates = await db.taskListing.findMany({
+    where: {
+      status: "PUBLISHED",
+      validUntil: { gt: now },
+      id: { not: task.id },
+      ...(!userIsPro && !isAdmin
+        ? {
+            OR: [
+              { proEarlyAccessUntil: null },
+              { proEarlyAccessUntil: { lte: now } },
+            ],
+          }
+        : {}),
+    },
+    include: {
+      category: { select: { id: true, slug: true, name: true } },
+      creator: {
+        select: {
+          id: true,
+          username: true,
+          displayName: true,
+          headline: true,
+          ratingAverage: true,
+          completedBookingsCount: true,
+          assessmentScore: true,
+          creatorTier: true,
+          isAvailable: true,
+          onTimeDeliveryRate: true,
+          user: { select: { avatarUrl: true } },
+        },
+      },
+      _count: { select: { reviews: true } },
+    },
+    orderBy: { publishedAt: "desc" },
+    take: 12,
+  });
+
+  const relatedTasks = [...relatedCandidates]
+    .sort((a, b) => {
+      const aScore =
+        (a.categoryId === task.categoryId ? 2 : 0) +
+        (task.creatorId && a.creatorId === task.creatorId ? 1 : 0);
+      const bScore =
+        (b.categoryId === task.categoryId ? 2 : 0) +
+        (task.creatorId && b.creatorId === task.creatorId ? 1 : 0);
+      return bScore - aScore;
+    })
+    .slice(0, 3);
 
   const feePct = config?.standardServiceFeePct ?? 10;
   const proDiscountPct = config?.proFeeDiscountPct ?? 50;
@@ -107,337 +191,503 @@ export default async function TaskDetailPage({
     userIsPro: true,
   });
 
-  const activePricing = userIsPro ? proPricing : freePricing;
   const reqFields = Array.isArray(task.requirementsConfig)
     ? (task.requirementsConfig as unknown as RequirementField[])
     : [];
 
-  const bookHref = user
-    ? `/book/${task.id}`
-    : `/auth?callbackUrl=${encodeURIComponent(`/book/${task.id}`)}`;
+  const isProEarlyAccess = isFutureTimestamp(task.proEarlyAccessUntil);
+  const photoSrc = getCategoryPhotoSrc(task.category.slug);
+  const portfolioSamples = Array.isArray(task.creator?.portfolioSamples)
+    ? (task.creator?.portfolioSamples as PortfolioSample[]).slice(0, 2)
+    : [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
-      <Link
-        href="/explore"
-        className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#1e3a8a]"
-      >
-        <ArrowLeft className="w-3.5 h-3.5" />
-        All Services
-      </Link>
+    <div className="animate-reveal">
+      {/* Warm Sunlit Parchment Editorial Hero */}
+      <section className="relative overflow-hidden border-b border-[#e6e0d4] bg-[#f2ede3] text-[#111827]">
+        <Image
+          src={photoSrc}
+          alt={`${task.category.name} — ${task.title}`}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center opacity-45"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-r from-[#f2ede3] via-[#f2ede3]/94 lg:via-[58%] to-[#f2ede3]/30"
+        />
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-gradient-to-t from-[#f2ede3] via-transparent to-[#f2ede3]/65"
+        />
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left: Visual Scope & Spec */}
-        <div className="lg:col-span-8 space-y-6">
-          <div className="editorial-card overflow-hidden bg-white">
-            <CategoryCoverArt
-              slug={task.category.slug}
-              name={task.category.name}
-              heightClass="h-36 sm:h-44"
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-10 sm:pb-12 space-y-8">
+          {/* Top Breadcrumb & Status Row */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <nav
+              aria-label="Breadcrumb"
+              className="flex flex-wrap items-center gap-1.5 text-xs text-stone-600"
             >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-full text-[11px] font-tech bg-white/15 text-white backdrop-blur-xs">
-                    {task.serviceType}
-                  </span>
-                  <StatusPill status={task.status} />
-                </div>
-                <span className="text-xs font-tech text-white/85">
-                  {task.pricingType === "QUOTE_BASED" ? "Custom Quote" : "Fixed Scope"}
+              <Link
+                href="/explore"
+                className="hover:text-[#1e3a8a] transition-colors font-semibold"
+              >
+                Explore
+              </Link>
+              <ChevronRight className="h-3.5 w-3.5 text-stone-400" />
+              <Link
+                href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
+                className="hover:text-[#1e3a8a] transition-colors font-medium"
+              >
+                {task.category.name}
+              </Link>
+            </nav>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <StatusPill status={task.status} />
+              <ListingValidityTag
+                validUntil={task.validUntil}
+                validityType={task.validityType}
+              />
+              {(isOwner || isAdmin) && (
+                <Link
+                  href={`/creators-hub/listings/new?edit=${encodeURIComponent(task.slug)}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d6cfc2] bg-white/85 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur-md hover:bg-white transition-colors"
+                >
+                  <Pencil className="h-3 w-3 text-[#1e3a8a]" />
+                  <span>Edit</span>
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Core Headline & Lead */}
+          <div className="space-y-4 max-w-3xl">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1 text-xs font-semibold text-[#0f766e] shadow-2xs backdrop-blur-md">
+                {task.category.name} · {task.serviceType}
+              </span>
+              {isProEarlyAccess && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-3 py-1 text-xs font-semibold text-amber-900 shadow-2xs backdrop-blur-md">
+                  <Crown className="h-3.5 w-3.5 text-[#b45309]" />
+                  <span>Pro Early Access</span>
                 </span>
-              </div>
-            </CategoryCoverArt>
-
-            <div className="p-6 sm:p-8 space-y-6">
-              <div className="space-y-2">
-                <h1 className="font-editorial text-2xl sm:text-4xl font-semibold text-[#111827] leading-tight">
-                  {task.title}
-                </h1>
-                <p className="text-sm sm:text-base text-stone-600 leading-relaxed">
-                  {task.shortDescription}
-                </p>
-              </div>
-
-              {/* Visual 4-Tile Spec Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
-                    <Clock className="w-3 h-3 text-[#1e3a8a]" />
-                    Turnaround
-                  </p>
-                  <p className="font-tech text-base font-bold text-[#111827] mt-1">
-                    {task.deliveryTurnaroundDays} Days
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
-                    <RefreshCw className="w-3 h-3 text-[#0f766e]" />
-                    Revisions
-                  </p>
-                  <p className="font-tech text-base font-bold text-[#111827] mt-1">
-                    {task.maxRevisions} Included
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                  <p className="text-[10px] font-tech uppercase text-stone-500 flex items-center gap-1">
-                    <Layers className="w-3 h-3 text-amber-700" />
-                    Model
-                  </p>
-                  <p className="font-tech text-sm font-bold text-[#111827] mt-1">
-                    {task.pricingType === "QUOTE_BASED" ? "Custom" : "Fixed"}
-                  </p>
-                </div>
-                <div className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center">
-                  <ListingValidityTag
-                    validUntil={task.validUntil}
-                    validityType={task.validityType}
-                  />
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-[#e6e0d4] text-sm text-stone-700 whitespace-pre-line leading-relaxed">
-                {task.fullDescription}
-              </div>
+              )}
             </div>
+
+            <h1 className="font-editorial text-3xl sm:text-4xl lg:text-[2.55rem] font-bold tracking-tight text-[#111827] leading-[1.14]">
+              {task.title}
+            </h1>
+
+            <p className="text-base sm:text-lg text-stone-700 leading-relaxed max-w-2xl">
+              {task.shortDescription}
+            </p>
           </div>
 
-          {/* Deliverables */}
-          <div className="editorial-card p-6 space-y-4">
-            <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#1e3a8a]" />
-              Deliverables
-            </h2>
-            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {task.deliverablesSummary.map((item, idx) => (
-                <li
-                  key={idx}
-                  className="flex items-start gap-2.5 text-sm text-stone-800 bg-[#faf7f2] p-3.5 rounded-xl border border-[#e6e0d4]"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-[#0f766e] shrink-0 mt-0.5" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Customer Requirements Preview */}
-          <div className="editorial-card p-6 space-y-4">
-            <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
-              <ClipboardList className="w-5 h-5 text-[#1e3a8a]" />
-              Brief Requirements
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {reqFields.map((field) => (
-                <div
-                  key={field.key}
-                  className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-2"
-                >
-                  <div>
-                    <span className="text-xs font-semibold text-stone-900 block">
-                      {field.label}
-                    </span>
-                    {field.options && (
-                      <span className="text-[11px] text-stone-500">
-                        {field.options.slice(0, 3).join(" · ")}
-                      </span>
-                    )}
-                  </div>
-                  <span
-                    className={`text-[10px] font-tech uppercase px-2 py-0.5 rounded-full shrink-0 ${
-                      field.required
-                        ? "bg-blue-50 text-[#1e3a8a] border border-blue-200"
-                        : "bg-stone-200 text-stone-700"
-                    }`}
-                  >
-                    {field.required ? "Required" : "Optional"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Policies Split */}
-          <div className="editorial-card p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <RefreshCw className="w-4 h-4 text-[#0f766e]" />
-                Revision Guarantee ({task.maxRevisions}x)
-              </h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                {task.revisionPolicy}
-              </p>
-            </div>
-            <div className="space-y-1.5">
-              <h3 className="font-semibold text-sm flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-amber-700" />
-                Escrow &amp; Cancellation
-              </h3>
-              <p className="text-xs text-stone-600 leading-relaxed">
-                {task.cancellationPolicy}
-              </p>
-            </div>
-          </div>
-
-          {/* Creator Bio Card */}
-          {task.creator && (
-            <div className="editorial-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-              <div className="flex items-center gap-4">
+          {/* Unified Hero Metadata Bar */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-[#e6e0d4] pt-5">
+            {task.creator ? (
+              <Link
+                href={`/creators/${task.creator.username}`}
+                className="group inline-flex items-center gap-3 min-w-0"
+              >
                 <CreatorAvatar
                   name={task.creator.displayName}
                   username={task.creator.username}
                   avatarUrl={task.creator.user?.avatarUrl}
                   available={task.creator.isAvailable}
-                  size="lg"
+                  size="md"
                 />
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-editorial text-lg font-semibold">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="font-semibold text-sm text-[#111827] group-hover:text-[#1e3a8a] transition-colors">
                       {task.creator.displayName}
                     </span>
-                    <span className="text-xs text-stone-500 font-tech">
+                    <BadgeCheck className="h-4 w-4 text-[#0f766e] shrink-0" />
+                    <span className="font-tech text-xs text-stone-500">
                       @{task.creator.username}
                     </span>
                   </div>
-                  <p className="text-xs text-stone-600">
-                    {task.creator.headline}
-                  </p>
-                  <div className="flex items-center gap-3 text-xs font-tech text-stone-700 pt-1">
-                    <span className="inline-flex items-center gap-1">
-                      <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <div className="flex flex-wrap items-center gap-2.5 text-xs font-tech text-stone-600 mt-0.5">
+                    <span className="inline-flex items-center gap-1 font-semibold text-stone-900">
+                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                       {task.creator.ratingAverage.toFixed(1)}
                     </span>
-                    <span>{task.creator.completedBookingsCount} orders</span>
+                    {typeof task.creator.assessmentScore === "number" && (
+                      <span className="font-semibold text-[#0f766e]">
+                        {Math.round(task.creator.assessmentScore)}% Rubric
+                      </span>
+                    )}
+                    <span className="text-stone-600">
+                      {task.creator.isAvailable ? "Accepting orders" : "At capacity"}
+                    </span>
                   </div>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <ScoreRing
-                  score={task.creator.assessmentScore ?? 90}
-                  size={68}
-                  sublabel="Rubric"
-                />
-                <Link
-                  href={`/creators/${task.creator.username}`}
-                  className="btn-ghost px-4 py-2 text-xs shrink-0"
-                >
-                  Portfolio
-                </Link>
-              </div>
-            </div>
-          )}
-
-          {/* Verified Reviews */}
-          {task.reviews.length > 0 && (
-            <div className="editorial-card p-6 space-y-4">
-              <h2 className="font-editorial text-xl font-semibold">
-                Verified Reviews ({task.reviews.length})
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {task.reviews.map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-stone-900">
-                        {rev.customer.name}
-                      </span>
-                      <span className="text-xs font-tech text-amber-700">
-                        ★ {rev.rating}.0
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-700 mt-1.5 leading-relaxed">
-                      {rev.comment}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right Sticky Escrow Fee Ledger */}
-        <aside className="lg:col-span-4 space-y-4 sticky top-24">
-          <div className="editorial-card p-6 space-y-5 bg-white">
-            <div className="flex items-center justify-between border-b border-[#e6e0d4] pb-3">
-              <span className="text-[11px] font-tech uppercase tracking-wider text-stone-500">
-                Upfront Fee Ledger
-              </span>
-              <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                  userIsPro
-                    ? "bg-amber-100 text-amber-900"
-                    : "bg-blue-50 text-[#1e3a8a]"
-                }`}
-              >
-                {userIsPro ? "Pro Rate" : "Free Rate"}
-              </span>
-            </div>
-
-            <div className="space-y-2.5 text-sm">
-              <div className="flex justify-between text-stone-700">
-                <span>Listed Scope</span>
-                <span className="font-tech font-medium">
-                  {formatKes(activePricing.listedPrice, task.currency)}
-                </span>
-              </div>
-              <div className="flex justify-between text-stone-700">
-                <span>Service Fee ({feePct}%)</span>
-                <span className="font-tech">
-                  {formatKes(activePricing.rawServiceFee, task.currency)}
-                </span>
-              </div>
-              {userIsPro && (
-                <div className="flex justify-between text-amber-800 bg-amber-50 px-3 py-2 rounded-xl">
-                  <span className="inline-flex items-center gap-1 text-xs font-semibold">
-                    <Crown className="w-3.5 h-3.5" /> Pro Discount (-{proDiscountPct}%)
-                  </span>
-                  <span className="font-tech text-xs font-bold">
-                    -{formatKes(activePricing.proDiscount, task.currency)}
-                  </span>
-                </div>
-              )}
-              <div className="pt-3 border-t border-[#e6e0d4] flex justify-between items-baseline">
-                <span className="font-semibold text-base">Total Payable</span>
-                <span className="font-tech text-2xl font-bold text-[#111827]">
-                  {formatKes(activePricing.totalPayable, task.currency)}
-                </span>
-              </div>
-            </div>
-
-            {!userIsPro && (
-              <div className="p-3.5 rounded-xl bg-amber-50/70 border border-amber-200 text-xs text-amber-950 space-y-1">
-                <p className="font-semibold flex items-center gap-1">
-                  <Crown className="w-3.5 h-3.5 text-amber-700" />
-                  Save {formatKes(proPricing.proDiscount, task.currency)} with Pro
-                </p>
-                <p className="text-amber-900/80 font-tech">
-                  Pro Total: {formatKes(proPricing.totalPayable, task.currency)}
-                </p>
-              </div>
-            )}
-
-            <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-200 text-xs text-blue-950 flex items-start gap-2">
-              <CalendarClock className="w-4 h-4 text-[#1e3a8a] shrink-0 mt-0.5" />
-              <span>
-                <strong>{task.deliveryTurnaroundDays}-day delivery clock</strong>{" "}
-                stays protected even after listing validity ends.
-              </span>
-            </div>
-
-            {isPublished ? (
-              <Link href={bookHref} className="btn-primary w-full py-3.5 text-sm">
-                <span>{user ? "Book This Service" : "Sign In to Book"}</span>
-                <ArrowRight className="w-4 h-4" />
               </Link>
             ) : (
-              <div className="p-3.5 rounded-xl bg-stone-100 border border-stone-300 text-xs text-stone-700 text-center">
-                Status: <strong>{task.status}</strong> — closed to new bookings.
+              <span className="inline-flex items-center gap-2 text-xs text-stone-700">
+                <BadgeCheck className="h-4 w-4 text-[#0f766e]" />
+                Vetted Tovolana Specialist
+              </span>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
+                <Clock className="h-3.5 w-3.5 text-[#1e3a8a]" />
+                {task.deliveryTurnaroundDays}d Delivery
+              </span>
+              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
+                <RotateCcw className="h-3.5 w-3.5 text-[#0f766e]" />
+                {task.maxRevisions} Revisions
+              </span>
+              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
+                <Layers className="h-3.5 w-3.5 text-[#b45309]" />
+                {task.pricingType === "QUOTE_BASED" ? "Custom Quote" : "Fixed Scope"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Editorial Workspace */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left 8 Columns: Uncluttered Editorial Sections */}
+          <div className="lg:col-span-8 space-y-6">
+            {/* 1. About This Service & Deliverables */}
+            <section className="editorial-card bg-white p-6 sm:p-8 space-y-6">
+              <div className="space-y-3">
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
+                  About this service
+                </h2>
+                <div className="whitespace-pre-line text-[15px] leading-[1.75] text-stone-700 max-w-[70ch]">
+                  {task.fullDescription}
+                </div>
               </div>
+
+              {task.deliverablesSummary.length > 0 && (
+                <div className="border-t border-[#e6e0d4] pt-6 space-y-3">
+                  <h3 className="text-sm font-semibold text-[#111827]">
+                    Included deliverables
+                  </h3>
+                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    {task.deliverablesSummary.map((item, idx) => (
+                      <li
+                        key={idx}
+                        className="flex items-start gap-2.5 rounded-xl bg-[#faf7f2] px-3.5 py-3 text-sm text-stone-800"
+                      >
+                        <CheckCircle2 className="h-4 w-4 text-[#0f766e] shrink-0 mt-0.5" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+
+            {/* 2. What We Need From You */}
+            {reqFields.length > 0 && (
+              <section className="editorial-card bg-white p-6 sm:p-8 space-y-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
+                    What we need from you
+                  </h2>
+                  <span className="text-xs text-stone-500">
+                    Brief fields collected at checkout
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {reqFields.map((field) => (
+                    <div
+                      key={field.key}
+                      className="flex items-center justify-between gap-3 rounded-xl border border-[#e6e0d4] bg-[#faf7f2]/75 px-3.5 py-2.5"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-[#111827] truncate">
+                          {field.label}
+                        </p>
+                        {field.options && field.options.length > 0 && (
+                          <p className="text-[11px] text-stone-500 truncate">
+                            {field.options.slice(0, 3).join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] font-medium ${
+                          field.required ? "text-[#1e3a8a]" : "text-stone-400"
+                        }`}
+                      >
+                        {field.required ? "Required" : "Optional"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="flex items-center gap-2 text-xs text-stone-500 pt-1">
+                  <FileText className="h-3.5 w-3.5 text-[#1e3a8a] shrink-0" />
+                  <span>
+                    Supports PDF, DOCX, XLSX, and ZIP brief attachments in Step 1 of checkout.
+                  </span>
+                </p>
+              </section>
+            )}
+
+            {/* 3. Escrow Timeline & Protection */}
+            <section className="editorial-card bg-white p-6 sm:p-8 space-y-5">
+              <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827] flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-[#0f766e]" />
+                Escrow protection
+              </h2>
+
+              <div className="rounded-xl bg-[#faf7f2] border border-[#e6e0d4] p-4">
+                <EscrowStepVisualizer status="PAID_AWAITING_ACCEPTANCE" />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1 text-xs leading-relaxed text-stone-600">
+                <div>
+                  <h3 className="text-sm font-semibold text-[#111827] mb-1">
+                    Revisions ({task.maxRevisions} rounds)
+                  </h3>
+                  <p>{task.revisionPolicy}</p>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-[#111827] mb-1">
+                    Cancellation &amp; escrow
+                  </h3>
+                  <p>{task.cancellationPolicy}</p>
+                </div>
+              </div>
+            </section>
+
+            {/* 4. Warm Parchment Author Feature Card */}
+            {task.creator && (
+              <section className="rounded-2xl border border-[#e6e0d4] bg-[#f2ede3]/85 p-6 sm:p-8 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
+                    <CreatorAvatar
+                      name={task.creator.displayName}
+                      username={task.creator.username}
+                      avatarUrl={task.creator.user?.avatarUrl}
+                      available={task.creator.isAvailable}
+                      size="lg"
+                    />
+                    <div className="min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <VettedCreatorBadge />
+                        <span className="rounded-full bg-white/80 border border-[#e6e0d4] px-2.5 py-0.5 text-[11px] font-semibold text-[#1e3a8a]">
+                          {getCreatorTierLabel(task.creator.creatorTier)}
+                        </span>
+                      </div>
+                      <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
+                        {task.creator.displayName}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-stone-700">
+                        {task.creator.headline}
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href={`/creators/${task.creator.username}`}
+                    className="btn-ghost px-4 py-2 text-xs shrink-0 self-start sm:self-center"
+                  >
+                    <span>View Portfolio</span>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                  <div className="md:col-span-8 space-y-3">
+                    <p className="text-sm text-stone-700 leading-relaxed">
+                      {task.creator.bio}
+                    </p>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      {task.creator.educationCredentials && (
+                        <span className="rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 font-medium text-stone-800">
+                          {task.creator.educationCredentials}
+                        </span>
+                      )}
+                      {task.creator.yearsExperience > 0 && (
+                        <span className="font-tech rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 text-stone-700">
+                          {task.creator.yearsExperience}+ yrs
+                        </span>
+                      )}
+                      <span className="font-tech rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 text-[#0f766e]">
+                        {task.creator.onTimeDeliveryRate.toFixed(0)}% on-time
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="md:col-span-4 grid grid-cols-2 gap-2 rounded-xl bg-white/80 border border-[#e6e0d4] p-3 text-center">
+                    <ScoreRing
+                      score={task.creator.assessmentScore ?? 90}
+                      size={72}
+                      tone="emerald"
+                      sublabel="Rubric"
+                    />
+                    <ScoreRing
+                      score={(task.creator.ratingAverage / 5) * 100}
+                      label={`${task.creator.ratingAverage.toFixed(1)}★`}
+                      size={72}
+                      tone="gold"
+                      sublabel="Rating"
+                    />
+                  </div>
+                </div>
+
+                {portfolioSamples.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {portfolioSamples.map((sample, idx) => {
+                      const attachmentUrl = sample.attachmentUrl?.trim() || "";
+                      const safeAttachment = isSafeMediaDisplayUrl(attachmentUrl)
+                        ? attachmentUrl
+                        : null;
+                      return (
+                        <div
+                          key={idx}
+                          className="rounded-xl bg-white/85 border border-[#e6e0d4] p-4 space-y-1.5"
+                        >
+                          {sample.category && (
+                            <span className="text-[11px] font-medium text-[#0f766e] block">
+                              {sample.category}
+                            </span>
+                          )}
+                          <h3 className="font-editorial text-sm font-semibold text-[#111827] leading-snug">
+                            {sample.title || "Writing Sample"}
+                          </h3>
+                          {sample.excerpt && (
+                            <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                              {sample.excerpt}
+                            </p>
+                          )}
+                          {safeAttachment && (
+                            <a
+                              href={safeAttachment}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#1e3a8a] hover:underline"
+                            >
+                              <span>Read sample</span>
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* 5. Client Reviews */}
+            {task.reviews.length > 0 ? (
+              <section className="editorial-card bg-white p-6 sm:p-8 space-y-4">
+                <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
+                  Client reviews ({task.reviews.length})
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {task.reviews.map((rev) => (
+                    <div
+                      key={rev.id}
+                      className="rounded-xl border border-[#e6e0d4] bg-[#faf7f2] p-4 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-semibold text-[#111827]">
+                          {rev.customer.name}
+                        </span>
+                        <span className="font-tech inline-flex items-center gap-1 text-xs font-bold text-amber-800">
+                          <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                          {rev.rating}.0
+                          <span className="font-normal text-stone-400 ml-1">
+                            {formatShortDate(rev.createdAt)}
+                          </span>
+                        </span>
+                      </div>
+                      <p className="text-xs text-stone-700 leading-relaxed">
+                        {rev.comment}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : (
+              <p className="text-xs text-stone-500 px-1">
+                Reviews appear after verified escrow delivery and client approval.
+              </p>
             )}
           </div>
-        </aside>
+
+          {/* Right 4 Columns: Streamlined Sticky Commissioning Sidebar */}
+          <aside className="lg:col-span-4 lg:sticky lg:top-24">
+            <TaskCommissionSidebar
+              task={{
+                id: task.id,
+                slug: task.slug,
+                title: task.title,
+                basePrice: task.basePrice,
+                currency: task.currency,
+                deliveryTurnaroundDays: task.deliveryTurnaroundDays,
+                maxRevisions: task.maxRevisions,
+                pricingType: task.pricingType,
+                validUntil: task.validUntil ? task.validUntil.toISOString() : null,
+                validityType: task.validityType,
+                manualAcceptanceRequired: task.manualAcceptanceRequired,
+                status: task.status,
+              }}
+              isPublished={isPublished}
+              userIsAuthenticated={Boolean(user)}
+              userIsPro={userIsPro}
+              feePct={feePct}
+              proDiscountPct={proDiscountPct}
+              freePricing={{
+                listedPrice: freePricing.listedPrice,
+                rawServiceFee: freePricing.rawServiceFee,
+                effectiveServiceFee: freePricing.serviceFee,
+                proDiscount: freePricing.proDiscount,
+                totalPayable: freePricing.totalPayable,
+              }}
+              proPricing={{
+                listedPrice: proPricing.listedPrice,
+                rawServiceFee: proPricing.rawServiceFee,
+                effectiveServiceFee: proPricing.serviceFee,
+                proDiscount: proPricing.proDiscount,
+                totalPayable: proPricing.totalPayable,
+              }}
+            />
+          </aside>
+        </div>
+
+        {/* 6. Related Services */}
+        {relatedTasks.length > 0 && (
+          <section className="pt-8 border-t border-[#e6e0d4] space-y-6">
+            <div className="flex items-end justify-between gap-3">
+              <h2 className="font-editorial text-2xl sm:text-3xl font-bold tracking-tight text-[#111827]">
+                Related services
+              </h2>
+              <Link
+                href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-[#1e3a8a] hover:underline"
+              >
+                <span>Browse {task.category.name}</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {relatedTasks.map((related) => (
+                <TaskCard
+                  key={related.id}
+                  task={related}
+                  standardFeePct={feePct}
+                  proDiscountPct={proDiscountPct}
+                  userIsPro={userIsPro}
+                />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

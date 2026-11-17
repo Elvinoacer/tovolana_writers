@@ -183,10 +183,30 @@ test("2. Dual Auth (Email/Password + Google OAuth) & Phone OTP Verification", as
   assert.equal(gInit.status, 307);
   const loc = gInit.headers.get("location");
   assert.ok(loc);
-  const gCbRes = await googleCallbackGet(new NextRequest(loc));
-  assert.equal(gCbRes.status, 307);
-  assert.ok(gCbRes.headers.get("set-cookie")?.includes(env.sessionCookieName));
-  assert.ok(gCbRes.headers.get("location")?.endsWith("/explore"));
+  if (loc.startsWith("https://accounts.google.com")) {
+    const oauthUrl = new URL(loc);
+    const state = oauthUrl.searchParams.get("state");
+    assert.ok(oauthUrl.searchParams.get("client_id"));
+    assert.ok(state);
+    // Live OAuth keys active: verify sandbox bypass code is rejected cleanly
+    const rejectCb = await googleCallbackGet(
+      new NextRequest(
+        `http://localhost:3000/api/auth/google/callback?code=sandbox_google_oauth_code&state=${encodeURIComponent(
+          state
+        )}`
+      )
+    );
+    assert.equal(rejectCb.status, 307);
+    assert.ok(
+      rejectCb.headers.get("location")?.includes("error=google_invalid_code")
+    );
+    assert.equal(rejectCb.headers.get("set-cookie"), null);
+  } else {
+    const gCbRes = await googleCallbackGet(new NextRequest(loc));
+    assert.equal(gCbRes.status, 307);
+    assert.ok(gCbRes.headers.get("set-cookie")?.includes(env.sessionCookieName));
+    assert.ok(gCbRes.headers.get("location")?.endsWith("/explore"));
+  }
 });
 
 test("3. Category Deletion Protection (Non-deletable when listings depend on it)", async () => {
@@ -3074,6 +3094,400 @@ test("7. Public Media Upload/Delete (/api/media/*), Raw Fallback, Portfolio Atta
         .deleteMany({ where: { id: { in: createdListingIds } } })
         .catch(() => undefined);
     }
+  }
+});
+
+test("Monetization Engine E2E: OpenBrief Bidding, Live Rank Promotion, Connects Bundle Purchase & Bid Award Checkout", async () => {
+  const { POST: briefsPost, GET: briefsGet } = await import(
+    "../app/api/bidding/briefs/route"
+  );
+  const {
+    POST: submitBidPost,
+    PATCH: boostBidPatch,
+    GET: bidsGet,
+  } = await import("../app/api/bidding/briefs/[id]/bids/route");
+  const { POST: awardBidPost } = await import(
+    "../app/api/bidding/briefs/[id]/award/route"
+  );
+  const { GET: connectsGet, POST: connectsPost } = await import(
+    "../app/api/creators-hub/connects/route"
+  );
+
+  const testStartedAt = new Date();
+  let createdBriefId: string | null = null;
+  let createdBriefRef: string | null = null;
+  let createdBookingId: string | null = null;
+  let createdBookingRef: string | null = null;
+  let createdBackingListingId: string | null = null;
+  let paymentApiRef: string | null = null;
+
+  const clientLogin = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "pro.customer@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  assert.equal(clientLogin.status, 200);
+  const clientCookie = extractCookieValue(clientLogin.headers.get("set-cookie"));
+
+  const c1Login = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "creator@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  assert.equal(c1Login.status, 200);
+  const creator1Cookie = extractCookieValue(c1Login.headers.get("set-cookie"));
+
+  const c2Login = await loginPost(
+    makeJsonReq("http://localhost:3000/api/auth/login", "POST", {
+      email: "creator2@tovolana.com",
+      password: "Password123!",
+    })
+  );
+  assert.equal(c2Login.status, 200);
+  const creator2Cookie = extractCookieValue(c2Login.headers.get("set-cookie"));
+
+  const creator1User = await db.user.findUniqueOrThrow({
+    where: { email: "creator@tovolana.com" },
+    include: { creatorProfile: true },
+  });
+  const creator2User = await db.user.findUniqueOrThrow({
+    where: { email: "creator2@tovolana.com" },
+    include: { creatorProfile: true },
+  });
+  assert.ok(creator1User.creatorProfile && creator2User.creatorProfile);
+
+  const origC1 = {
+    connectsBalance: creator1User.creatorProfile.connectsBalance,
+    totalConnectsSpent: creator1User.creatorProfile.totalConnectsSpent,
+    creatorTier: creator1User.creatorProfile.creatorTier,
+    availableNowBadgeUntil: creator1User.creatorProfile.availableNowBadgeUntil,
+    featuredProfileUntil: creator1User.creatorProfile.featuredProfileUntil,
+    creatorPlusUntil: creator1User.creatorProfile.creatorPlusUntil,
+    profileCompletenessScore:
+      creator1User.creatorProfile.profileCompletenessScore,
+  };
+  const origC2 = {
+    connectsBalance: creator2User.creatorProfile.connectsBalance,
+    totalConnectsSpent: creator2User.creatorProfile.totalConnectsSpent,
+    creatorTier: creator2User.creatorProfile.creatorTier,
+    availableNowBadgeUntil: creator2User.creatorProfile.availableNowBadgeUntil,
+    featuredProfileUntil: creator2User.creatorProfile.featuredProfileUntil,
+    creatorPlusUntil: creator2User.creatorProfile.creatorPlusUntil,
+    profileCompletenessScore:
+      creator2User.creatorProfile.profileCompletenessScore,
+  };
+
+  try {
+    const activeCat = await db.category.findFirstOrThrow({
+      where: { isActive: true },
+    });
+
+    // 1. Client posts an OpenBrief
+    const briefRes = await briefsPost(
+      makeJsonReq(
+        "http://localhost:3000/api/bidding/briefs",
+        "POST",
+        {
+          title: "E2E Empirical Synthesis on East African ESG Disclosures",
+          categoryId: activeCat.id,
+          description:
+            "Requires systematic literature review of 20 peer-reviewed sources covering Article 6.4 registries and corporate ESG reporting.",
+          budgetMin: 6500,
+          budgetMax: 9500,
+          deadlineDays: 4,
+          isUrgent: false,
+          isSealed: false,
+          ndaRequired: false,
+          allowTripwireOutline: true,
+        },
+        clientCookie
+      )
+    );
+    assert.equal(briefRes.status, 201);
+    const briefJson = await briefRes.json();
+    const brief = briefJson.data.brief;
+    createdBriefId = brief.id;
+    createdBriefRef = brief.briefRef;
+    assert.ok(brief.briefRef.startsWith("BRF-"));
+    assert.ok(brief.requiredConnects >= 2);
+
+    const listBriefsRes = await briefsGet(
+      new NextRequest("http://localhost:3000/api/bidding/briefs?status=OPEN", {
+        headers: { cookie: clientCookie },
+      })
+    );
+    assert.equal(listBriefsRes.status, 200);
+    const listBriefsJson = await listBriefsRes.json();
+    assert.ok(
+      listBriefsJson.data.briefs.some(
+        (b: { id: string }) => b.id === createdBriefId
+      )
+    );
+
+    // 2. Creator 2 buys Connects bundle (sandbox webhook) + activates Available Now boost
+    const buyRes = await connectsPost(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/connects",
+        "POST",
+        {
+          action: "BUY_BUNDLE",
+          bundleId: "studio",
+          channel: "MPESA_STK",
+          autoCompleteSandbox: true,
+        },
+        creator2Cookie
+      )
+    );
+    assert.equal(buyRes.status, 201);
+    const buyJson = await buyRes.json();
+    paymentApiRef = buyJson.data.transaction?.apiRef ?? null;
+    assert.ok(paymentApiRef);
+
+    if (!buyJson.data.credited) {
+      const webhookRes = await intaSendWebhookPost(
+        makeJsonReq("http://localhost:3000/api/webhooks/intasend", "POST", {
+          api_ref: paymentApiRef,
+          invoice_id:
+            buyJson.data.transaction?.providerInvoiceId ??
+            `SIM-${paymentApiRef}`,
+          state: "COMPLETE",
+          value: buyJson.data.bundle.priceKes,
+          currency: "KES",
+          challenge: env.intasendWebhookChallenge,
+        })
+      );
+      assert.equal(webhookRes.status, 200);
+    }
+
+    const afterPurchaseRes = await connectsGet(
+      new NextRequest("http://localhost:3000/api/creators-hub/connects", {
+        headers: { cookie: creator2Cookie },
+      })
+    );
+    assert.equal(afterPurchaseRes.status, 200);
+    const afterPurchaseJson = await afterPurchaseRes.json();
+    const addedConnects: number = buyJson.data.bundle.totalConnects;
+    assert.equal(afterPurchaseJson.data.balance, origC2.connectsBalance + addedConnects);
+
+    const boostProfileRes = await connectsPost(
+      makeJsonReq(
+        "http://localhost:3000/api/creators-hub/connects",
+        "POST",
+        {
+          action: "ACTIVATE_BOOST",
+          boostType: "AVAILABLE_NOW",
+        },
+        creator2Cookie
+      )
+    );
+    assert.equal(boostProfileRes.status, 200);
+    const boostProfileJson = await boostProfileRes.json();
+    assert.ok(boostProfileJson.data.availableNowBadgeUntil);
+    assert.equal(boostProfileJson.data.balance, origC2.connectsBalance + addedConnects - 5);
+
+    const connectsStateRes = await connectsGet(
+      new NextRequest("http://localhost:3000/api/creators-hub/connects", {
+        headers: { cookie: creator2Cookie },
+      })
+    );
+    assert.equal(connectsStateRes.status, 200);
+    const connectsStateJson = await connectsStateRes.json();
+    assert.equal(connectsStateJson.data.boosts.availableNowActive, true);
+    assert.ok(connectsStateJson.data.transactions.length >= 2);
+
+    // 3. Creator 1 & Creator 2 submit competing bids and verify deterministic ranking
+    const bid1Res = await submitBidPost(
+      makeJsonReq(
+        `http://localhost:3000/api/bidding/briefs/${createdBriefId}/bids`,
+        "POST",
+        {
+          proposedPrice: 8400,
+          deliveryDays: 3,
+          pitch:
+            "Peer-review specialist offering an annotated methodology table and APA 7th synthesis.",
+          boostConnects: 6,
+          isSealed: false,
+          isFeatured: false,
+        },
+        creator1Cookie
+      ),
+      { params: Promise.resolve({ id: createdBriefId! }) }
+    );
+    assert.equal(bid1Res.status, 201);
+    const bid1Json = await bid1Res.json();
+    const bid1Id: string = bid1Json.data.bid.id;
+    assert.equal(bid1Json.data.rankPosition, 1);
+
+    const bid2Res = await submitBidPost(
+      makeJsonReq(
+        `http://localhost:3000/api/bidding/briefs/${createdBriefId}/bids`,
+        "POST",
+        {
+          proposedPrice: 7800,
+          deliveryDays: 3,
+          pitch:
+            "Quantitative ESG policy analyst with empirical East African disclosure benchmarks.",
+          boostConnects: 0,
+          isSealed: false,
+          isFeatured: false,
+        },
+        creator2Cookie
+      ),
+      { params: Promise.resolve({ id: createdBriefId! }) }
+    );
+    assert.equal(bid2Res.status, 201);
+    const bid2Json = await bid2Res.json();
+    const bid2Id: string = bid2Json.data.bid.id;
+    assert.equal(bid2Json.data.rankPosition, 2);
+    assert.equal(bid2Json.data.totalBidders, 2);
+    const neededForRank1: number = bid2Json.data.connectsNeededForRank1;
+    assert.ok(neededForRank1 > 0);
+
+    // 4. Creator 2 promotes rank using Connects and overtakes #1
+    const promoteRes = await boostBidPatch(
+      makeJsonReq(
+        `http://localhost:3000/api/bidding/briefs/${createdBriefId}/bids`,
+        "PATCH",
+        {
+          addBoostConnects: neededForRank1 + 4,
+          enableFeatured: true,
+        },
+        creator2Cookie
+      ),
+      { params: Promise.resolve({ id: createdBriefId! }) }
+    );
+    assert.equal(promoteRes.status, 200);
+    const promoteJson = await promoteRes.json();
+    assert.equal(promoteJson.data.rankPosition, 1);
+    assert.equal(promoteJson.data.bid.isFeatured, true);
+
+    const rankedCheckRes = await bidsGet(
+      new NextRequest(
+        `http://localhost:3000/api/bidding/briefs/${createdBriefId}/bids`,
+        { headers: { cookie: clientCookie } }
+      ),
+      { params: Promise.resolve({ id: createdBriefId! }) }
+    );
+    assert.equal(rankedCheckRes.status, 200);
+    const rankedCheckJson = await rankedCheckRes.json();
+    assert.equal(rankedCheckJson.data.bids[0].id, bid2Id);
+    assert.equal(rankedCheckJson.data.bids[1].id, bid1Id);
+
+    // 5. Client awards winning bid with TRIPWIRE_OUTLINE (KES 490) + originality_report bump
+    const awardRes = await awardBidPost(
+      makeJsonReq(
+        `http://localhost:3000/api/bidding/briefs/${createdBriefId}/award`,
+        "POST",
+        {
+          bidId: bid2Id,
+          checkoutMode: "TRIPWIRE_OUTLINE",
+          selectedAddOns: ["originality_report"],
+        },
+        clientCookie
+      ),
+      { params: Promise.resolve({ id: createdBriefId! }) }
+    );
+    assert.equal(awardRes.status, 201);
+    const awardJson = await awardRes.json();
+    createdBookingId = awardJson.data.booking.id;
+    createdBookingRef = awardJson.data.booking.bookingRef;
+    createdBackingListingId = awardJson.data.booking.taskId;
+
+    assert.equal(awardJson.data.booking.totalPayable, 490);
+    assert.equal(awardJson.data.booking.checkoutMode, "TRIPWIRE_OUTLINE");
+    assert.equal(awardJson.data.booking.addOnsTotal, 450);
+    assert.equal(awardJson.data.brief.status, "AWARDED");
+
+    const backingListing = await db.taskListing.findUnique({
+      where: { id: createdBackingListingId! },
+    });
+    assert.equal(backingListing?.status, "DRAFT");
+
+    const [wonBid, declinedBid] = await Promise.all([
+      db.taskBid.findUnique({ where: { id: bid2Id } }),
+      db.taskBid.findUnique({ where: { id: bid1Id } }),
+    ]);
+    assert.equal(wonBid?.status, "ACCEPTED");
+    assert.equal(declinedBid?.status, "DECLINED");
+  } finally {
+    if (createdBookingRef) {
+      await db.notificationOutbox
+        .deleteMany({ where: { linkUrl: { endsWith: `/${createdBookingRef}` } } })
+        .catch(() => undefined);
+    }
+    if (createdBriefRef) {
+      await db.notificationOutbox
+        .deleteMany({
+          where: {
+            createdAt: { gte: testStartedAt },
+            title: { contains: createdBriefRef },
+          },
+        })
+        .catch(() => undefined);
+    }
+    if (createdBriefId) {
+      await db.notificationOutbox
+        .deleteMany({
+          where: {
+            createdAt: { gte: testStartedAt },
+            linkUrl: { endsWith: `/${createdBriefId}` },
+          },
+        })
+        .catch(() => undefined);
+    }
+    await db.notificationOutbox
+      .deleteMany({
+        where: {
+          userId: creator2User.id,
+          eventType: "CONNECTS_CREDITED",
+          createdAt: { gte: testStartedAt },
+        },
+      })
+      .catch(() => undefined);
+    await db.connectsTransaction
+      .deleteMany({
+        where: {
+          creatorProfileId: {
+            in: [
+              creator1User.creatorProfile!.id,
+              creator2User.creatorProfile!.id,
+            ],
+          },
+          createdAt: { gte: testStartedAt },
+        },
+      })
+      .catch(() => undefined);
+    if (paymentApiRef) {
+      await db.paymentTransaction
+        .deleteMany({ where: { apiRef: paymentApiRef } })
+        .catch(() => undefined);
+    }
+    if (createdBookingId) {
+      await db.booking
+        .deleteMany({ where: { id: createdBookingId } })
+        .catch(() => undefined);
+    }
+    if (createdBriefId) {
+      await db.taskBid
+        .deleteMany({ where: { openBriefId: createdBriefId } })
+        .catch(() => undefined);
+      await db.openBrief
+        .deleteMany({ where: { id: createdBriefId } })
+        .catch(() => undefined);
+    }
+    if (createdBackingListingId) {
+      await db.taskListing
+        .deleteMany({ where: { id: createdBackingListingId } })
+        .catch(() => undefined);
+    }
+    await db.creatorProfile
+      .update({ where: { id: creator1User.creatorProfile!.id }, data: origC1 })
+      .catch(() => undefined);
+    await db.creatorProfile
+      .update({ where: { id: creator2User.creatorProfile!.id }, data: origC2 })
+      .catch(() => undefined);
   }
 });
 

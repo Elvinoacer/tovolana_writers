@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Compass,
   Crown,
+  Gavel,
   LayoutDashboard,
   Settings,
   ShieldCheck,
@@ -16,6 +17,7 @@ import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
 
 const CUSTOMER_TABS = [
   { href: "/dashboard", label: "My Bookings", icon: LayoutDashboard },
+  { href: "/bidding", label: "Live Bidding", icon: Gavel },
   { href: "/dashboard/membership", label: "Membership", icon: Crown },
   { href: "/dashboard/settings", label: "Security & Alerts", icon: Settings },
   { href: "/explore", label: "Browse Services", icon: Compass },

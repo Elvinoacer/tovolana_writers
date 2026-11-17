@@ -64,6 +64,22 @@ export default function CreatorProfileEditorPage() {
   const [displayName, setDisplayName] = useState("");
   const [headline, setHeadline] = useState("");
   const [bio, setBio] = useState("");
+  const [taglineBadge, setTaglineBadge] = useState("");
+  const [educationCredentials, setEducationCredentials] = useState("");
+  const [introVideoUrl, setIntroVideoUrl] = useState("");
+  const [yearsExperience, setYearsExperience] = useState<number>(0);
+  const [responseTimeMinutes, setResponseTimeMinutes] = useState<number>(30);
+  const [standoutReport, setStandoutReport] = useState<{
+    score: number;
+    tierRecommendation: string;
+    breakdown: Array<{
+      key: string;
+      label: string;
+      completed: boolean;
+      points: number;
+      impactHint: string;
+    }>;
+  } | null>(null);
   const [writingCategories, setWritingCategories] = useState<string[]>([]);
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(true);
@@ -118,6 +134,18 @@ export default function CreatorProfileEditorPage() {
         setDisplayName(p.displayName || "");
         setHeadline(p.headline || "");
         setBio(p.bio || "");
+        setTaglineBadge(p.taglineBadge || "");
+        setEducationCredentials(p.educationCredentials || "");
+        setIntroVideoUrl(p.introVideoUrl || "");
+        setYearsExperience(
+          typeof p.yearsExperience === "number" ? p.yearsExperience : 0
+        );
+        setResponseTimeMinutes(
+          typeof p.responseTimeMinutes === "number" ? p.responseTimeMinutes : 30
+        );
+        if (j?.data?.standoutReport) {
+          setStandoutReport(j.data.standoutReport);
+        }
         setWritingCategories(p.writingCategories || []);
         setIsAvailable(Boolean(p.isAvailable));
         setAutoAcceptBookings(Boolean(p.autoAcceptBookings));
@@ -321,6 +349,15 @@ export default function CreatorProfileEditorPage() {
           displayName,
           headline,
           bio,
+          taglineBadge: taglineBadge.trim() || null,
+          educationCredentials: educationCredentials.trim() || null,
+          introVideoUrl: introVideoUrl.trim() || null,
+          yearsExperience: Number.isFinite(Number(yearsExperience))
+            ? Math.max(0, Math.round(Number(yearsExperience)))
+            : 0,
+          responseTimeMinutes: Number.isFinite(Number(responseTimeMinutes))
+            ? Math.max(5, Math.round(Number(responseTimeMinutes)))
+            : 30,
           writingCategories,
           isAvailable,
           autoAcceptBookings,
@@ -330,6 +367,9 @@ export default function CreatorProfileEditorPage() {
       const j = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(j?.error?.message || `Update failed (${res.status}).`);
+      }
+      if (j?.data?.standoutReport) {
+        setStandoutReport(j.data.standoutReport);
       }
 
       if (pendingDeletedAssetIds.length > 0) {
@@ -485,6 +525,137 @@ export default function CreatorProfileEditorPage() {
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
                 className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+              />
+            </div>
+          </div>
+
+          {/* Profile Standout & Client Conversion Meter */}
+          {standoutReport && (
+            <div className="rounded-2xl border border-[#e6e0d4] bg-[#faf7f2] p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-[#1e3a8a]">
+                    Profile Standout &amp; Client Conversion Score
+                  </p>
+                  <p className="text-xs text-stone-600 mt-0.5">
+                    {standoutReport.tierRecommendation}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="font-tech text-2xl font-bold text-[#1e3a8a]">
+                    {standoutReport.score}%
+                  </span>
+                  <a
+                    href="/creators-hub/connects"
+                    className="px-3 py-1.5 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold hover:bg-[#172554]"
+                  >
+                    Boost with Connects →
+                  </a>
+                </div>
+              </div>
+
+              <div className="w-full h-2.5 rounded-full bg-[#e6e0d4] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[#1e3a8a] via-[#0f766e] to-[#b45309] transition-all"
+                  style={{ width: `${Math.min(100, Math.max(0, standoutReport.score))}%` }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {standoutReport.breakdown.map((item) => (
+                  <div
+                    key={item.key}
+                    className={`p-3 rounded-xl border ${
+                      item.completed
+                        ? "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+                        : "bg-white border-[#e6e0d4] text-stone-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 font-semibold">
+                      <span>
+                        {item.completed ? "✓" : "○"} {item.label}
+                      </span>
+                      <span className="font-tech text-[11px]">
+                        +{item.points} pts
+                      </span>
+                    </div>
+                    {!item.completed && (
+                      <p className="text-[11px] text-stone-500 mt-1">
+                        {item.impactHint}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Standout Authority Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                Standout Authority Tagline Badge
+              </label>
+              <input
+                type="text"
+                maxLength={60}
+                value={taglineBadge}
+                onChange={(e) => setTaglineBadge(e.target.value)}
+                placeholder="e.g. Former Journal Peer Reviewer · 99% On-Time"
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                Academic / Industry Credentials
+              </label>
+              <input
+                type="text"
+                maxLength={140}
+                value={educationCredentials}
+                onChange={(e) => setEducationCredentials(e.target.value)}
+                placeholder="e.g. MSc Economics, UoN · CFA Level II"
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                Years of Domain Experience
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                value={yearsExperience}
+                onChange={(e) => setYearsExperience(Number(e.target.value || 0))}
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm font-tech"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">
+                Committed Response SLA (minutes)
+              </label>
+              <input
+                type="number"
+                min={5}
+                max={1440}
+                value={responseTimeMinutes}
+                onChange={(e) =>
+                  setResponseTimeMinutes(Number(e.target.value || 30))
+                }
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm font-tech"
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium mb-1">
+                60-Second Video Pitch / Case Study URL (Optional)
+              </label>
+              <input
+                type="url"
+                value={introVideoUrl}
+                onChange={(e) => setIntroVideoUrl(e.target.value)}
+                placeholder="https://loom.com/share/..."
+                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm font-tech"
               />
             </div>
           </div>

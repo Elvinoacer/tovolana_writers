@@ -2,6 +2,7 @@ import crypto from "crypto";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { env, hasLiveIntaSendKeys } from "@/lib/env";
+import { CONNECTS_BUNDLES } from "@/lib/pricing";
 import { withDistributedLock } from "@/lib/redis";
 import { enqueueNotificationInTx } from "@/lib/notifications";
 
@@ -46,7 +47,8 @@ export interface InitiatePaymentInput {
   userId: string;
   bookingId?: string;
   subscriptionId?: string;
-  purpose: "BOOKING_ESCROW" | "PRO_SUBSCRIPTION";
+  bundleCode?: string;
+  purpose: "BOOKING_ESCROW" | "PRO_SUBSCRIPTION" | "CONNECTS_PURCHASE";
   channel: "MPESA_STK" | "CARD";
   phone?: string | null;
   email: string;
@@ -76,7 +78,12 @@ export async function initiateIntaSendPayment(input: InitiatePaymentInput) {
       }
     }
 
-    const prefix = input.purpose === "PRO_SUBSCRIPTION" ? "tv-pro" : "tv-bk";
+    const prefix =
+      input.purpose === "PRO_SUBSCRIPTION"
+        ? "tv-pro"
+        : input.purpose === "CONNECTS_PURCHASE"
+          ? `tv-con-${input.bundleCode || "pack"}`
+          : "tv-bk";
     const apiRef = `${prefix}-${Date.now()}-${crypto.randomBytes(4).toString("hex")}`;
 
     // Ledger-first: write PENDING transaction before calling IntaSend API
@@ -111,7 +118,9 @@ export async function initiateIntaSendPayment(input: InitiatePaymentInput) {
             narrative:
               input.purpose === "PRO_SUBSCRIPTION"
                 ? "Tovolana Writers Pro Membership"
-                : "Tovolana Writers Booking Escrow",
+                : input.purpose === "CONNECTS_PURCHASE"
+                  ? "Tovolana Creator Connects Pack"
+                  : "Tovolana Writers Booking Escrow",
           }),
         });
         const data = (await res.json()) as {
@@ -390,6 +399,59 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
         linkUrl: "/dashboard/membership",
         payload: { subscriptionId: sub.id },
       });
+    }
+
+    if (freshTx.purpose === "CONNECTS_PURCHASE") {
+      let matchedBundle = undefined;
+      if (freshTx.apiRef.startsWith("tv-con-")) {
+        const parts = freshTx.apiRef.split("-");
+        const code = parts[2];
+        matchedBundle = CONNECTS_BUNDLES.find((b) => b.id === code);
+      }
+      if (!matchedBundle) {
+        matchedBundle = CONNECTS_BUNDLES.find(
+          (b) => Math.abs(b.priceKes - freshTx.amount) < 0.05
+        );
+      }
+      const connectsToCredit =
+        matchedBundle?.totalConnects ?? Math.max(1, Math.round(freshTx.amount / 20));
+
+      const creator = await tx.creatorProfile.findUnique({
+        where: { userId: freshTx.userId },
+      });
+
+      if (creator) {
+        const updatedCreator = await tx.creatorProfile.update({
+          where: { id: creator.id },
+          data: {
+            connectsBalance: { increment: connectsToCredit },
+          },
+        });
+
+        await tx.connectsTransaction.create({
+          data: {
+            creatorProfileId: creator.id,
+            type: "BUNDLE_PURCHASE",
+            amount: connectsToCredit,
+            balanceAfter: updatedCreator.connectsBalance,
+            description: `Purchased ${matchedBundle?.name ?? "Connects Pack"} (+${connectsToCredit} Connects) via ${freshTx.channel}`,
+            bundleCode: matchedBundle?.id ?? null,
+            paymentTransactionId: freshTx.id,
+          },
+        });
+
+        await enqueueNotificationInTx(tx, {
+          userId: freshTx.userId,
+          eventType: "CONNECTS_CREDITED",
+          title: `+${connectsToCredit} Connects Credited`,
+          body: `Your ${matchedBundle?.name ?? "Connects bundle"} is live. New balance: ${updatedCreator.connectsBalance} Connects.`,
+          linkUrl: "/creators-hub/connects",
+          payload: {
+            connectsCredited: connectsToCredit,
+            balance: updatedCreator.connectsBalance,
+          },
+        });
+      }
     }
 
     return { idempotent: false, transaction: updatedTx };

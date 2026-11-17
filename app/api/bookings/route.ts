@@ -4,7 +4,11 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { calculateBookingPricing, isUserProActive } from "@/lib/pricing";
+import {
+  calculateAddOnsTotal,
+  calculateBookingPricing,
+  isUserProActive,
+} from "@/lib/pricing";
 import { fail, handleApiError, ok } from "@/lib/http";
 
 const createBookingSchema = z.object({
@@ -12,6 +16,10 @@ const createBookingSchema = z.object({
   requirementsResponses: z.record(z.string(), z.unknown()),
   requestedDeadline: z.string().optional(),
   rushExtraCharge: z.number().min(0).optional(),
+  selectedAddOns: z.array(z.string()).default([]),
+  checkoutMode: z
+    .enum(["FULL_ESCROW", "TRIPWIRE_OUTLINE", "MILESTONE_SPLIT"])
+    .default("FULL_ESCROW"),
 });
 
 export async function GET(request: NextRequest) {
@@ -118,17 +126,27 @@ export async function POST(request: NextRequest) {
       where: { id: "global" },
     });
 
+    const { addOnsTotal, itemized } = calculateAddOnsTotal(
+      task.basePrice,
+      body.selectedAddOns
+    );
+
     const pricing = calculateBookingPricing({
       listedPrice: task.basePrice,
       extraCharges: body.rushExtraCharge ?? 0,
+      addOnsTotal,
       standardServiceFeePct: config?.standardServiceFeePct ?? 10,
       proFeeDiscountPct: config?.proFeeDiscountPct ?? 50,
       serviceFeePctOverride: task.serviceFeePctOverride,
       userIsPro,
+      checkoutMode: body.checkoutMode,
     });
 
+    const effectiveDays = body.selectedAddOns.includes("priority_rush")
+      ? Math.max(1, Math.ceil(task.deliveryTurnaroundDays / 2))
+      : task.deliveryTurnaroundDays;
     const minDeadline = new Date(
-      now.getTime() + task.deliveryTurnaroundDays * 24 * 60 * 60 * 1000
+      now.getTime() + effectiveDays * 24 * 60 * 60 * 1000
     );
     let agreedDeliveryDeadline = minDeadline;
     if (body.requestedDeadline) {
@@ -153,6 +171,9 @@ export async function POST(request: NextRequest) {
         currency: task.currency,
         listedPrice: pricing.listedPrice,
         extraCharges: pricing.extraCharges,
+        addOnsTotal: pricing.addOnsTotal,
+        selectedAddOns: itemized as unknown as Prisma.InputJsonValue,
+        checkoutMode: pricing.checkoutMode,
         serviceFee: pricing.serviceFee,
         proDiscount: pricing.proDiscount,
         totalPayable: pricing.totalPayable,

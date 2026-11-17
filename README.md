@@ -14,7 +14,7 @@ An escrow-protected writing services marketplace connecting clients with assessm
 | **Caching & Rate Limits** | Redis (`ioredis`) |
 | **Payments & Escrow** | IntaSend (M-Pesa STK Push, Card Checkout, Webhook Idempotency) |
 | **File & Media Storage** | Cloudflare R2 (`@aws-sdk/client-s3`, presigned & signed access) |
-| **Notifications & Cron** | Email (`nodemailer`) + In-App / Push Outbox, Vercel Cron (`vercel.json`) |
+| **Cache & Queues** | Redis (`ioredis`), External Cron Endpoints (`/api/cron/*`) |
 
 ---
 
@@ -92,8 +92,13 @@ npm run codebase:export -- --out docs/SNAPSHOT.md
 
 ---
 
-## Scheduled Jobs (`vercel.json`)
+## External Scheduled Jobs (Vercel Hobby-Safe)
 
-- `/api/cron/listings-lifecycle` (`0 1 * * *`) — Expires stale listings and archives lapsed entries.
-- `/api/cron/notifications-outbox` (`*/15 * * * *`) — Dispatches queued email and notification outbox items.
-- `/api/cron/deadline-alerts` (`0 */4 * * *`) — Sends upcoming booking delivery deadline reminders.
+`vercel.json` has no Vercel-managed cron jobs so deployments succeed on Vercel Hobby accounts without daily-frequency limits. Ping these authenticated endpoints from an external scheduler (such as `cron-job.org`, GitHub Actions, Upstash QStash, or BetterStack) using either `Authorization: Bearer <CRON_SECRET>` or `x-cron-secret: <CRON_SECRET>`:
+
+| Endpoint (`GET` or `POST`) | Recommended Interval | Cron Expression | Purpose |
+| --- | --- | --- | --- |
+| `/api/cron/notifications-outbox` | Every 5–15 minutes | `*/15 * * * *` | Dispatch queued email & FCM push notifications (`batch 50`) |
+| `/api/cron/deadline-alerts` | Every 4 hours | `0 */4 * * *` | Enqueue `<24h` delivery deadline reminders for active bookings |
+| `/api/cron/listings-lifecycle` | Once daily (01:00 UTC) | `0 1 * * *` | Expire lapsed listings & open briefs, archive >7d expired items, downgrade expired Pro tiers |
+| `/api/cron/run` | Optional all-in-one | `*/15 * * * *` | Runs lifecycle sweep, deadline alerts, and outbox dispatch in one call |

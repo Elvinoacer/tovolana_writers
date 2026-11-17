@@ -12,6 +12,7 @@ import {
   FileText,
   Layers,
   Pencil,
+  Quote,
   RotateCcw,
   ShieldCheck,
   Star,
@@ -203,42 +204,41 @@ export default async function TaskDetailPage({
 
   return (
     <div className="animate-reveal">
-      {/* Warm Sunlit Parchment Editorial Hero */}
-      <section className="relative overflow-hidden border-b border-[#e6e0d4] bg-[#f2ede3] text-[#111827]">
+      {/* Editorial hero */}
+      <section className="relative overflow-hidden border-b border-[#e6e0d4] bg-[#f2ede3]">
         <Image
           src={photoSrc}
-          alt={`${task.category.name} — ${task.title}`}
+          alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-45"
+          className="object-cover object-center opacity-[0.28]"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-r from-[#f2ede3] via-[#f2ede3]/94 lg:via-[58%] to-[#f2ede3]/30"
+          className="absolute inset-0 bg-gradient-to-r from-[#f2ede3] via-[#f2ede3]/92 to-[#f2ede3]/55"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-t from-[#f2ede3] via-transparent to-[#f2ede3]/65"
+          className="absolute inset-0 bg-gradient-to-t from-[#f2ede3] via-transparent to-[#f2ede3]/50"
         />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-7 pb-10 sm:pb-12 space-y-8">
-          {/* Top Breadcrumb & Status Row */}
+        <div className="relative z-10 mx-auto max-w-7xl space-y-7 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-7 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <nav
               aria-label="Breadcrumb"
-              className="flex flex-wrap items-center gap-1.5 text-xs text-stone-600"
+              className="flex flex-wrap items-center gap-1.5 text-xs text-[#6b7280]"
             >
               <Link
                 href="/explore"
-                className="hover:text-[#1e3a8a] transition-colors font-semibold"
+                className="cursor-pointer font-semibold text-[#4b5563] transition-colors hover:text-[#1e3a8a]"
               >
                 Explore
               </Link>
-              <ChevronRight className="h-3.5 w-3.5 text-stone-400" />
+              <ChevronRight className="h-3.5 w-3.5 text-[#c4bdb0]" aria-hidden="true" />
               <Link
                 href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
-                className="hover:text-[#1e3a8a] transition-colors font-medium"
+                className="cursor-pointer font-medium transition-colors hover:text-[#1e3a8a]"
               >
                 {task.category.name}
               </Link>
@@ -253,131 +253,148 @@ export default async function TaskDetailPage({
               {(isOwner || isAdmin) && (
                 <Link
                   href={`/creators-hub/listings/new?edit=${encodeURIComponent(task.slug)}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[#d6cfc2] bg-white/85 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur-md hover:bg-white transition-colors"
+                  className="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-full border border-[#d6cfc2] bg-white/90 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur-sm transition-colors hover:bg-white"
                 >
-                  <Pencil className="h-3 w-3 text-[#1e3a8a]" />
-                  <span>Edit</span>
+                  <Pencil className="h-3 w-3 text-[#1e3a8a]" aria-hidden="true" />
+                  Edit
                 </Link>
               )}
             </div>
           </div>
 
-          {/* Core Headline & Lead */}
-          <div className="space-y-4 max-w-3xl">
+          <div className="max-w-3xl space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1 text-xs font-semibold text-[#0f766e] shadow-2xs backdrop-blur-md">
-                {task.category.name} · {task.serviceType}
+              <span className="inline-flex items-center rounded-md border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-xs font-semibold text-[#0f766e] backdrop-blur-sm">
+                {task.category.name}
+                <span className="mx-1.5 text-[#d6cfc2]">·</span>
+                {task.serviceType}
               </span>
               {isProEarlyAccess && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50/95 px-3 py-1 text-xs font-semibold text-amber-900 shadow-2xs backdrop-blur-md">
-                  <Crown className="h-3.5 w-3.5 text-[#b45309]" />
-                  <span>Pro Early Access</span>
+                <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50/95 px-2.5 py-1 text-xs font-semibold text-amber-900 backdrop-blur-sm">
+                  <Crown className="h-3.5 w-3.5 text-[#b45309]" aria-hidden="true" />
+                  Pro Early Access
                 </span>
               )}
             </div>
 
-            <h1 className="font-editorial text-3xl sm:text-4xl lg:text-[2.55rem] font-bold tracking-tight text-[#111827] leading-[1.14]">
+            <h1 className="font-editorial text-[1.85rem] font-bold leading-[1.12] tracking-tight text-[#111827] sm:text-4xl lg:text-[2.65rem]">
               {task.title}
             </h1>
 
-            <p className="text-base sm:text-lg text-stone-700 leading-relaxed max-w-2xl">
+            <p className="max-w-2xl text-base leading-relaxed text-[#4b5563] sm:text-lg">
               {task.shortDescription}
             </p>
           </div>
 
-          {/* Unified Hero Metadata Bar */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-t border-[#e6e0d4] pt-5">
-            {task.creator ? (
-              <Link
-                href={`/creators/${task.creator.username}`}
-                className="group inline-flex items-center gap-3 min-w-0"
-              >
-                <CreatorAvatar
-                  name={task.creator.displayName}
-                  username={task.creator.username}
-                  avatarUrl={task.creator.user?.avatarUrl}
-                  available={task.creator.isAvailable}
-                  size="md"
-                />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-semibold text-sm text-[#111827] group-hover:text-[#1e3a8a] transition-colors">
-                      {task.creator.displayName}
-                    </span>
-                    <BadgeCheck className="h-4 w-4 text-[#0f766e] shrink-0" />
-                    <span className="font-tech text-xs text-stone-500">
-                      @{task.creator.username}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2.5 text-xs font-tech text-stone-600 mt-0.5">
-                    <span className="inline-flex items-center gap-1 font-semibold text-stone-900">
-                      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                      {task.creator.ratingAverage.toFixed(1)}
-                    </span>
-                    {typeof task.creator.assessmentScore === "number" && (
-                      <span className="font-semibold text-[#0f766e]">
-                        {Math.round(task.creator.assessmentScore)}% Rubric
+          {/* Prospectus meta strip */}
+          <div className="overflow-hidden rounded-2xl border border-[#e6e0d4] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm">
+            <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch">
+              {task.creator ? (
+                <Link
+                  href={`/creators/${task.creator.username}`}
+                  className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 border-b border-[#e6e0d4] px-4 py-4 transition-colors hover:bg-[#faf7f2]/80 sm:px-5 lg:border-b-0 lg:border-r"
+                >
+                  <CreatorAvatar
+                    name={task.creator.displayName}
+                    username={task.creator.username}
+                    avatarUrl={task.creator.user?.avatarUrl}
+                    available={task.creator.isAvailable}
+                    size="md"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-sm font-semibold text-[#111827] transition-colors group-hover:text-[#1e3a8a]">
+                        {task.creator.displayName}
                       </span>
-                    )}
-                    <span className="text-stone-600">
-                      {task.creator.isAvailable ? "Accepting orders" : "At capacity"}
-                    </span>
+                      <BadgeCheck className="h-4 w-4 shrink-0 text-[#0f766e]" aria-hidden="true" />
+                    </div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#4b5563]">
+                      <span className="inline-flex items-center gap-1 font-tech font-semibold text-[#111827]">
+                        <Star
+                          className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                          aria-hidden="true"
+                        />
+                        {task.creator.ratingAverage.toFixed(1)}
+                      </span>
+                      {typeof task.creator.assessmentScore === "number" && (
+                        <span className="font-semibold text-[#0f766e]">
+                          {Math.round(task.creator.assessmentScore)}% rubric
+                        </span>
+                      )}
+                      <span>
+                        {task.creator.isAvailable
+                          ? "Accepting orders"
+                          : "At capacity"}
+                      </span>
+                    </div>
                   </div>
+                </Link>
+              ) : (
+                <div className="flex flex-1 items-center gap-2 border-b border-[#e6e0d4] px-4 py-4 text-sm text-[#4b5563] sm:px-5 lg:border-b-0 lg:border-r">
+                  <BadgeCheck className="h-4 w-4 text-[#0f766e]" aria-hidden="true" />
+                  Vetted Tovolana Specialist
                 </div>
-              </Link>
-            ) : (
-              <span className="inline-flex items-center gap-2 text-xs text-stone-700">
-                <BadgeCheck className="h-4 w-4 text-[#0f766e]" />
-                Vetted Tovolana Specialist
-              </span>
-            )}
+              )}
 
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
-                <Clock className="h-3.5 w-3.5 text-[#1e3a8a]" />
-                {task.deliveryTurnaroundDays}d Delivery
-              </span>
-              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
-                <RotateCcw className="h-3.5 w-3.5 text-[#0f766e]" />
-                {task.maxRevisions} Revisions
-              </span>
-              <span className="font-tech inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4] bg-white/85 px-3 py-1.5 text-xs font-semibold text-[#111827] shadow-2xs backdrop-blur-md">
-                <Layers className="h-3.5 w-3.5 text-[#b45309]" />
-                {task.pricingType === "QUOTE_BASED" ? "Custom Quote" : "Fixed Scope"}
-              </span>
+              <div className="grid flex-[1.2] grid-cols-3 divide-x divide-[#e6e0d4]">
+                <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                  <Clock className="h-4 w-4 text-[#1e3a8a]" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-[#111827]">
+                    {task.deliveryTurnaroundDays}d
+                  </span>
+                  <span className="text-[11px] text-[#6b7280]">Delivery</span>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                  <RotateCcw className="h-4 w-4 text-[#0f766e]" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-[#111827]">
+                    {task.maxRevisions}x
+                  </span>
+                  <span className="text-[11px] text-[#6b7280]">Revisions</span>
+                </div>
+                <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
+                  <Layers className="h-4 w-4 text-[#b45309]" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-[#111827]">
+                    {task.pricingType === "QUOTE_BASED" ? "Quote" : "Fixed"}
+                  </span>
+                  <span className="text-[11px] text-[#6b7280]">Scope</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Main Editorial Workspace */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left 8 Columns: Uncluttered Editorial Sections */}
-          <div className="lg:col-span-8 space-y-6">
-            {/* 1. About This Service & Deliverables */}
-            <section className="editorial-card bg-white p-6 sm:p-8 space-y-6">
-              <div className="space-y-3">
-                <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
+      {/* Main workspace */}
+      <div className="mx-auto max-w-7xl space-y-12 px-4 py-10 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
+          <div className="space-y-10 lg:col-span-8">
+            {/* About */}
+            <section className="space-y-5">
+              <div className="space-y-2">
+                <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
                   About this service
                 </h2>
-                <div className="whitespace-pre-line text-[15px] leading-[1.75] text-stone-700 max-w-[70ch]">
-                  {task.fullDescription}
-                </div>
+                <div className="h-0.5 w-12 rounded-full bg-[#1e3a8a]" aria-hidden="true" />
+              </div>
+              <div className="max-w-[70ch] whitespace-pre-line text-[15px] leading-[1.8] text-[#374151]">
+                {task.fullDescription}
               </div>
 
               {task.deliverablesSummary.length > 0 && (
-                <div className="border-t border-[#e6e0d4] pt-6 space-y-3">
+                <div className="mt-2 space-y-3 rounded-2xl border border-[#e6e0d4] bg-[#faf7f2]/80 p-5 sm:p-6">
                   <h3 className="text-sm font-semibold text-[#111827]">
                     Included deliverables
                   </h3>
-                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {task.deliverablesSummary.map((item, idx) => (
                       <li
                         key={idx}
-                        className="flex items-start gap-2.5 rounded-xl bg-[#faf7f2] px-3.5 py-3 text-sm text-stone-800"
+                        className="flex items-start gap-2.5 text-sm text-[#1f2937]"
                       >
-                        <CheckCircle2 className="h-4 w-4 text-[#0f766e] shrink-0 mt-0.5" />
+                        <CheckCircle2
+                          className="mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
+                          aria-hidden="true"
+                        />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -386,37 +403,42 @@ export default async function TaskDetailPage({
               )}
             </section>
 
-            {/* 2. What We Need From You */}
+            {/* Requirements */}
             {reqFields.length > 0 && (
-              <section className="editorial-card bg-white p-6 sm:p-8 space-y-4">
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
-                    What we need from you
-                  </h2>
-                  <span className="text-xs text-stone-500">
-                    Brief fields collected at checkout
+              <section className="space-y-4">
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <div className="space-y-2">
+                    <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                      What we need from you
+                    </h2>
+                    <div className="h-0.5 w-12 rounded-full bg-[#0f766e]" aria-hidden="true" />
+                  </div>
+                  <span className="text-xs text-[#6b7280]">
+                    Collected at checkout
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {reqFields.map((field) => (
                     <div
                       key={field.key}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#e6e0d4] bg-[#faf7f2]/75 px-3.5 py-2.5"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-3"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-semibold text-[#111827] truncate">
+                        <p className="truncate text-sm font-semibold text-[#111827]">
                           {field.label}
                         </p>
                         {field.options && field.options.length > 0 && (
-                          <p className="text-[11px] text-stone-500 truncate">
+                          <p className="truncate text-[11px] text-[#6b7280]">
                             {field.options.slice(0, 3).join(" · ")}
                           </p>
                         )}
                       </div>
                       <span
-                        className={`shrink-0 text-[11px] font-medium ${
-                          field.required ? "text-[#1e3a8a]" : "text-stone-400"
+                        className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                          field.required
+                            ? "bg-[#eff6ff] text-[#1e3a8a]"
+                            : "bg-[#f2ede3] text-[#6b7280]"
                         }`}
                       >
                         {field.required ? "Required" : "Optional"}
@@ -425,102 +447,113 @@ export default async function TaskDetailPage({
                   ))}
                 </div>
 
-                <p className="flex items-center gap-2 text-xs text-stone-500 pt-1">
-                  <FileText className="h-3.5 w-3.5 text-[#1e3a8a] shrink-0" />
-                  <span>
-                    Supports PDF, DOCX, XLSX, and ZIP brief attachments in Step 1 of checkout.
-                  </span>
+                <p className="flex items-center gap-2 text-xs text-[#6b7280]">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-[#1e3a8a]" aria-hidden="true" />
+                  PDF, DOCX, XLSX, and ZIP attachments accepted in checkout.
                 </p>
               </section>
             )}
 
-            {/* 3. Escrow Timeline & Protection */}
-            <section className="editorial-card bg-white p-6 sm:p-8 space-y-5">
-              <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827] flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-[#0f766e]" />
-                Escrow protection
-              </h2>
+            {/* Escrow */}
+            <section className="space-y-5 rounded-2xl border border-[#e6e0d4] bg-white p-5 sm:p-7">
+              <div className="space-y-2">
+                <h2 className="font-editorial flex items-center gap-2 text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                  <ShieldCheck className="h-5 w-5 text-[#0f766e]" aria-hidden="true" />
+                  Escrow protection
+                </h2>
+                <p className="max-w-[60ch] text-sm text-[#4b5563]">
+                  Payment stays locked until you approve the final delivery.
+                </p>
+              </div>
 
-              <div className="rounded-xl bg-[#faf7f2] border border-[#e6e0d4] p-4">
+              <div className="rounded-xl border border-[#e6e0d4] bg-[#faf7f2] p-4">
                 <EscrowStepVisualizer status="PAID_AWAITING_ACCEPTANCE" />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-1 text-xs leading-relaxed text-stone-600">
+              <div className="grid grid-cols-1 gap-5 border-t border-[#e6e0d4] pt-5 text-sm leading-relaxed text-[#4b5563] sm:grid-cols-2">
                 <div>
-                  <h3 className="text-sm font-semibold text-[#111827] mb-1">
+                  <h3 className="mb-1.5 text-sm font-semibold text-[#111827]">
                     Revisions ({task.maxRevisions} rounds)
                   </h3>
-                  <p>{task.revisionPolicy}</p>
+                  <p className="text-xs leading-relaxed sm:text-sm">
+                    {task.revisionPolicy}
+                  </p>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-[#111827] mb-1">
+                  <h3 className="mb-1.5 text-sm font-semibold text-[#111827]">
                     Cancellation &amp; escrow
                   </h3>
-                  <p>{task.cancellationPolicy}</p>
+                  <p className="text-xs leading-relaxed sm:text-sm">
+                    {task.cancellationPolicy}
+                  </p>
                 </div>
               </div>
             </section>
 
-            {/* 4. Warm Parchment Author Feature Card */}
+            {/* Creator plate */}
             {task.creator && (
-              <section className="rounded-2xl border border-[#e6e0d4] bg-[#f2ede3]/85 p-6 sm:p-8 space-y-5">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-4 min-w-0">
-                    <CreatorAvatar
-                      name={task.creator.displayName}
-                      username={task.creator.username}
-                      avatarUrl={task.creator.user?.avatarUrl}
-                      available={task.creator.isAvailable}
-                      size="lg"
-                    />
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <VettedCreatorBadge />
-                        <span className="rounded-full bg-white/80 border border-[#e6e0d4] px-2.5 py-0.5 text-[11px] font-semibold text-[#1e3a8a]">
-                          {getCreatorTierLabel(task.creator.creatorTier)}
-                        </span>
+              <section className="overflow-hidden rounded-2xl border border-[#e6e0d4] bg-[#f2ede3]/90">
+                <div className="border-b border-[#e6e0d4]/80 px-5 py-5 sm:px-7 sm:py-6">
+                  <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <CreatorAvatar
+                        name={task.creator.displayName}
+                        username={task.creator.username}
+                        avatarUrl={task.creator.user?.avatarUrl}
+                        available={task.creator.isAvailable}
+                        size="lg"
+                      />
+                      <div className="min-w-0 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <VettedCreatorBadge />
+                          <span className="rounded-full border border-[#e6e0d4] bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-[#1e3a8a]">
+                            {getCreatorTierLabel(task.creator.creatorTier)}
+                          </span>
+                        </div>
+                        <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                          {task.creator.displayName}
+                        </h2>
+                        {task.creator.headline && (
+                          <p className="text-sm text-[#4b5563]">
+                            {task.creator.headline}
+                          </p>
+                        )}
                       </div>
-                      <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
-                        {task.creator.displayName}
-                      </h2>
-                      <p className="text-xs sm:text-sm text-stone-700">
-                        {task.creator.headline}
-                      </p>
                     </div>
-                  </div>
 
-                  <Link
-                    href={`/creators/${task.creator.username}`}
-                    className="btn-ghost px-4 py-2 text-xs shrink-0 self-start sm:self-center"
-                  >
-                    <span>View Portfolio</span>
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </Link>
+                    <Link
+                      href={`/creators/${task.creator.username}`}
+                      className="btn-ghost min-h-[40px] shrink-0 cursor-pointer self-start px-4 py-2 text-xs sm:self-center"
+                    >
+                      View portfolio
+                      <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+                    </Link>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                  <div className="md:col-span-8 space-y-3">
-                    <p className="text-sm text-stone-700 leading-relaxed">
+                <div className="grid grid-cols-1 items-center gap-6 px-5 py-5 sm:px-7 sm:py-6 md:grid-cols-12">
+                  <div className="space-y-3 md:col-span-8">
+                    <p className="text-sm leading-relaxed text-[#374151]">
                       {task.creator.bio}
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       {task.creator.educationCredentials && (
-                        <span className="rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 font-medium text-stone-800">
+                        <span className="rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 font-medium text-[#1f2937]">
                           {task.creator.educationCredentials}
                         </span>
                       )}
                       {task.creator.yearsExperience > 0 && (
-                        <span className="font-tech rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 text-stone-700">
+                        <span className="font-tech rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-[#4b5563]">
                           {task.creator.yearsExperience}+ yrs
                         </span>
                       )}
-                      <span className="font-tech rounded-lg bg-white/80 border border-[#e6e0d4] px-2.5 py-1 text-[#0f766e]">
+                      <span className="font-tech rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-[#0f766e]">
                         {task.creator.onTimeDeliveryRate.toFixed(0)}% on-time
                       </span>
                     </div>
                   </div>
 
-                  <div className="md:col-span-4 grid grid-cols-2 gap-2 rounded-xl bg-white/80 border border-[#e6e0d4] p-3 text-center">
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e6e0d4] bg-white p-3 text-center md:col-span-4">
                     <ScoreRing
                       score={task.creator.assessmentScore ?? 90}
                       size={72}
@@ -538,7 +571,7 @@ export default async function TaskDetailPage({
                 </div>
 
                 {portfolioSamples.length > 0 && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="grid grid-cols-1 gap-3 border-t border-[#e6e0d4]/80 px-5 py-5 sm:grid-cols-2 sm:px-7 sm:py-6">
                     {portfolioSamples.map((sample, idx) => {
                       const attachmentUrl = sample.attachmentUrl?.trim() || "";
                       const safeAttachment = isSafeMediaDisplayUrl(attachmentUrl)
@@ -547,18 +580,18 @@ export default async function TaskDetailPage({
                       return (
                         <div
                           key={idx}
-                          className="rounded-xl bg-white/85 border border-[#e6e0d4] p-4 space-y-1.5"
+                          className="space-y-1.5 rounded-xl border border-[#e6e0d4] bg-white/95 p-4"
                         >
                           {sample.category && (
-                            <span className="text-[11px] font-medium text-[#0f766e] block">
+                            <span className="block text-[11px] font-medium text-[#0f766e]">
                               {sample.category}
                             </span>
                           )}
-                          <h3 className="font-editorial text-sm font-semibold text-[#111827] leading-snug">
+                          <h3 className="font-editorial text-sm font-semibold leading-snug text-[#111827]">
                             {sample.title || "Writing Sample"}
                           </h3>
                           {sample.excerpt && (
-                            <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                            <p className="line-clamp-2 text-xs leading-relaxed text-[#4b5563]">
                               {sample.excerpt}
                             </p>
                           )}
@@ -567,10 +600,10 @@ export default async function TaskDetailPage({
                               href={safeAttachment}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 pt-1 text-[11px] font-semibold text-[#1e3a8a] hover:underline"
+                              className="inline-flex cursor-pointer items-center gap-1 pt-1 text-[11px] font-semibold text-[#1e3a8a] hover:underline"
                             >
-                              <span>Read sample</span>
-                              <ExternalLink className="h-3 w-3" />
+                              Read sample
+                              <ExternalLink className="h-3 w-3" aria-hidden="true" />
                             </a>
                           )}
                         </div>
@@ -581,45 +614,58 @@ export default async function TaskDetailPage({
               </section>
             )}
 
-            {/* 5. Client Reviews */}
+            {/* Reviews */}
             {task.reviews.length > 0 ? (
-              <section className="editorial-card bg-white p-6 sm:p-8 space-y-4">
-                <h2 className="font-editorial text-xl sm:text-2xl font-bold tracking-tight text-[#111827]">
-                  Client reviews ({task.reviews.length})
-                </h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <section className="space-y-5">
+                <div className="space-y-2">
+                  <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                    Client reviews
+                    <span className="ml-2 font-tech text-base font-semibold text-[#6b7280]">
+                      ({task.reviews.length})
+                    </span>
+                  </h2>
+                  <div className="h-0.5 w-12 rounded-full bg-[#b45309]" aria-hidden="true" />
+                </div>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {task.reviews.map((rev) => (
-                    <div
+                    <figure
                       key={rev.id}
-                      className="rounded-xl border border-[#e6e0d4] bg-[#faf7f2] p-4 space-y-2"
+                      className="relative space-y-3 rounded-2xl border border-[#e6e0d4] bg-white p-5"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-semibold text-[#111827]">
+                      <Quote
+                        className="absolute right-4 top-4 h-5 w-5 text-[#e6e0d4]"
+                        aria-hidden="true"
+                      />
+                      <div className="flex items-center justify-between gap-2 pr-6">
+                        <figcaption className="text-sm font-semibold text-[#111827]">
                           {rev.customer.name}
-                        </span>
+                        </figcaption>
                         <span className="font-tech inline-flex items-center gap-1 text-xs font-bold text-amber-800">
-                          <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                          <Star
+                            className="h-3 w-3 fill-amber-500 text-amber-500"
+                            aria-hidden="true"
+                          />
                           {rev.rating}.0
-                          <span className="font-normal text-stone-400 ml-1">
-                            {formatShortDate(rev.createdAt)}
-                          </span>
                         </span>
                       </div>
-                      <p className="text-xs text-stone-700 leading-relaxed">
+                      <blockquote className="text-sm leading-relaxed text-[#4b5563]">
                         {rev.comment}
-                      </p>
-                    </div>
+                      </blockquote>
+                      <time className="font-tech block text-[11px] text-[#9ca3af]">
+                        {formatShortDate(rev.createdAt)}
+                      </time>
+                    </figure>
                   ))}
                 </div>
               </section>
             ) : (
-              <p className="text-xs text-stone-500 px-1">
+              <p className="text-xs text-[#6b7280]">
                 Reviews appear after verified escrow delivery and client approval.
               </p>
             )}
           </div>
 
-          {/* Right 4 Columns: Streamlined Sticky Commissioning Sidebar */}
+          {/* Sticky commission sidebar */}
           <aside className="lg:col-span-4 lg:sticky lg:top-24">
             <TaskCommissionSidebar
               task={{
@@ -659,23 +705,26 @@ export default async function TaskDetailPage({
           </aside>
         </div>
 
-        {/* 6. Related Services */}
+        {/* Related */}
         {relatedTasks.length > 0 && (
-          <section className="pt-8 border-t border-[#e6e0d4] space-y-6">
+          <section className="space-y-6 border-t border-[#e6e0d4] pt-10">
             <div className="flex items-end justify-between gap-3">
-              <h2 className="font-editorial text-2xl sm:text-3xl font-bold tracking-tight text-[#111827]">
-                Related services
-              </h2>
+              <div className="space-y-2">
+                <h2 className="font-editorial text-2xl font-bold tracking-tight text-[#111827] sm:text-3xl">
+                  Related services
+                </h2>
+                <div className="h-0.5 w-12 rounded-full bg-[#1e3a8a]" aria-hidden="true" />
+              </div>
               <Link
                 href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-[#1e3a8a] hover:underline"
+                className="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-[#1e3a8a] hover:underline"
               >
-                <span>Browse {task.category.name}</span>
-                <ChevronRight className="h-4 w-4" />
+                Browse {task.category.name}
+                <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {relatedTasks.map((related) => (
                 <TaskCard
                   key={related.id}

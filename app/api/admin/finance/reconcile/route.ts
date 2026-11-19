@@ -15,7 +15,7 @@ const financeActionSchema = z.discriminatedUnion("action", [
     action: z.literal("MARK_PAYOUT_PAID"),
     payoutId: z.string().min(1),
     providerRef: z.string().min(3),
-    reason: z.string().min(4).max(500).default("Settled via M-Pesa B2C"),
+    reason: z.string().min(4).max(500).default("Paid via M-Pesa"),
   }),
 ]);
 

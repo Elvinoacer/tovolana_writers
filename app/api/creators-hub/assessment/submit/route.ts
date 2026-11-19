@@ -94,15 +94,15 @@ export async function POST(request: NextRequest) {
         await enqueueNotificationInTx(tx, {
           userId: user.id,
           eventType: "CREATOR_APPROVED",
-          title: "Welcome to the Creators Hub!",
-          body: `Your assessment scored ${evaluation.totalScore}/100. Creators Hub permissions are now active on your account.`,
+          title: "You Are Approved as a Writer!",
+          body: `Your writing test scored ${evaluation.totalScore}/100. You can now open your Writer Hub and start working.`,
           linkUrl: "/creators-hub",
         });
       } else {
         await enqueueNotificationInTx(tx, {
           userId: user.id,
           eventType: "CREATOR_ASSESSMENT_RESULT",
-          title: `Writing Assessment Status: ${evaluation.autoDecision.replace(/_/g, " ")}`,
+          title: `Writing Test Update: ${evaluation.autoDecision.replace(/_/g, " ")}`,
           body: evaluation.feedbackSummary,
           linkUrl: "/creators-hub/status",
         });

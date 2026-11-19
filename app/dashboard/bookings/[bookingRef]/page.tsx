@@ -1,10 +1,8 @@
 "use client";
 
 import { CustomerShell } from "@/components/CustomerShell";
-import {
-  CreatorAvatar,
-  EscrowStepVisualizer,
-} from "@/components/ui/EditorialVisuals";
+import { EscrowStepVisualizer } from "@/components/ui/EditorialVisuals";
+import { HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -29,9 +27,12 @@ import {
   BookingDeadlineTag,
   ListingValidityTag,
   StatusPill,
+  formatFileCategory,
   formatKes,
   formatShortDate,
+  formatStatusLabel,
 } from "@/components/ui/Badges";
+import { NextStepBanner } from "@/components/ui/FlowGuide";
 import {
   MAX_BROWSER_UPLOAD_LABEL,
   canDeleteBookingFile,
@@ -278,7 +279,7 @@ export default function CustomerBookingWorkspacePage({
       if (!res.ok) {
         throw new Error(j?.error?.message || `Upload failed (${res.status}).`);
       }
-      setNotice(`Uploaded ${file.name} securely to booking vault.`);
+      setNotice(`Uploaded ${file.name} safely.`);
       await loadBooking();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
@@ -301,7 +302,7 @@ export default function CustomerBookingWorkspacePage({
           j?.error?.message || `Could not delete file (${res.status}).`
         );
       }
-      setNotice("File deleted from booking vault.");
+      setNotice("File removed from project files.");
       await loadBooking();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Delete failed.");
@@ -331,7 +332,7 @@ export default function CustomerBookingWorkspacePage({
         );
       }
       setPendingApiRef(json?.data?.transaction?.apiRef ?? null);
-      setNotice("IntaSend escrow checkout initiated.");
+      setNotice("Payment request sent. Complete it below to lock in your order.");
       await loadBooking();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed.");
@@ -348,7 +349,7 @@ export default function CustomerBookingWorkspacePage({
     });
     if (res.ok) {
       setPendingApiRef(null);
-      setNotice("Escrow payment confirmed via IntaSend webhook!");
+      setNotice("Payment confirmed! Your money is held safely and your writer has been notified.");
       await loadBooking();
     }
   }
@@ -371,13 +372,13 @@ export default function CustomerBookingWorkspacePage({
       const j = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          j?.error?.message || `Completion failed (${res.status}).`
+          j?.error?.message || `Could not finish order (${res.status}).`
         );
       }
-      setNotice("Delivery approved! Creator escrow released.");
+      setNotice("Work approved! Your writer has been paid.");
       await loadBooking();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not approve delivery.");
+      setError(err instanceof Error ? err.message : "Could not approve work.");
     } finally {
       setCompleting(false);
     }
@@ -386,8 +387,8 @@ export default function CustomerBookingWorkspacePage({
   if (loading || authLoading) {
     return (
       <main className="max-w-6xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading booking workspace...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading your order details...
         </div>
       </main>
     );
@@ -397,15 +398,12 @@ export default function CustomerBookingWorkspacePage({
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <AlertTriangle className="w-10 h-10 text-rose-600 mx-auto" />
-          <h1 className="text-xl font-editorial font-semibold">
-            {error || "Booking not accessible"}
+          <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto" />
+          <h1 className="text-xl font-editorial font-semibold text-white">
+            {error || "Order not found"}
           </h1>
-          <Link
-            href="/dashboard"
-            className="inline-flex px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm"
-          >
-            Back to Dashboard
+          <Link href="/dashboard" className="btn-primary px-4 py-2 text-sm">
+            Back to My Orders
           </Link>
         </div>
       </main>
@@ -417,10 +415,76 @@ export default function CustomerBookingWorkspacePage({
     booking.status === "DELIVERED" &&
     booking.revisionCount < booking.maxRevisions;
 
+  const statusGuide: Record<
+    string,
+    {
+      tone: "blue" | "teal" | "amber" | "emerald" | "rose" | "stone";
+      now: string;
+      next: string;
+      goal: string;
+    }
+  > = {
+    PENDING_PAYMENT: {
+      tone: "amber",
+      now: "Your order is saved, but payment is not completed yet.",
+      next: "Pay using M-Pesa or Card below so your writer can start.",
+      goal: "Your money stays safely held until you approve finished work.",
+    },
+    PAID_AWAITING_ACCEPTANCE: {
+      tone: "blue",
+      now: "We received your payment and notified your writer.",
+      next: `${booking.creator.displayName} will accept your order shortly and begin writing.`,
+      goal: `Get your finished work on or before ${formatShortDate(booking.agreedDeliveryDeadline)}.`,
+    },
+    IN_PROGRESS: {
+      tone: "blue",
+      now: `${booking.creator.displayName} is working on your project right now.`,
+      next: "You can send messages or upload extra files anytime below.",
+      goal: `Check and approve finished files by ${formatShortDate(booking.agreedDeliveryDeadline)}.`,
+    },
+    DELIVERED: {
+      tone: "teal",
+      now: "Your finished files are uploaded and ready for you to check!",
+      next: "Download the files under Project Files below. Approve if happy, or ask for a free edit.",
+      goal: "Only approve and pay the writer once the work matches your instructions.",
+    },
+    REVISION_REQUESTED: {
+      tone: "amber",
+      now: "Your edit request was sent to your writer.",
+      next: `${booking.creator.displayName} is updating the work and will upload the new version soon.`,
+      goal: "Check the updated files once uploaded and approve when ready.",
+    },
+    COMPLETED: {
+      tone: "emerald",
+      now: "This order is complete and your writer has been paid.",
+      next: "Your finished files stay saved below whenever you need to download them again.",
+      goal: "Order completed safely.",
+    },
+    DISPUTED: {
+      tone: "rose",
+      now: "Support is reviewing this order.",
+      next: "Check the Support Case box below or reply in Messages if we ask for details.",
+      goal: "Reach a fair refund or completion decision.",
+    },
+    CANCELLED: {
+      tone: "stone",
+      now: "This order was cancelled.",
+      next: "You can browse other writers or post a free job anytime.",
+      goal: "Start a new order whenever you need writing help.",
+    },
+    REFUNDED: {
+      tone: "stone",
+      now: "This order was refunded.",
+      next: "Check your payment summary below for details.",
+      goal: "Start a new order whenever you need writing help.",
+    },
+  };
+  const guide = statusGuide[booking.status] ?? statusGuide.IN_PROGRESS;
+
   return (
     <CustomerShell
       title={booking.taskTitleSnapshot}
-      subtitle={`Booking ${booking.bookingRef} · Escrow ${formatKes(booking.totalPayable, booking.currency)}`}
+      subtitle={`Order ${booking.bookingRef} · Total ${formatKes(booking.totalPayable, booking.currency)}`}
     >
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-wrap">
@@ -429,26 +493,26 @@ export default function CustomerBookingWorkspacePage({
             className="btn-ghost px-3 py-1.5 text-xs gap-1.5"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            All Bookings
+            All Orders
           </Link>
-          <span className="font-tech text-xs px-2.5 py-1 rounded-lg bg-white border border-[#e6e0d4]">
+          <span className="font-tech text-xs px-2.5 py-1 rounded-lg bg-white/[0.06] border border-white/[0.12] text-slate-200">
             {booking.bookingRef}
           </span>
           <StatusPill status={booking.status} />
           <div className="inline-flex items-center gap-2 pl-1">
-            <CreatorAvatar
+            <RadarAvatar
               name={booking.creator.displayName}
-              username={booking.creator.username}
               avatarUrl={booking.creator.user?.avatarUrl}
+              theme="cyan"
               size="sm"
             />
             <Link
               href={`/creators/${booking.creator.username}`}
-              className="text-xs font-semibold text-[#0f766e] hover:underline"
+              className="text-xs font-semibold text-teal-300 hover:underline"
             >
               {booking.creator.displayName}
             </Link>
-            <span className="text-xs text-stone-500">
+            <span className="text-xs text-slate-400">
               · {formatShortDate(booking.createdAt)}
             </span>
           </div>
@@ -465,39 +529,48 @@ export default function CustomerBookingWorkspacePage({
             className="btn-ghost px-3 py-1 text-xs gap-1"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Sync
+            Refresh
           </button>
         </div>
       </div>
 
-      {/* Live Escrow Stage Stepper */}
+      {/* Live Progress Bar */}
       <div
-        className="editorial-card p-5 bg-white"
-        aria-label={`Stage ${activeStep + 1} of 5`}
+        className="editorial-card p-5"
+        aria-label={`Step ${activeStep + 1} of 5`}
       >
         <EscrowStepVisualizer status={booking.status} />
       </div>
 
+      {/* Clear Next-Step Banner */}
+      <NextStepBanner
+        tone={guide.tone}
+        eyebrow="Where things stand"
+        now={guide.now}
+        next={guide.next}
+        goal={guide.goal}
+      />
+
       {error && (
-        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm">
           {notice}
         </div>
       )}
 
       {/* Pending Payment Banner */}
       {booking.status === "PENDING_PAYMENT" && (
-        <div className="editorial-card p-6 bg-amber-50/70 border-amber-200 space-y-4">
+        <HudCard theme="amber" brackets className="p-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2">
-            <h2 className="font-editorial text-xl font-semibold text-amber-950">
-              Fund Escrow ({formatKes(booking.totalPayable, booking.currency)})
+            <h2 className="font-editorial text-xl font-semibold text-white">
+              Complete Payment ({formatKes(booking.totalPayable, booking.currency)})
             </h2>
-            <span className="text-xs font-tech text-amber-900 bg-white px-2.5 py-1 rounded-full border border-amber-200">
-              IntaSend Protected
+            <span className="text-xs font-tech text-amber-200 bg-amber-500/20 px-2.5 py-1 rounded-full border border-amber-400/40">
+              Payment Held Safely
             </span>
           </div>
           <div className="flex flex-wrap items-end gap-3">
@@ -506,19 +579,19 @@ export default function CustomerBookingWorkspacePage({
                 onClick={() => setPayChannel("MPESA_STK")}
                 className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   payChannel === "MPESA_STK"
-                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
-                    : "bg-white text-stone-700 border-[#e6e0d4]"
+                    ? "bg-teal-400/25 text-teal-100 border-teal-400/60"
+                    : "bg-white/[0.05] text-slate-300 border-white/[0.12]"
                 }`}
               >
                 <Smartphone className="w-3.5 h-3.5" />
-                M-Pesa STK
+                M-Pesa
               </button>
               <button
                 onClick={() => setPayChannel("CARD")}
                 className={`px-3.5 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all ${
                   payChannel === "CARD"
-                    ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
-                    : "bg-white text-stone-700 border-[#e6e0d4]"
+                    ? "bg-sky-500/25 text-sky-100 border-sky-400/60"
+                    : "bg-white/[0.05] text-slate-300 border-white/[0.12]"
                 }`}
               >
                 <CreditCard className="w-3.5 h-3.5" />
@@ -531,57 +604,57 @@ export default function CustomerBookingWorkspacePage({
                 value={payPhone}
                 onChange={(e) => setPayPhone(e.target.value)}
                 placeholder="+254712345678"
-                className="px-3.5 py-2 rounded-xl border border-[#e6e0d4] bg-white text-xs font-tech"
+                className="hud-input px-3.5 py-2 text-xs font-tech"
               />
             )}
             <button
               onClick={handleInitiateCheckout}
               className="btn-primary px-4 py-2 text-xs"
             >
-              Initiate Escrow Payment
+              {payChannel === "MPESA_STK" ? "Pay via M-Pesa" : "Pay by Card"}
             </button>
             {(pendingApiRef || booking.payments.length > 0) && (
               <button
                 onClick={handleSimulateComplete}
-                className="px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 transition-colors"
+                className="px-4 py-2 rounded-xl bg-emerald-400 text-slate-950 text-xs font-bold hover:bg-emerald-300 transition-colors"
               >
-                Simulate Webhook Complete
+                Mark as Paid (Demo)
               </button>
             )}
           </div>
-        </div>
+        </HudCard>
       )}
 
       {/* Delivery Acceptance Panel */}
       {booking.status === "DELIVERED" && (
-        <div className="editorial-card p-6 border-indigo-200 bg-indigo-50/50 space-y-4">
+        <HudCard theme="emerald" brackets className="p-6 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
-              <h2 className="font-editorial text-xl font-semibold text-indigo-950">
-                Deliverables Submitted — Ready for Review
+              <h2 className="font-editorial text-xl font-semibold text-white">
+                Your finished work is ready!
               </h2>
-              <p className="text-xs text-indigo-900/80 mt-0.5">
-                Inspect files below, then approve to release escrow or request a revision.
+              <p className="text-xs text-slate-300 mt-0.5">
+                Download your files below to check them. Approve when happy, or ask for a free edit.
               </p>
             </div>
             {canRequestRevision ? (
               <Link
                 href={`/dashboard/bookings/${booking.bookingRef}/revision`}
-                className="shrink-0 px-4 py-2 rounded-xl border border-orange-300 bg-white text-orange-800 text-xs font-semibold hover:bg-orange-50"
+                className="shrink-0 px-4 py-2 rounded-xl border border-orange-400/45 bg-orange-500/15 text-orange-200 text-xs font-semibold hover:bg-orange-500/25"
               >
-                Request Revision ({booking.revisionCount}/{booking.maxRevisions})
+                Ask for Free Edit ({booking.revisionCount}/{booking.maxRevisions} used)
               </Link>
             ) : (
-              <span className="text-xs font-tech text-stone-600">
-                Revisions {booking.revisionCount}/{booking.maxRevisions}
+              <span className="text-xs font-tech text-slate-400">
+                Free edits used: {booking.revisionCount}/{booking.maxRevisions}
               </span>
             )}
           </div>
 
-          <div className="p-4 rounded-2xl bg-white border border-indigo-100 space-y-3">
+          <div className="p-4 rounded-2xl bg-white/[0.045] border border-white/[0.12] space-y-3">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <p className="text-xs font-semibold text-stone-700">
-                Rate Creator &amp; Release Escrow
+              <p className="text-xs font-semibold text-slate-200">
+                Rate Your Writer &amp; Release Payment
               </p>
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((s) => (
@@ -594,44 +667,44 @@ export default function CustomerBookingWorkspacePage({
                     <Star
                       className={`w-5 h-5 ${
                         s <= rating
-                          ? "fill-amber-400 text-amber-500"
-                          : "text-stone-300"
+                          ? "fill-amber-400 text-amber-400"
+                          : "text-slate-600"
                       }`}
                     />
                   </button>
                 ))}
-                <span className="text-xs font-tech text-stone-600 ml-1.5">{rating}/5</span>
+                <span className="text-xs font-tech text-slate-300 ml-1.5">{rating}/5</span>
               </div>
             </div>
             <textarea
               rows={2}
               value={reviewComment}
               onChange={(e) => setReviewComment(e.target.value)}
-              placeholder="Optional public feedback on quality & timeliness..."
-              className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2 text-xs"
+              placeholder="Optional public review about quality and speed..."
+              className="hud-input w-full px-3.5 py-2 text-xs"
             />
             <button
               disabled={completing}
               onClick={handleCompleteBooking}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-400 text-slate-950 text-xs font-bold hover:bg-emerald-300 disabled:opacity-50 transition-colors"
             >
               <CheckCircle2 className="w-4 h-4" />
-              {completing ? "Approving..." : "Approve Delivery & Release Escrow"}
+              {completing ? "Finishing..." : "Approve & Pay Writer"}
             </button>
           </div>
-        </div>
+        </HudCard>
       )}
 
       {booking.dispute && (
-        <div className="editorial-card p-5 border-rose-200 bg-rose-50/60 space-y-1.5">
-          <div className="flex items-center gap-2 text-rose-900 font-semibold text-sm">
+        <div className="editorial-card p-5 border-rose-400/35 bg-rose-500/15 space-y-1.5">
+          <div className="flex items-center gap-2 text-rose-200 font-semibold text-sm">
             <ShieldAlert className="w-4 h-4" />
-            Dispute ({booking.dispute.status}) — {booking.dispute.reason}
+            Support Case ({formatStatusLabel(booking.dispute.status)}) — {booking.dispute.reason}
           </div>
-          <p className="text-xs text-rose-800">{booking.dispute.details}</p>
+          <p className="text-xs text-rose-200/90">{booking.dispute.details}</p>
           {booking.dispute.resolutionNote && (
-            <p className="text-xs font-medium text-emerald-900 bg-white/80 p-2.5 rounded-lg border border-emerald-200">
-              Tribunal Note: {booking.dispute.resolutionNote}
+            <p className="text-xs font-medium text-emerald-200 bg-emerald-500/15 p-2.5 rounded-lg border border-emerald-400/35">
+              Support Decision: {booking.dispute.resolutionNote}
             </p>
           )}
         </div>
@@ -639,16 +712,16 @@ export default function CustomerBookingWorkspacePage({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
-          {/* File Vault */}
-          <div className="editorial-card p-5 bg-white space-y-4">
+          {/* Project Files */}
+          <div className="editorial-card p-5 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-[#1e3a8a]" />
-                  Secure File Vault
+                <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-sky-300" />
+                  Project Files
                 </h2>
-                <p className="text-[11px] text-stone-500 mt-0.5">
-                  Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, DOCX, TXT, MD, CSV, ZIP, or images.
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, Word, text, spreadsheets, ZIP, or photos.
                 </p>
               </div>
               <label
@@ -657,7 +730,7 @@ export default function CustomerBookingWorkspacePage({
                 }`}
               >
                 <Upload className="w-3.5 h-3.5" />
-                {uploading ? "Uploading..." : "Upload Brief"}
+                {uploading ? "Uploading..." : "Add File"}
                 <input
                   type="file"
                   disabled={uploading}
@@ -668,7 +741,7 @@ export default function CustomerBookingWorkspacePage({
             </div>
 
             {booking.files.length === 0 ? (
-              <p className="text-xs text-stone-500 py-4 text-center">
+              <p className="text-xs text-slate-400 py-4 text-center">
                 No files uploaded yet.
               </p>
             ) : (
@@ -678,16 +751,16 @@ export default function CustomerBookingWorkspacePage({
                   return (
                     <div
                       key={f.id}
-                      className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3"
+                      className="p-3 rounded-xl bg-white/[0.045] border border-white/[0.11] flex items-center justify-between gap-3"
                     >
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-[#111827] truncate">
+                        <p className="text-sm font-medium text-white truncate">
                           {f.fileName}
                         </p>
-                        <p className="text-[11px] text-stone-500">
-                          {f.fileCategory.replace(/_/g, " ")} · {f.uploader.name} ·{" "}
+                        <p className="text-[11px] text-slate-400">
+                          {formatFileCategory(f.fileCategory)} · {f.uploader.name} ·{" "}
                           {Math.max(1, Math.round(f.sizeBytes / 1024))} KB
-                          {(f.revisionId || f.disputeId) && " · Linked Evidence"}
+                          {(f.revisionId || f.disputeId) && " · Support attachment"}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -704,10 +777,10 @@ export default function CustomerBookingWorkspacePage({
                             disabled={deletingFileId === f.id}
                             onClick={() => handleDeleteFile(f.id)}
                             aria-label={`Delete ${f.fileName}`}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-200 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-xs font-semibold hover:bg-rose-500/25 disabled:opacity-50"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
-                            {deletingFileId === f.id ? "Removing..." : "Delete"}
+                            {deletingFileId === f.id ? "Removing..." : "Remove"}
                           </button>
                         )}
                       </div>
@@ -718,11 +791,11 @@ export default function CustomerBookingWorkspacePage({
             )}
           </div>
 
-          {/* Messaging Thread */}
-          <div className="editorial-card p-5 bg-white space-y-4">
-            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-              <MessageSquare className="w-4 h-4 text-[#1e3a8a]" />
-              Workspace Thread
+          {/* Messages */}
+          <div className="editorial-card p-5 space-y-4">
+            <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+              <MessageSquare className="w-4 h-4 text-sky-300" />
+              Messages
             </h2>
 
             <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
@@ -731,15 +804,15 @@ export default function CustomerBookingWorkspacePage({
                   key={m.id}
                   className={`p-3 rounded-xl text-sm ${
                     m.isSystemMessage
-                      ? "bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 text-xs"
+                      ? "bg-white/[0.05] border border-white/[0.11] text-slate-300 text-xs"
                       : m.sender.id === user?.id
-                        ? "bg-blue-50 border border-blue-200 ml-6"
-                        : "bg-white border border-[#e6e0d4] mr-6"
+                        ? "bg-sky-500/[0.15] border border-sky-400/35 text-slate-100 ml-6"
+                        : "bg-white/[0.04] border border-white/[0.1] text-slate-200 mr-6"
                   }`}
                 >
-                  <div className="flex items-center justify-between text-[11px] text-stone-500 mb-1">
-                    <span className="font-semibold text-stone-700">
-                      {m.isSystemMessage ? "Milestone" : m.sender.name}
+                  <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+                    <span className="font-semibold text-white">
+                      {m.isSystemMessage ? "Order Update" : m.sender.name}
                     </span>
                     <span>{formatShortDate(m.createdAt)}</span>
                   </div>
@@ -753,8 +826,8 @@ export default function CustomerBookingWorkspacePage({
                 type="text"
                 value={msgText}
                 onChange={(e) => setMsgText(e.target.value)}
-                placeholder="Message your Creator..."
-                className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                placeholder="Write a message to your writer..."
+                className="hud-input flex-1 px-3.5 py-2.5 text-sm"
               />
               <button
                 type="submit"
@@ -768,23 +841,23 @@ export default function CustomerBookingWorkspacePage({
           </div>
         </div>
 
-        {/* Right Sidebar: Brief & Financials */}
+        {/* Right Sidebar */}
         <aside className="space-y-5">
-          <div className="editorial-card p-5 bg-white space-y-3">
-            <h2 className="font-editorial text-base font-semibold">
-              Requirements Brief
+          <div className="editorial-card p-5 space-y-3">
+            <h2 className="font-editorial text-base font-semibold text-white">
+              Your Instructions
             </h2>
             <dl className="space-y-2 text-xs">
               {Object.entries(booking.requirementsResponses || {}).map(
                 ([k, v]) => (
                   <div
                     key={k}
-                    className="border-b border-[#e6e0d4] pb-2 last:border-0"
+                    className="border-b border-white/[0.1] pb-2 last:border-0"
                   >
-                    <dt className="text-stone-500 capitalize">
+                    <dt className="text-slate-400 capitalize">
                       {k.replace(/([A-Z])/g, " $1")}
                     </dt>
-                    <dd className="text-[#111827] font-medium mt-0.5 whitespace-pre-wrap">
+                    <dd className="text-slate-100 font-medium mt-0.5 whitespace-pre-wrap">
                       {String(v)}
                     </dd>
                   </div>
@@ -793,47 +866,47 @@ export default function CustomerBookingWorkspacePage({
             </dl>
           </div>
 
-          <div className="editorial-card p-5 bg-white space-y-3 text-xs">
-            <h2 className="font-editorial text-base font-semibold">
-              Escrow Ledger
+          <div className="editorial-card p-5 space-y-3 text-xs">
+            <h2 className="font-editorial text-base font-semibold text-white">
+              Payment Summary
             </h2>
             <div className="flex justify-between">
-              <span className="text-stone-600">Listed Price</span>
-              <span className="font-tech">
+              <span className="text-slate-400">Service Price</span>
+              <span className="font-tech text-slate-200">
                 {formatKes(booking.listedPrice, booking.currency)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-stone-600">Service Fee</span>
-              <span className="font-tech">
+              <span className="text-slate-400">Service Fee</span>
+              <span className="font-tech text-slate-200">
                 {formatKes(booking.serviceFee, booking.currency)}
               </span>
             </div>
-            <div className="flex justify-between font-bold text-sm border-t border-[#e6e0d4] pt-2">
-              <span>Total Escrow</span>
-              <span className="font-tech text-[#1e3a8a]">
+            <div className="flex justify-between font-bold text-sm border-t border-white/[0.1] pt-2 text-white">
+              <span>Total Paid</span>
+              <span className="font-tech text-cyan-300">
                 {formatKes(booking.totalPayable, booking.currency)}
               </span>
             </div>
             {booking.revisions.length > 0 && (
-              <div className="pt-2 border-t border-[#e6e0d4] space-y-1.5">
-                <p className="font-semibold text-stone-800">Revision Log</p>
+              <div className="pt-2 border-t border-white/[0.1] space-y-1.5">
+                <p className="font-semibold text-white">Edit Requests</p>
                 {booking.revisions.map((r) => (
-                  <p key={r.id} className="text-stone-600">
-                    <strong>#{r.revisionNumber}</strong> (
-                    {r.resolvedAt ? "RESOLVED" : "OPEN"}): {r.reason}
+                  <p key={r.id} className="text-slate-300">
+                    <strong className="text-amber-300">Edit #{r.revisionNumber}</strong> (
+                    {r.resolvedAt ? "Done" : "Open"}): {r.reason}
                   </p>
                 ))}
               </div>
             )}
             {!["CANCELLED", "REFUNDED", "DISPUTED"].includes(booking.status) && (
-              <div className="pt-2 border-t border-[#e6e0d4]">
+              <div className="pt-2 border-t border-white/[0.1]">
                 <Link
                   href={`/dashboard/bookings/${booking.bookingRef}/dispute`}
-                  className="inline-flex items-center gap-1.5 text-rose-700 hover:underline font-medium"
+                  className="inline-flex items-center gap-1.5 text-rose-300 hover:underline font-medium"
                 >
                   <ShieldAlert className="w-3.5 h-3.5" />
-                  Cancel / Dispute
+                  Cancel or Get Support Help
                 </Link>
               </div>
             )}

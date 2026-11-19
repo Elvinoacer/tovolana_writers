@@ -2,13 +2,20 @@
 
 import { CreatorShell } from "@/components/CreatorShell";
 import { CategoryCoverArt } from "@/components/ui/EditorialVisuals";
+import { FlowSteps } from "@/components/ui/FlowGuide";
 import { formatKes as fmtKes } from "@/components/ui/Badges";
+import {
+  HudBadge,
+  HudCard,
+  HudPriceDock,
+} from "@/components/ui/AuroraPrimitives";
 
 import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Plus, Save, Send, Trash2 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import { getCardHudTheme } from "@/lib/design-tokens";
 
 interface CategoryOption {
   id: string;
@@ -25,7 +32,7 @@ function ListingEditorInner() {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [serviceType, setServiceType] = useState("Research & Drafting");
+  const [serviceType, setServiceType] = useState("Writing & Research");
   const [shortDescription, setShortDescription] = useState("");
   const [fullDescription, setFullDescription] = useState("");
   const [pricingType, setPricingType] = useState<"FIXED" | "QUOTE_BASED">(
@@ -40,15 +47,15 @@ function ListingEditorInner() {
   const [manualAcceptanceRequired, setManualAcceptanceRequired] =
     useState(false);
   const [deliverables, setDeliverables] = useState<string[]>([
-    "Publication-ready DOCX & PDF manuscript",
-    "Formatted reference bibliography & originality summary",
+    "Clean Word & PDF final document",
+    "Formatted references list",
   ]);
   const [newDeliverable, setNewDeliverable] = useState("");
   const [revisionPolicy, setRevisionPolicy] = useState(
-    "Up to 2 structured revisions within 7 days of delivery aligned to the original customer brief."
+    "Includes up to 2 free edits within 7 days to match your original instructions."
   );
   const [cancellationPolicy, setCancellationPolicy] = useState(
-    "Full escrow refund before acceptance or overdue violation; pro-rated mediation via Tovolana Admin Tribunal once active."
+    "Full refund before the writer starts, or fair review by Support if work has already begun."
   );
 
   const [saving, setSaving] = useState(false);
@@ -87,7 +94,10 @@ function ListingEditorInner() {
           t.validityType === "SHORT_14D" ? "SHORT_14D" : "STANDARD_30D"
         );
         setManualAcceptanceRequired(Boolean(t.manualAcceptanceRequired));
-        if (Array.isArray(t.deliverablesSummary) && t.deliverablesSummary.length) {
+        if (
+          Array.isArray(t.deliverablesSummary) &&
+          t.deliverablesSummary.length
+        ) {
           setDeliverables(t.deliverablesSummary);
         }
         if (t.revisionPolicy) setRevisionPolicy(t.revisionPolicy);
@@ -138,7 +148,9 @@ function ListingEditorInner() {
       if (!res.ok) {
         throw new Error(j.error?.message || "Could not save task listing.");
       }
-      router.push(isAdmin ? "/admin/listings/moderation" : "/creators-hub/listings");
+      router.push(
+        isAdmin ? "/admin/listings/moderation" : "/creators-hub/listings"
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Save failed.");
     } finally {
@@ -149,7 +161,7 @@ function ListingEditorInner() {
   if (authLoading) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
           Loading listing editor...
         </div>
       </main>
@@ -159,17 +171,17 @@ function ListingEditorInner() {
   if (!user || (!user.roles.includes("CREATOR") && !isAdmin)) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <h1 className="text-2xl font-editorial font-semibold">
-            Creator or Administrator access required
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Writer account needed
           </h1>
           <Link
             href="/creators-hub/onboarding"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+            className="btn-creator inline-flex px-5 py-2.5 text-sm font-semibold"
           >
-            Join Creators Hub
+            Become a Writer
           </Link>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -178,37 +190,57 @@ function ListingEditorInner() {
   const catName = selectedCat?.name || "Writing Service";
   const catSlug = catName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
   const numericPrice = Math.max(0, Number(basePrice) || 0);
+  const previewTheme = getCardHudTheme(catSlug, 0);
 
   return (
     <CreatorShell
-      title={editSlug ? "Edit Service Listing" : "Create Writing Service"}
+      title={editSlug ? "Edit Service" : "Add a Writing Service"}
       subtitle={
         isAdmin
-          ? "Administrator direct publish or save as draft."
-          : "Submit for Administrator moderation review or save as draft."
+          ? "Publish right away or save as a draft."
+          : "Fill in your service details and submit for a quick team review."
       }
     >
       <div className="space-y-5">
         <Link
           href="/creators-hub/listings"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#111827]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to My Listings
+          Back to My Services
         </Link>
 
+        <FlowSteps
+          accent="teal"
+          currentStep={editSlug ? 2 : 1}
+          goalLabel="Goal: Show your service on Find Writers so clients can order"
+          steps={[
+            {
+              label: "1. Write details",
+              hint: "Title, category & what you give",
+            },
+            { label: "2. Price & days", hint: "Set your rate & turnaround" },
+            { label: "3. Team check", hint: "Quick check before going live" },
+          ]}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          <div className="lg:col-span-2 editorial-card p-6 sm:p-8 bg-white space-y-6">
+          <HudCard
+            theme="cyan"
+            brackets
+            microLabel="SERVICE EDITOR"
+            className="lg:col-span-2 p-6 sm:p-8 space-y-6"
+          >
             {error && (
-              <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+              <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
                 {error}
               </div>
             )}
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                  Task / Service Title
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                  Service Title
                 </label>
                 <input
                   type="text"
@@ -216,20 +248,20 @@ function ListingEditorInner() {
                   minLength={6}
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. MBA Case Study & Financial Ratio Analysis (2,500 Words)"
-                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  placeholder="e.g. Business Plan & Financial Projections (2,500 Words)"
+                  className="hud-input"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
                     Category
                   </label>
                   <select
                     value={categoryId}
                     onChange={(e) => setCategoryId(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                    className="hud-input"
                   >
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
@@ -239,49 +271,49 @@ function ListingEditorInner() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                    Service Type
+                  <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                    Type of Work
                   </label>
                   <input
                     type="text"
                     value={serviceType}
                     onChange={(e) => setServiceType(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                    className="hud-input"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                  Short Marketplace Pitch
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                  Short Summary
                 </label>
                 <input
                   type="text"
                   required
                   value={shortDescription}
                   onChange={(e) => setShortDescription(e.target.value)}
-                  placeholder="Concise summary displayed on discovery cards."
-                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  placeholder="One short sentence shown to clients while browsing."
+                  className="hud-input"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                  Full Scope &amp; Methodology
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                  Full Details
                 </label>
                 <textarea
                   rows={5}
                   required
                   value={fullDescription}
                   onChange={(e) => setFullDescription(e.target.value)}
-                  placeholder="Detail deliverables, citation style, research depth, and boundaries..."
-                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  placeholder="Explain clearly what you will write, how it is formatted, and what clients get..."
+                  className="hud-input"
                 />
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
                     Price (KES)
                   </label>
                   <input
@@ -289,27 +321,27 @@ function ListingEditorInner() {
                     min={100}
                     value={basePrice}
                     onChange={(e) => setBasePrice(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                    className="hud-input font-tech"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Pricing Mode
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Price Type
                   </label>
                   <select
                     value={pricingType}
                     onChange={(e) =>
                       setPricingType(e.target.value as "FIXED" | "QUOTE_BASED")
                     }
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                    className="hud-input"
                   >
-                    <option value="FIXED">Fixed</option>
-                    <option value="QUOTE_BASED">Quote Based</option>
+                    <option value="FIXED">Fixed price</option>
+                    <option value="QUOTE_BASED">Custom quote</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Turnaround (d)
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Days to Finish
                   </label>
                   <input
                     type="number"
@@ -317,12 +349,12 @@ function ListingEditorInner() {
                     max={90}
                     value={deliveryTurnaroundDays}
                     onChange={(e) => setDeliveryTurnaroundDays(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                    className="hud-input font-tech"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Revisions
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Free Edits
                   </label>
                   <input
                     type="number"
@@ -330,15 +362,15 @@ function ListingEditorInner() {
                     max={10}
                     value={maxRevisions}
                     onChange={(e) => setMaxRevisions(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm font-tech"
+                    className="hud-input font-tech"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Listing Validity Window
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Keep Service Open For
                   </label>
                   <select
                     value={validityType}
@@ -347,32 +379,37 @@ function ListingEditorInner() {
                         e.target.value as "STANDARD_30D" | "SHORT_14D"
                       )
                     }
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                    className="hud-input"
                   >
-                    <option value="STANDARD_30D">Standard 30 Days</option>
-                    <option value="SHORT_14D">Short Campaign 14 Days</option>
+                    <option value="STANDARD_30D">30 Days (Standard)</option>
+                    <option value="SHORT_14D">14 Days (Short)</option>
                   </select>
                 </div>
-                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] text-xs cursor-pointer mt-4 sm:mt-0">
+                <label className="flex items-center gap-2.5 p-3 rounded-xl border border-white/[0.12] bg-white/[0.045] text-xs text-slate-200 cursor-pointer mt-4 sm:mt-0">
                   <input
                     type="checkbox"
                     checked={manualAcceptanceRequired}
-                    onChange={(e) => setManualAcceptanceRequired(e.target.checked)}
+                    onChange={(e) =>
+                      setManualAcceptanceRequired(e.target.checked)
+                    }
+                    className="accent-teal-400"
                   />
-                  <span>Require manual acceptance on orders</span>
+                  <span>Let me approve orders before starting</span>
                 </label>
               </div>
 
-              {/* Deliverables */}
+              {/* What Client Gets */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium">Deliverables</label>
+                <label className="block text-sm font-medium text-white">
+                  What Client Gets
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={newDeliverable}
                     onChange={(e) => setNewDeliverable(e.target.value)}
-                    placeholder="Add deliverable..."
-                    className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-sm"
+                    placeholder="Add something included..."
+                    className="hud-input flex-1"
                   />
                   <button
                     type="button"
@@ -391,7 +428,7 @@ function ListingEditorInner() {
                   {deliverables.map((d, i) => (
                     <li
                       key={i}
-                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs"
+                      className="flex items-center justify-between px-3 py-2 rounded-xl bg-white/[0.045] border border-white/[0.11] text-xs text-slate-200"
                     >
                       <span>{d}</span>
                       <button
@@ -399,7 +436,7 @@ function ListingEditorInner() {
                         onClick={() =>
                           setDeliverables((p) => p.filter((_, idx) => idx !== i))
                         }
-                        className="text-stone-400 hover:text-rose-700"
+                        className="text-slate-400 hover:text-rose-300 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -410,30 +447,30 @@ function ListingEditorInner() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Revision Policy
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Free Edits Rule
                   </label>
                   <textarea
                     rows={3}
                     value={revisionPolicy}
                     onChange={(e) => setRevisionPolicy(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                    className="hud-input text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1">
-                    Cancellation Policy
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Cancellations &amp; Refunds
                   </label>
                   <textarea
                     rows={3}
                     value={cancellationPolicy}
                     onChange={(e) => setCancellationPolicy(e.target.value)}
-                    className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                    className="hud-input text-xs"
                   />
                 </div>
               </div>
 
-              <div className="flex flex-wrap justify-end gap-3 pt-3 border-t border-[#e6e0d4]">
+              <div className="flex flex-wrap justify-end gap-3 pt-3 border-t border-white/[0.08]">
                 <button
                   type="button"
                   disabled={saving}
@@ -441,7 +478,7 @@ function ListingEditorInner() {
                   className="btn-ghost px-4 py-2.5 text-sm gap-1.5"
                 >
                   <Save className="w-4 h-4" />
-                  Save Draft
+                  Save as Draft
                 </button>
                 <button
                   type="button"
@@ -455,44 +492,46 @@ function ListingEditorInner() {
                   {saving
                     ? "Saving..."
                     : isAdmin
-                      ? "Publish Directly"
+                      ? "Publish Now"
                       : "Submit for Review"}
                 </button>
               </div>
             </div>
-          </div>
+          </HudCard>
 
-          {/* Live Marketplace Card Preview */}
-          <aside className="editorial-card overflow-hidden bg-white sticky top-24">
-            <CategoryCoverArt slug={catSlug} name={catName} heightClass="h-24" />
-            <div className="p-5 space-y-4">
-              <div className="flex items-center justify-between text-[11px] font-tech uppercase text-stone-500">
-                <span>Live Card Preview</span>
-                <span className="text-[#0f766e] font-semibold">
-                  {deliveryTurnaroundDays || 3}d turnaround
-                </span>
-              </div>
-              <h3 className="font-editorial text-lg font-semibold text-[#111827] leading-snug">
-                {title || "Your Writing Service Headline"}
-              </h3>
-              <p className="text-xs text-stone-600 line-clamp-3">
-                {shortDescription || "Your short pitch summarizes deliverables cleanly for customers."}
-              </p>
-              <div className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-stone-600">Listed Rate</span>
-                  <span className="font-tech font-bold text-[#111827]">
-                    {fmtKes(numericPrice, "KES")}
+          {/* Preview Card */}
+          <aside className="sticky top-24">
+            <HudCard theme={previewTheme} brackets className="overflow-hidden">
+              <CategoryCoverArt
+                slug={catSlug}
+                name={catName}
+                heightClass="h-24"
+              />
+              <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between text-[11px] font-tech uppercase text-slate-400">
+                  <HudBadge label="CARD PREVIEW" />
+                  <span className="text-teal-300 font-semibold">
+                    {deliveryTurnaroundDays || 3}-day delivery
                   </span>
                 </div>
-                <div className="flex justify-between text-[#0f766e] font-semibold">
-                  <span>Pro Client Saves 50% Fee</span>
-                  <span className="font-tech">
-                    +{fmtKes(Math.round(numericPrice * 0.05), "KES")} margin edge
-                  </span>
-                </div>
+                <h3 className="font-editorial text-lg font-semibold text-white leading-snug">
+                  {title || "Your Service Title"}
+                </h3>
+                <p className="text-xs text-slate-300 line-clamp-3">
+                  {shortDescription ||
+                    "Your short summary helps clients see what you offer right away."}
+                </p>
+
+                <HudPriceDock
+                  label="YOUR PRICE"
+                  price={fmtKes(numericPrice, "KES")}
+                  sublabel={`Pro saves +${fmtKes(Math.round(numericPrice * 0.05), "KES")}`}
+                  theme={previewTheme}
+                  size="sm"
+                  className="w-full"
+                />
               </div>
-            </div>
+            </HudCard>
           </aside>
         </div>
       </div>
@@ -505,7 +544,7 @@ export default function NewOrEditListingPage() {
     <Suspense
       fallback={
         <main className="max-w-4xl mx-auto px-4 py-12">
-          <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
+          <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
             Loading editor...
           </div>
         </main>

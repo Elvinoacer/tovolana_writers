@@ -91,11 +91,11 @@ export async function POST(
         await enqueueNotificationInTx(tx, {
           userId: listing.creator.userId,
           eventType: `LISTING_${body.decision}`,
-          title: `Listing Review Update: ${listing.title}`,
+          title: `Service Review Update: ${listing.title}`,
           body:
             body.decision === "APPROVE"
-              ? `Your service listing "${listing.title}" is now live until ${validUntil?.toDateString()}.`
-              : `Your service listing "${listing.title}" status changed to ${nextStatus.replace(/_/g, " ")}. Note: ${body.note || "See Creators Hub."}`,
+              ? `Your service "${listing.title}" is now live until ${validUntil?.toDateString()}.`
+              : `Your service "${listing.title}" status is now ${nextStatus.replace(/_/g, " ").toLowerCase()}. Note: ${body.note || "Check your Writer Hub."}`,
           linkUrl: `/creators-hub/listings`,
         });
       }

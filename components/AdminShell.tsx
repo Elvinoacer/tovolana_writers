@@ -16,20 +16,21 @@ import {
   Wallet,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
+import { formatAdminScope } from "@/components/ui/Badges";
 
 const ADMIN_TABS = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
   {
     href: "/admin/listings/moderation",
-    label: "Moderation",
+    label: "Approvals",
     icon: CheckSquare,
   },
-  { href: "/admin/listings/vault", label: "Archive Vault", icon: Archive },
+  { href: "/admin/listings/vault", label: "Closed Services", icon: Archive },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
-  { href: "/admin/creators/vetting", label: "Vetting", icon: Shield },
-  { href: "/admin/users", label: "Users & RBAC", icon: Users },
-  { href: "/admin/bookings", label: "Tribunal", icon: Scale },
-  { href: "/admin/finance", label: "Escrow & Finance", icon: Wallet },
+  { href: "/admin/creators/vetting", label: "Writer Tests", icon: Shield },
+  { href: "/admin/users", label: "Users", icon: Users },
+  { href: "/admin/bookings", label: "Orders & Help", icon: Scale },
+  { href: "/admin/finance", label: "Payments", icon: Wallet },
   { href: "/admin/settings", label: "Settings", icon: Settings },
   { href: "/admin/reports", label: "Reports", icon: BarChart3 },
 ];
@@ -51,8 +52,8 @@ export function AdminShell({
   if (loading) {
     return (
       <main className="max-w-7xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading Administrator Console...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading Admin Panel...
         </div>
       </main>
     );
@@ -62,19 +63,18 @@ export function AdminShell({
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <Shield className="w-10 h-10 text-rose-700 mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            Administrator Access Required
+          <Shield className="w-10 h-10 text-rose-400 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Admin Sign-In Required
           </h1>
-          <p className="text-sm text-stone-600">
-            This console requires an active Administrator account with valid
-            role scopes.
+          <p className="text-sm text-slate-300">
+            Please sign in with an Admin account to open this page.
           </p>
           <Link
             href="/auth?callbackUrl=/admin"
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            Sign In as Administrator
+            Sign In as Admin
           </Link>
         </div>
       </main>
@@ -89,30 +89,30 @@ export function AdminShell({
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
-      <div className="editorial-card p-5 sm:p-6 bg-white ink-grid-bg space-y-4">
+      <div className="editorial-card p-5 sm:p-6 ink-grid-bg border-violet-400/25 space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-[#111827] text-white font-semibold">
-                Admin Command Center
+              <span className="text-[11px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-violet-500/20 text-violet-200 border border-violet-400/40 font-semibold">
+                Admin Panel
               </span>
               {scopes.map((s) => (
                 <span
                   key={s}
-                  className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-blue-50 text-[#1e3a8a] border border-blue-200 font-semibold"
+                  className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/35 font-semibold"
                 >
-                  {s.replace("_ADMIN", "")}
+                  {formatAdminScope(s)}
                 </span>
               ))}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-editorial font-semibold mt-1.5 text-[#111827]">
+            <h1 className="text-2xl sm:text-3xl font-editorial font-semibold mt-1.5 text-white">
               {title}
             </h1>
-            <p className="text-xs sm:text-sm text-stone-600 mt-0.5">{subtitle}</p>
+            <p className="text-xs sm:text-sm text-slate-300 mt-0.5">{subtitle}</p>
           </div>
         </div>
 
-        <nav className="flex flex-wrap gap-1.5 pt-2 border-t border-[#e6e0d4]">
+        <nav className="flex flex-wrap gap-1.5 pt-3 border-t border-white/[0.1]">
           {ADMIN_TABS.map((tab) => {
             const Icon = tab.icon;
             const active = pathname === tab.href;
@@ -120,10 +120,10 @@ export function AdminShell({
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                   active
-                    ? "bg-[#1e3a8a] text-white shadow-xs"
-                    : "bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 hover:bg-stone-200/60"
+                    ? "bg-sky-500/25 text-sky-100 border-sky-400/55 shadow-[0_0_14px_rgba(56,189,248,0.22)]"
+                    : "bg-white/[0.045] border-white/[0.11] text-slate-300 hover:bg-white/[0.1] hover:text-white"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -135,8 +135,8 @@ export function AdminShell({
       </div>
 
       {!hasScope ? (
-        <div className="editorial-card p-6 border-rose-200 bg-rose-50 text-rose-900 text-sm">
-          Missing required scope: <strong>{requiredScope}</strong>.
+        <div className="editorial-card p-6 border-rose-400/35 bg-rose-500/[0.12] text-rose-200 text-sm">
+          You need <strong>{formatAdminScope(requiredScope)}</strong> access to view this page.
         </div>
       ) : (
         children

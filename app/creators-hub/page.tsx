@@ -1,10 +1,8 @@
 "use client";
 
 import { CreatorShell } from "@/components/CreatorShell";
-import {
-  CreatorAvatar,
-  EscrowStepVisualizer,
-} from "@/components/ui/EditorialVisuals";
+import { EscrowStepVisualizer } from "@/components/ui/EditorialVisuals";
+import { HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -25,6 +23,7 @@ import {
   StatusPill,
   formatKes,
 } from "@/components/ui/Badges";
+import { NextStepBanner } from "@/components/ui/FlowGuide";
 
 interface CreatorHubData {
   listings: Array<{
@@ -147,7 +146,7 @@ export default function CreatorsHubHomePage() {
   if (authLoading || loading) {
     return (
       <main className="max-w-7xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
           Loading Creators Hub workspace...
         </div>
       </main>
@@ -157,36 +156,36 @@ export default function CreatorsHubHomePage() {
   if (!user || !user.roles.includes("CREATOR")) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <Feather className="w-10 h-10 text-[#0f766e] mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <Feather className="w-10 h-10 text-teal-300 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
             {user?.creatorProfile
-              ? "Complete Vetting to Unlock the Creators Hub"
-              : "Join the Creators Hub"}
+              ? "Finish Your Writing Test to Unlock Writer Hub"
+              : "Become a Writer on Tovolana"}
           </h1>
-          <p className="text-sm text-stone-600">
-            Publish vetted writing tasks, manage bookings, and build verified
-            reputation right inside your existing Tovolana account.
+          <p className="text-sm text-slate-300">
+            Post writing services, apply for open client jobs, and get paid
+            through M-Pesa using your same account.
           </p>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Link
               href={
                 user?.creatorProfile
                   ? "/creators-hub/status"
                   : "/creators-hub/onboarding"
               }
-              className="px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+              className="btn-creator px-5 py-2.5 text-sm font-semibold"
             >
-              {user?.creatorProfile ? "View Assessment Status" : "Apply Now"}
+              {user?.creatorProfile ? "Check Test Status" : "Apply Now"}
             </Link>
             <Link
               href="/creators-hub/join"
-              className="px-5 py-2.5 rounded-lg border border-[#e6e0d4] bg-white text-sm"
+              className="btn-ghost px-5 py-2.5 text-sm"
             >
-              Learn How It Works
+              How It Works
             </Link>
           </div>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -197,20 +196,65 @@ export default function CreatorsHubHomePage() {
     data?.bookings.filter((b) =>
       ["IN_PROGRESS", "REVISION_REQUESTED", "DELIVERED"].includes(b.status)
     ) ?? [];
+  const needsWork =
+    data?.bookings.find((b) =>
+      ["IN_PROGRESS", "REVISION_REQUESTED"].includes(b.status)
+    ) ?? null;
 
   return (
     <CreatorShell
-      title={data?.creatorProfile.displayName || "Creators Hub"}
-      subtitle={`@${data?.creatorProfile.username ?? "creator"} · Manage contracts, escrow payouts & availability`}
+      title={data?.creatorProfile.displayName || "Writer Hub"}
+      subtitle={`@${data?.creatorProfile.username ?? "writer"} · Manage your orders, services, and M-Pesa payouts`}
     >
-      {/* Studio Action Toolbar */}
+      {/* Smart Next-Step Banner */}
+      {awaitingAccept.length > 0 ? (
+        <NextStepBanner
+          tone="amber"
+          eyebrow="New paid order"
+          now={`You have ${awaitingAccept.length} paid order${awaitingAccept.length > 1 ? "s" : ""} waiting for you to accept (${awaitingAccept[0].bookingRef}).`}
+          next="Click Accept Order below if you can meet the deadline, or Decline if busy."
+          goal="Confirm your order and start writing so the client gets it on time."
+        />
+      ) : needsWork ? (
+        <NextStepBanner
+          tone="teal"
+          eyebrow="Writing in progress"
+          now={`You are currently working on "${needsWork.taskTitleSnapshot}" (${needsWork.bookingRef}).`}
+          next="Open the order to message your client and upload the finished files before the deadline."
+          goal="Deliver great work and earn your M-Pesa payout when approved."
+          actionLabel="Open Current Order"
+          actionHref={`/creators-hub/bookings/${needsWork.bookingRef}`}
+        />
+      ) : (data?.listings.length ?? 0) === 0 ? (
+        <NextStepBanner
+          tone="blue"
+          eyebrow="Get started"
+          now="You are approved to write, but you have not added a service yet."
+          next="Add your first service listing or apply for an open client job on the Open Jobs page."
+          goal="Get your first order and earn money directly to M-Pesa."
+          actionLabel="Add Your First Service"
+          actionHref="/creators-hub/listings/new"
+        />
+      ) : (
+        <NextStepBanner
+          tone="stone"
+          eyebrow="Ready for orders"
+          now={`You have ${data?.listings.length ?? 0} service${(data?.listings.length ?? 0) === 1 ? "" : "s"} listed and ${formatKes(earnings?.availableBalance ?? 0)} ready to withdraw.`}
+          next="Browse Open Jobs to apply for new client projects, or withdraw your earnings."
+          goal="Keep deliveries on time to grow your rating and win more orders."
+          actionLabel="Browse Open Jobs"
+          actionHref="/bidding"
+        />
+      )}
+
+      {/* Writer Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs text-stone-600">
-          <span className="font-tech px-2.5 py-1 rounded-full bg-white border border-[#e6e0d4]">
-            {data?.listings.length ?? 0} Listings
+        <div className="flex items-center gap-2 text-xs text-slate-300">
+          <span className="font-tech px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.12]">
+            {data?.listings.length ?? 0} Services
           </span>
-          <span className="font-tech px-2.5 py-1 rounded-full bg-white border border-[#e6e0d4]">
-            {data?.bookings.length ?? 0} Total Orders
+          <span className="font-tech px-2.5 py-1 rounded-full bg-white/[0.05] border border-white/[0.12]">
+            {data?.bookings.length ?? 0} Orders Total
           </span>
         </div>
 
@@ -219,18 +263,18 @@ export default function CreatorsHubHomePage() {
             onClick={toggleAvailability}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all ${
               data?.creatorProfile.isAvailable
-                ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                : "bg-stone-100 text-stone-700 border-stone-300"
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/35"
+                : "bg-white/[0.06] text-slate-300 border-white/[0.14]"
             }`}
           >
             {data?.creatorProfile.isAvailable
-              ? "● Accepting Bookings"
-              : "○ Availability Paused"}
+              ? "● Available for Orders"
+              : "○ Paused"}
           </button>
           <button
             onClick={loadHub}
-            className="btn-ghost p-2 text-stone-600"
-            aria-label="Refresh Creator studio"
+            className="btn-ghost p-2 text-slate-300"
+            aria-label="Refresh Writer Hub"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -239,71 +283,78 @@ export default function CreatorsHubHomePage() {
             className="btn-creator px-4 py-2 text-xs gap-1.5"
           >
             <FilePlus2 className="w-4 h-4" />
-            New Listing
+            Add Service
           </Link>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="editorial-card p-5 bg-white space-y-2">
-          <div className="flex items-center justify-between text-xs text-stone-500">
+        <div className="editorial-card p-5 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Ready to Withdraw</span>
-            <Wallet className="w-4 h-4 text-[#0f766e]" />
+            <Wallet className="w-4 h-4 text-teal-300" />
           </div>
-          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#0f766e]">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-teal-300">
             {formatKes(earnings?.availableBalance ?? 0)}
           </p>
         </div>
-        <div className="editorial-card p-5 bg-white space-y-2">
-          <div className="flex items-center justify-between text-xs text-stone-500">
-            <span>Active Escrow</span>
-            <Briefcase className="w-4 h-4 text-amber-700" />
+        <div className="editorial-card p-5 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Waiting on Approval</span>
+            <Briefcase className="w-4 h-4 text-amber-300" />
           </div>
-          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-white">
             {formatKes(earnings?.pendingEscrow ?? 0)}
           </p>
         </div>
-        <div className="editorial-card p-5 bg-white space-y-2">
-          <div className="flex items-center justify-between text-xs text-stone-500">
+        <div className="editorial-card p-5 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
             <span>Active Orders</span>
-            <ListChecks className="w-4 h-4 text-[#1e3a8a]" />
+            <ListChecks className="w-4 h-4 text-sky-300" />
           </div>
-          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-white">
             {activeOrders.length}
           </p>
         </div>
-        <div className="editorial-card p-5 bg-white space-y-2">
-          <div className="flex items-center justify-between text-xs text-stone-500">
-            <span>Rating · Completed</span>
-            <UserCheck className="w-4 h-4 text-emerald-700" />
+        <div className="editorial-card p-5 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-400">
+            <span>Rating · Done</span>
+            <UserCheck className="w-4 h-4 text-emerald-300" />
           </div>
-          <p className="font-tech text-2xl sm:text-3xl font-bold text-[#111827]">
+          <p className="font-tech text-2xl sm:text-3xl font-bold text-white">
             {(data?.creatorProfile.ratingAverage ?? 5).toFixed(1)} ·{" "}
             {data?.creatorProfile.completedBookingsCount ?? 0}
           </p>
         </div>
       </div>
 
-      {/* Manual Acceptance Requests */}
+      {/* New Paid Orders Waiting for Acceptance */}
       {awaitingAccept.length > 0 && (
-        <div className="editorial-card p-6 border-amber-200 bg-amber-50/50 space-y-4">
-          <h2 className="font-editorial text-lg font-semibold text-amber-950">
-            Escrow-Funded Requests Awaiting Acceptance ({awaitingAccept.length})
+        <HudCard
+          theme="amber"
+          brackets
+          microLabel="ACTION REQUIRED"
+          className="p-6 space-y-4"
+        >
+          <h2 className="font-editorial text-lg font-semibold text-amber-200">
+            New Paid Orders Waiting for You ({awaitingAccept.length})
           </h2>
           <div className="space-y-3">
             {awaitingAccept.map((b) => (
               <div
                 key={b.id}
-                className="p-4 rounded-2xl bg-white border border-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                className="p-4 rounded-2xl bg-white/[0.05] border border-amber-400/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
               >
                 <div className="flex items-center gap-3">
-                  <CreatorAvatar name={b.customer.name} size="sm" />
+                  <RadarAvatar name={b.customer.name} size="sm" theme="amber" />
                   <div>
-                    <span className="font-tech text-xs text-stone-500">
+                    <span className="font-tech text-xs text-slate-400">
                       {b.bookingRef} · {b.customer.name}
                     </span>
-                    <p className="font-semibold text-sm">{b.taskTitleSnapshot}</p>
+                    <p className="font-semibold text-sm text-white">
+                      {b.taskTitleSnapshot}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -312,14 +363,14 @@ export default function CreatorsHubHomePage() {
                     onClick={() => handleAcceptDecision(b.bookingRef, "ACCEPT")}
                     className="btn-creator px-3.5 py-1.5 text-xs"
                   >
-                    Accept Work
+                    Accept Order
                   </button>
                   <button
                     disabled={busyId === b.bookingRef}
                     onClick={() =>
                       handleAcceptDecision(b.bookingRef, "DECLINE")
                     }
-                    className="px-3.5 py-1.5 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50"
+                    className="px-3.5 py-1.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-xs font-semibold hover:bg-rose-500/25 transition-colors"
                   >
                     Decline
                   </button>
@@ -327,43 +378,44 @@ export default function CreatorsHubHomePage() {
               </div>
             ))}
           </div>
-        </div>
+        </HudCard>
       )}
 
       {/* Orders List */}
-      <div className="editorial-card p-6 bg-white space-y-4">
+      <HudCard theme="cyan" className="p-6 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="font-editorial text-xl font-semibold">
-            Fulfilment Queue
+          <h2 className="font-editorial text-xl font-semibold text-white">
+            Your Orders
           </h2>
-          <span className="text-xs font-tech text-stone-500">
-            {data?.bookings.length ?? 0} bookings
+          <span className="text-xs font-tech text-slate-400">
+            {data?.bookings.length ?? 0} orders
           </span>
         </div>
 
         {(data?.bookings.length ?? 0) === 0 ? (
-          <p className="text-sm text-stone-500 py-6 text-center">
-            No bookings assigned yet — publish your first approved service listing.
+          <p className="text-sm text-slate-400 py-6 text-center">
+            No orders yet — add a service or apply for open client jobs to get
+            started.
           </p>
         ) : (
           <div className="space-y-3">
             {data?.bookings.map((b) => (
               <div
                 key={b.id}
-                className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-3"
+                className="p-4 rounded-2xl bg-white/[0.045] border border-white/[0.11] space-y-3"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-tech text-xs px-2 py-0.5 rounded bg-white border border-[#e6e0d4]">
+                      <span className="font-tech text-xs px-2 py-0.5 rounded bg-white/[0.07] border border-white/[0.12] text-slate-200">
                         {b.bookingRef}
                       </span>
                       <StatusPill status={b.status} />
                     </div>
-                    <p className="font-editorial text-lg font-semibold text-[#111827]">
+                    <p className="font-editorial text-lg font-semibold text-white">
                       {b.taskTitleSnapshot}
                     </p>
-                    <div className="flex items-center gap-3 flex-wrap text-xs text-stone-600">
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-slate-300">
                       <span>Client: {b.customer.name}</span>
                       <BookingDeadlineTag
                         deadline={b.agreedDeliveryDeadline}
@@ -373,7 +425,7 @@ export default function CreatorsHubHomePage() {
                   </div>
 
                   <div className="flex items-center gap-4 shrink-0">
-                    <span className="font-tech font-bold text-base text-[#111827]">
+                    <span className="font-tech font-bold text-base text-cyan-300">
                       {formatKes(b.listedPrice, b.currency)}
                     </span>
                     <Link
@@ -391,12 +443,13 @@ export default function CreatorsHubHomePage() {
             ))}
           </div>
         )}
-      </div>
+      </HudCard>
 
-      <div className="text-xs text-stone-500 flex items-center gap-2">
-        <CheckCircle2 className="w-4 h-4 text-[#0f766e]" />
+      <div className="text-xs text-slate-400 flex items-center gap-2">
+        <CheckCircle2 className="w-4 h-4 text-teal-300" />
         <span>
-          Confirmed prices stay immutable; settlements release automatically upon delivery approval.
+          Confirmed prices stay locked — your balance updates automatically once
+          the client approves your work.
         </span>
       </div>
     </CreatorShell>

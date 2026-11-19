@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Crown } from "lucide-react";
 import { formatKes } from "@/components/ui/Badges";
+import { HudCard, HudPriceDock } from "@/components/ui/AuroraPrimitives";
 
 const PRESET_AMOUNTS = [3500, 6500, 12000, 25000, 50000];
 
@@ -31,19 +32,24 @@ export function InteractiveFeeCalculator({
     savedPerOrder > 0 ? Math.ceil(monthlyProPrice / savedPerOrder) : 0;
 
   return (
-    <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+    <HudCard
+      theme="cyan"
+      brackets
+      dotMatrix="right"
+      className="p-6 sm:p-8 space-y-6"
+    >
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div className="space-y-1">
-          <h2 className="font-editorial text-2xl sm:text-3xl font-semibold text-[#111827]">
-            Compare Free and Pro totals
+          <h2 className="font-editorial text-2xl sm:text-3xl font-semibold text-white">
+            See what you pay before ordering
           </h2>
-          <p className="text-sm text-stone-600">
-            Move the slider to inspect exact platform fees before checkout.
+          <p className="text-sm text-slate-300">
+            Move the slider to compare Free and Pro prices.
           </p>
         </div>
         <div className="text-left sm:text-right shrink-0">
-          <p className="text-xs font-medium text-stone-500">Task Scope</p>
-          <p className="font-tech text-3xl font-bold text-[#111827] leading-tight">
+          <p className="text-xs font-medium text-slate-400">Service price</p>
+          <p className="font-tech text-3xl font-bold aurora-title leading-tight">
             {formatKes(subtotal, currency)}
           </p>
         </div>
@@ -58,8 +64,8 @@ export function InteractiveFeeCalculator({
           step={500}
           value={subtotal}
           onChange={(e) => setSubtotal(Number(e.target.value))}
-          aria-label="Booking subtotal in KES"
-          className="w-full h-2 bg-[#ece5d8] rounded-full appearance-none cursor-pointer accent-[#1e3a8a]"
+          aria-label="Service price in KES"
+          className="w-full h-2 bg-white/15 rounded-full appearance-none cursor-pointer accent-cyan-400"
         />
         <div className="flex flex-wrap gap-2">
           {PRESET_AMOUNTS.map((amt) => (
@@ -69,8 +75,8 @@ export function InteractiveFeeCalculator({
               onClick={() => setSubtotal(amt)}
               className={`px-3 py-1.5 rounded-lg text-xs font-tech font-medium border transition-colors ${
                 subtotal === amt
-                  ? "bg-[#111827] text-white border-[#111827]"
-                  : "bg-[#faf7f2] text-stone-700 border-[#e6e0d4] hover:bg-[#f2ede3]"
+                  ? "bg-cyan-400/20 text-cyan-200 border-cyan-400/60 shadow-[0_0_12px_rgba(45,212,191,0.25)]"
+                  : "bg-white/[0.045] text-slate-300 border-white/[0.12] hover:bg-white/[0.1]"
               }`}
             >
               {formatKes(amt, currency)}
@@ -79,63 +85,73 @@ export function InteractiveFeeCalculator({
         </div>
       </div>
 
-      {/* Spacious 2-Column Comparison */}
+      {/* Sculpted HUD Comparison Modules */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="p-5 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-3">
-          <div className="flex items-center justify-between gap-2 text-xs text-stone-700">
-            <span className="font-semibold">Free ({standardFeePct}% fee)</span>
-            <span className="font-tech text-stone-600 whitespace-nowrap">
+        <div className="p-5 rounded-2xl bg-white/[0.045] border border-cyan-400/25 space-y-4">
+          <div className="flex items-center justify-between gap-2 text-xs text-slate-300">
+            <span className="font-semibold text-white">Free plan ({standardFeePct}% fee)</span>
+            <span className="font-tech text-cyan-300 whitespace-nowrap">
               +{formatKes(freeFee, currency)}
             </span>
           </div>
-          <p className="font-tech text-2xl font-bold text-[#111827]">
-            {formatKes(freeTotal, currency)}
-          </p>
-          <div className="w-full h-1.5 rounded-full bg-stone-200 overflow-hidden">
-            <div
-              className="h-full bg-[#1e3a8a] rounded-full transition-all duration-300"
-              style={{ width: "100%" }}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div
+                className="aurora-bar-shimmer h-full bg-gradient-to-r from-cyan-400 to-sky-400 rounded-full transition-all duration-300"
+                style={{ width: "100%" }}
+              />
+            </div>
+            <HudPriceDock
+              label="Total"
+              price={formatKes(freeTotal, currency)}
+              theme="cyan"
+              size="sm"
             />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-amber-50/70 border border-amber-300/80 space-y-3">
-          <div className="flex items-center justify-between gap-2 text-xs text-amber-950">
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              <Crown className="w-3.5 h-3.5 text-amber-700 shrink-0" />
-              Pro ({proFeePct}% fee)
+        <div className="p-5 rounded-2xl bg-amber-500/[0.08] border border-amber-400/35 space-y-4">
+          <div className="flex items-center justify-between gap-2 text-xs text-amber-200">
+            <span className="inline-flex items-center gap-1.5 font-semibold text-white">
+              <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+              Pro plan ({proFeePct}% fee)
             </span>
-            <span className="font-tech font-semibold text-amber-900 whitespace-nowrap">
+            <span className="font-tech font-semibold text-amber-300 whitespace-nowrap">
               +{formatKes(proFee, currency)}
             </span>
           </div>
-          <p className="font-tech text-2xl font-bold text-[#111827]">
-            {formatKes(proTotal, currency)}
-          </p>
-          <div className="w-full h-1.5 rounded-full bg-amber-200/70 overflow-hidden">
-            <div
-              className="h-full bg-[#b45309] rounded-full transition-all duration-300"
-              style={{ width: `${Math.max(25, 100 - proDiscountPct)}%` }}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 h-1.5 rounded-full bg-amber-400/20 overflow-hidden">
+              <div
+                className="aurora-bar-shimmer h-full bg-gradient-to-r from-amber-400 to-yellow-300 rounded-full transition-all duration-300"
+                style={{ width: `${Math.max(25, 100 - proDiscountPct)}%` }}
+              />
+            </div>
+            <HudPriceDock
+              label="Pro total"
+              price={formatKes(proTotal, currency)}
+              theme="amber"
+              size="sm"
             />
           </div>
         </div>
       </div>
 
-      {/* Full-Width High-Contrast Savings Summary */}
-      <div className="rounded-2xl bg-[#f0fdfa] border border-teal-200 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <span className="text-sm font-medium text-[#115e59]">
-          Instant Pro saving on this booking
+      {/* High-Contrast Savings Readout */}
+      <div className="rounded-2xl bg-emerald-500/[0.1] border border-emerald-400/40 shadow-[0_0_26px_-10px_rgba(52,211,153,0.42)] px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <span className="text-sm font-medium text-emerald-200">
+          You save with Pro
         </span>
         <div className="flex flex-wrap items-baseline justify-between sm:justify-end gap-x-3 gap-y-1">
-          <span className="font-tech text-xl font-bold text-[#0f766e] whitespace-nowrap shrink-0">
+          <span className="font-tech text-xl font-bold text-emerald-300 whitespace-nowrap shrink-0">
             -{formatKes(savedPerOrder, currency)}
           </span>
-          <span className="text-xs font-tech text-[#115e59] whitespace-nowrap">
-            Breaks even in {ordersToBreakEven} order
-            {ordersToBreakEven === 1 ? "" : "s"}/mo
+          <span className="text-xs font-tech text-emerald-200/90 whitespace-nowrap">
+            Pays for itself in {ordersToBreakEven} order
+            {ordersToBreakEven === 1 ? "" : "s"} a month
           </span>
         </div>
       </div>
-    </div>
+    </HudCard>
   );
 }

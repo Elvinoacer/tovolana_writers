@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { StatusPill } from "@/components/ui/Badges";
+import { FlowSteps } from "@/components/ui/FlowGuide";
 import {
   MAX_BROWSER_UPLOAD_LABEL,
   UploadedBookingFileMeta,
@@ -46,8 +47,8 @@ export default function BookingRevisionPage({
   const [reason, setReason] = useState("");
   const [checklistInput, setChecklistInput] = useState("");
   const [checklist, setChecklist] = useState<string[]>([
-    "Align section headings with the original rubric",
-    "Verify APA/citation consistency throughout",
+    "Follow all sections in my original instructions",
+    "Double-check spelling, formatting, and citations",
   ]);
   const [attachments, setAttachments] = useState<UploadedBookingFileMeta[]>([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
@@ -151,33 +152,43 @@ export default function BookingRevisionPage({
 
   return (
     <CustomerShell
-      title="Request Revision"
+      title="Ask for Free Edits"
       subtitle={
         booking
-          ? `${booking.taskTitleSnapshot} · Round ${booking.revisionCount + 1} of ${booking.maxRevisions}`
+          ? `${booking.taskTitleSnapshot} · Free Edit ${booking.revisionCount + 1} of ${booking.maxRevisions}`
           : bookingRef
       }
     >
       <div className="max-w-3xl space-y-5">
         <Link
           href={`/dashboard/bookings/${bookingRef}`}
-          className="inline-flex items-center gap-1.5 text-sm text-stone-600 hover:text-[#111827]"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-cyan-300"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to Booking Workspace
+          Back to Order
         </Link>
 
-        <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+        <FlowSteps
+          currentStep={1}
+          goalLabel="Goal: Get updated files that match what you asked for"
+          steps={[
+            { label: "1. List changes", hint: "Say what needs fixing" },
+            { label: "2. Writer updates", hint: "Reworks your draft" },
+            { label: "3. Check & approve", hint: "Pay writer when happy" },
+          ]}
+        />
+
+        <div className="editorial-card p-6 sm:p-8 space-y-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="font-tech text-xs px-2 py-0.5 rounded bg-[#faf7f2] border border-[#e6e0d4] text-stone-700">
+                <span className="font-tech text-xs px-2 py-0.5 rounded bg-white/[0.06] border border-white/[0.12] text-slate-300">
                   {bookingRef}
                 </span>
                 {booking && <StatusPill status={booking.status} />}
               </div>
-              <h2 className="text-xl font-editorial font-semibold">
-                Revision Brief &amp; Checklist
+              <h2 className="text-xl font-editorial font-semibold text-white">
+                What would you like changed?
               </h2>
             </div>
 
@@ -188,29 +199,29 @@ export default function BookingRevisionPage({
                 size={68}
                 strokeWidth={6}
                 label={`${booking.revisionCount}/${booking.maxRevisions}`}
-                sublabel="Rounds Used"
+                sublabel="Edits Used"
                 tone="gold"
               />
             )}
           </div>
 
           {booking?.task?.revisionPolicy && (
-            <div className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs text-stone-700">
-              <strong className="text-[#111827]">Policy: </strong>
+            <div className="p-3.5 rounded-xl bg-white/[0.045] border border-white/[0.12] text-xs text-slate-300">
+              <strong className="text-white">Edit Rule: </strong>
               {booking.task.revisionPolicy}
             </div>
           )}
 
           {error && (
-            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+            <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium mb-1.5">
-                Summary of Changes
+              <label className="block text-sm font-medium text-slate-200 mb-1.5">
+                Explain the changes needed
               </label>
               <textarea
                 required
@@ -218,22 +229,22 @@ export default function BookingRevisionPage({
                 rows={4}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="State which sections need revision, data updates, or formatting fixes..."
-                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                placeholder="Tell your writer clearly which parts need fixing, adding, or updating..."
+                className="hud-input w-full px-3.5 py-2.5 text-sm"
               />
             </div>
 
             <div className="space-y-2.5">
-              <label className="block text-sm font-medium">
-                Action Checklist
+              <label className="block text-sm font-medium text-slate-200">
+                To-Do Checklist for Your Writer
               </label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={checklistInput}
                   onChange={(e) => setChecklistInput(e.target.value)}
-                  placeholder="Add an actionable item..."
-                  className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+                  placeholder="Add a clear item to fix..."
+                  className="hud-input flex-1 px-3.5 py-2 text-sm"
                 />
                 <button
                   type="button"
@@ -248,10 +259,10 @@ export default function BookingRevisionPage({
                 {checklist.map((item, idx) => (
                   <li
                     key={`${item}-${idx}`}
-                    className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs"
+                    className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11] text-xs text-slate-200"
                   >
                     <span className="flex items-center gap-2">
-                      <CheckSquare className="w-3.5 h-3.5 text-[#1e3a8a]" />
+                      <CheckSquare className="w-3.5 h-3.5 text-sky-300" />
                       {item}
                     </span>
                     <button
@@ -259,7 +270,7 @@ export default function BookingRevisionPage({
                       onClick={() =>
                         setChecklist((prev) => prev.filter((_, i) => i !== idx))
                       }
-                      className="text-stone-400 hover:text-rose-700"
+                      className="text-slate-400 hover:text-rose-300"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -268,19 +279,19 @@ export default function BookingRevisionPage({
               </ul>
             </div>
 
-            <div className="rounded-xl border border-dashed border-[#d8d0c0] bg-[#fbf9f5] p-4 space-y-3">
+            <div className="rounded-xl border border-dashed border-white/25 bg-white/[0.04] p-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-[#111827]">
-                    <Paperclip className="w-4 h-4 text-orange-700" />
-                    Annotated Drafts / Rubric Evidence (Optional)
+                  <span className="inline-flex items-center gap-1.5 text-sm font-medium text-white">
+                    <Paperclip className="w-4 h-4 text-orange-300" />
+                    Marked-Up Draft or Notes (Optional)
                   </span>
-                  <p className="text-xs text-stone-500 mt-0.5">
-                    Attach up to {MAX_REVISION_ATTACHMENTS} files (PDF, DOCX, TXT, MD, CSV, XLSX, ZIP, JPG, PNG, WEBP — Max {MAX_BROWSER_UPLOAD_LABEL} each).
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Add up to {MAX_REVISION_ATTACHMENTS} files (PDF, Word, text, spreadsheets, ZIP, images — Max {MAX_BROWSER_UPLOAD_LABEL} each).
                   </p>
                 </div>
                 <label
-                  className={`inline-flex items-center gap-2 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs font-medium text-[#111827] hover:bg-stone-50 transition-colors ${
+                  className={`btn-ghost px-3.5 py-2 text-xs ${
                     uploadingAttachment ||
                     attachments.length >= MAX_REVISION_ATTACHMENTS
                       ? "opacity-50 pointer-events-none"
@@ -307,16 +318,16 @@ export default function BookingRevisionPage({
                   {attachments.map((file) => (
                     <li
                       key={file.id}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-[#e6e0d4] bg-white px-3 py-2 text-xs"
+                      className="flex items-center justify-between gap-3 rounded-lg border border-white/[0.12] bg-white/[0.05] px-3 py-2 text-xs"
                     >
                       <a
                         href={`/api/files/${file.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="font-medium text-teal-800 hover:underline truncate"
+                        className="font-medium text-teal-300 hover:underline truncate"
                       >
                         {file.fileName}{" "}
-                        <span className="text-stone-400 font-normal">
+                        <span className="text-slate-400 font-normal">
                           ({(file.sizeBytes / 1024).toFixed(1)} KB)
                         </span>
                       </a>
@@ -325,7 +336,7 @@ export default function BookingRevisionPage({
                         onClick={() => handleRemoveAttachment(file.id)}
                         disabled={deletingAttachmentId === file.id}
                         aria-label={`Remove ${file.fileName}`}
-                        className="inline-flex items-center gap-1 text-rose-700 hover:text-rose-900 disabled:opacity-50"
+                        className="inline-flex items-center gap-1 text-rose-300 hover:text-rose-200 disabled:opacity-50"
                       >
                         <X className="w-3.5 h-3.5" />
                         {deletingAttachmentId === file.id ? "Removing..." : "Remove"}
@@ -351,10 +362,10 @@ export default function BookingRevisionPage({
                   deletingAttachmentId !== null ||
                   reason.trim().length < 10
                 }
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-orange-700 text-white text-sm font-semibold hover:bg-orange-800 disabled:opacity-50 transition-colors"
+                className="btn-amber px-5 py-2.5 text-sm disabled:opacity-50"
               >
                 <RotateCcw className="w-4 h-4" />
-                {submitting ? "Sending..." : "Submit Revision"}
+                {submitting ? "Sending..." : "Send Edit Request"}
               </button>
             </div>
           </form>

@@ -19,126 +19,273 @@ export function formatShortDate(date: string | Date | null | undefined): string 
 
 const STATUS_STYLES: Record<string, { chip: string; dot: string }> = {
   PUBLISHED: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   APPROVED: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   COMPLETED: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   COMPLETE: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   AVAILABLE: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   PAID: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   ACTIVE: {
-    chip: "bg-emerald-50 text-emerald-800 border-emerald-200",
-    dot: "bg-emerald-500",
+    chip: "bg-emerald-500/15 text-emerald-300 border-emerald-400/35",
+    dot: "bg-emerald-400",
   },
   IN_PROGRESS: {
-    chip: "bg-blue-50 text-blue-900 border-blue-200",
-    dot: "bg-blue-600",
+    chip: "bg-sky-500/15 text-sky-300 border-sky-400/35",
+    dot: "bg-sky-400",
   },
   DELIVERED: {
-    chip: "bg-indigo-50 text-indigo-900 border-indigo-200",
-    dot: "bg-indigo-600",
+    chip: "bg-violet-500/15 text-violet-300 border-violet-400/35",
+    dot: "bg-violet-400",
   },
   PENDING_REVIEW: {
-    chip: "bg-amber-50 text-amber-800 border-amber-200",
-    dot: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-400/35",
+    dot: "bg-amber-400",
   },
   PENDING_PAYMENT: {
-    chip: "bg-amber-50 text-amber-800 border-amber-200",
-    dot: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-400/35",
+    dot: "bg-amber-400",
   },
   PENDING_ESCROW: {
-    chip: "bg-amber-50 text-amber-800 border-amber-200",
-    dot: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-400/35",
+    dot: "bg-amber-400",
   },
   UNDER_REVIEW: {
-    chip: "bg-amber-50 text-amber-800 border-amber-200",
-    dot: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-400/35",
+    dot: "bg-amber-400",
   },
   PAID_AWAITING_ACCEPTANCE: {
-    chip: "bg-amber-50 text-amber-800 border-amber-200",
-    dot: "bg-amber-500",
+    chip: "bg-amber-500/15 text-amber-300 border-amber-400/35",
+    dot: "bg-amber-400",
   },
   REVISION_REQUESTED: {
-    chip: "bg-orange-50 text-orange-800 border-orange-200",
-    dot: "bg-orange-500",
+    chip: "bg-orange-500/15 text-orange-300 border-orange-400/35",
+    dot: "bg-orange-400",
   },
   CHANGES_REQUESTED: {
-    chip: "bg-orange-50 text-orange-800 border-orange-200",
-    dot: "bg-orange-500",
+    chip: "bg-orange-500/15 text-orange-300 border-orange-400/35",
+    dot: "bg-orange-400",
   },
   EXPIRED: {
-    chip: "bg-stone-100 text-stone-700 border-stone-300",
-    dot: "bg-stone-500",
+    chip: "bg-white/[0.06] text-slate-300 border-white/15",
+    dot: "bg-slate-400",
   },
   ARCHIVED: {
-    chip: "bg-slate-100 text-slate-700 border-slate-300",
-    dot: "bg-slate-500",
+    chip: "bg-white/[0.06] text-slate-300 border-white/15",
+    dot: "bg-slate-400",
   },
   DRAFT: {
-    chip: "bg-stone-100 text-stone-600 border-stone-200",
-    dot: "bg-stone-400",
+    chip: "bg-white/[0.05] text-slate-300 border-white/15",
+    dot: "bg-slate-400",
   },
   DISPUTED: {
-    chip: "bg-rose-50 text-rose-800 border-rose-200",
-    dot: "bg-rose-600",
+    chip: "bg-rose-500/15 text-rose-300 border-rose-400/35",
+    dot: "bg-rose-400",
   },
   OPEN: {
-    chip: "bg-rose-50 text-rose-800 border-rose-200",
-    dot: "bg-rose-600",
+    chip: "bg-rose-500/15 text-rose-300 border-rose-400/35",
+    dot: "bg-rose-400",
   },
   REJECTED: {
-    chip: "bg-rose-50 text-rose-800 border-rose-200",
-    dot: "bg-rose-600",
+    chip: "bg-rose-500/15 text-rose-300 border-rose-400/35",
+    dot: "bg-rose-400",
   },
   SUSPENDED: {
-    chip: "bg-rose-50 text-rose-800 border-rose-200",
-    dot: "bg-rose-600",
+    chip: "bg-rose-500/15 text-rose-300 border-rose-400/35",
+    dot: "bg-rose-400",
   },
   CANCELLED: {
-    chip: "bg-stone-100 text-stone-600 border-stone-200",
-    dot: "bg-stone-400",
+    chip: "bg-white/[0.05] text-slate-400 border-white/15",
+    dot: "bg-slate-500",
   },
   REFUNDED: {
-    chip: "bg-purple-50 text-purple-800 border-purple-200",
-    dot: "bg-purple-600",
+    chip: "bg-purple-500/15 text-purple-300 border-purple-400/35",
+    dot: "bg-purple-400",
   },
 };
 
+export const STATUS_LABELS: Record<string, string> = {
+  PENDING_PAYMENT: "Waiting for payment",
+  PAID_AWAITING_ACCEPTANCE: "Waiting for writer",
+  IN_PROGRESS: "Being written",
+  DELIVERED: "Ready to check",
+  REVISION_REQUESTED: "Edits requested",
+  COMPLETED: "Done",
+  CANCELLED: "Cancelled",
+  DISPUTED: "Support reviewing",
+  REFUNDED: "Refunded",
+  PUBLISHED: "Live",
+  PENDING_REVIEW: "Waiting for approval",
+  CHANGES_REQUESTED: "Needs changes",
+  DRAFT: "Draft",
+  EXPIRED: "Closed",
+  ARCHIVED: "Archived",
+  SUSPENDED: "Paused",
+  RETAINED_SOFT_DELETED: "Removed",
+  APPROVED: "Approved",
+  UNDER_REVIEW: "Being reviewed",
+  ASSESSMENT_IN_PROGRESS: "Test in progress",
+  NOT_APPLIED: "Not started",
+  REJECTED: "Not approved",
+  PENDING_ESCROW: "Held safely",
+  AVAILABLE: "Ready to withdraw",
+  REQUESTED: "Payout requested",
+  PAID: "Paid",
+  COMPLETE: "Paid",
+  PENDING: "Pending",
+  FAILED: "Failed",
+  ACTIVE: "Active",
+  OPEN: "Open",
+  AWARDED: "Writer picked",
+  RESOLVED_REFUND: "Refunded to client",
+  RESOLVED_PARTIAL_SPLIT: "Split 50/50",
+  RESOLVED_RELEASE_CREATOR: "Paid to writer",
+  CLOSED: "Closed",
+};
+
+export function formatStatusLabel(status: string): string {
+  if (STATUS_LABELS[status]) return STATUS_LABELS[status];
+  const lower = status.replace(/_/g, " ").toLowerCase();
+  return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+export function formatFileCategory(category: string): string {
+  switch (category) {
+    case "CUSTOMER_BRIEF":
+      return "Client file";
+    case "CREATOR_DELIVERABLE":
+      return "Finished work";
+    case "REVISION_ATTACHMENT":
+      return "Edit note file";
+    case "DISPUTE_EVIDENCE":
+      return "Support file";
+    default:
+      return "File";
+  }
+}
+
+export function formatPaymentChannel(channel: string): string {
+  if (channel === "MPESA_STK") return "M-Pesa";
+  if (channel === "CARD") return "Card";
+  return channel;
+}
+
+export function formatPaymentPurpose(purpose: string): string {
+  switch (purpose) {
+    case "BOOKING_ESCROW":
+      return "Order payment";
+    case "PRO_SUBSCRIPTION":
+      return "Pro plan";
+    case "CONNECTS_PURCHASE":
+      return "Bid credits";
+    case "CREATOR_BOOST":
+      return "Profile boost";
+    default:
+      return "Payment";
+  }
+}
+
+export function formatConnectTxType(type: string): string {
+  switch (type) {
+    case "INITIAL_GRANT":
+      return "Welcome bonus";
+    case "BUNDLE_PURCHASE":
+      return "Bought pack";
+    case "EARNINGS_SWAP":
+      return "Swapped from earnings";
+    case "BID_SUBMITTED":
+      return "Applied to job";
+    case "BID_BOOST_STAKE":
+      return "Moved offer higher";
+    case "BID_SEALED_UPGRADE":
+      return "Private price";
+    case "BID_FEATURED_UPGRADE":
+      return "Highlighted offer";
+    case "PROFILE_BOOST":
+      return "Featured profile";
+    case "AVAILABILITY_BADGE":
+      return "Available badge";
+    case "CREATOR_PLUS_UNLOCK":
+      return "Writer Plus pass";
+    case "REFUND":
+      return "Refund";
+    case "ADMIN_ADJUSTMENT":
+      return "Admin update";
+    default:
+      return "Activity";
+  }
+}
+
+export function formatRole(role: string): string {
+  if (role === "CUSTOMER") return "Client";
+  if (role === "CREATOR") return "Writer";
+  if (role === "ADMIN") return "Admin";
+  return role;
+}
+
+export function formatAdminScope(scope: string): string {
+  switch (scope) {
+    case "SUPER_ADMIN":
+      return "Full Admin";
+    case "MODERATION_ADMIN":
+      return "Services & Writers";
+    case "FINANCE_ADMIN":
+      return "Payments";
+    case "SUPPORT_ADMIN":
+      return "Support";
+    default:
+      return scope;
+  }
+}
+
+export function formatCreatorTier(tier: string | null | undefined): string {
+  switch (tier) {
+    case "ELITE":
+      return "Top 5% Writer";
+    case "TOP_RATED":
+      return "Top Rated";
+    case "RISING_TALENT":
+      return "Rising Writer";
+    default:
+      return "Tested Writer";
+  }
+}
+
 export function StatusPill({ status }: { status: string }) {
   const tone = STATUS_STYLES[status] || {
-    chip: "bg-stone-100 text-stone-700 border-stone-200",
-    dot: "bg-stone-500",
+    chip: "bg-white/[0.07] text-slate-300 border-white/15",
+    dot: "bg-slate-400",
   };
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-tight ${tone.chip}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border tracking-tight backdrop-blur-sm ${tone.chip}`}
     >
       <span className={`w-1.5 h-1.5 rounded-full ${tone.dot}`} />
-      {status.replace(/_/g, " ")}
+      {formatStatusLabel(status)}
     </span>
   );
 }
 
 export function ProBadge({ label = "PRO" }: { label?: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-      <Crown className="w-3 h-3 text-amber-700" />
+    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-400/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]">
+      <Crown className="w-3 h-3 text-amber-300" />
       {label}
     </span>
   );
@@ -146,34 +293,27 @@ export function ProBadge({ label = "PRO" }: { label?: string }) {
 
 export function VettedCreatorBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-50 text-teal-800 border border-teal-200">
-      <ShieldCheck className="w-3.5 h-3.5 text-teal-700" />
-      Vetted Writer
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-teal-500/15 text-teal-300 border border-teal-400/35">
+      <ShieldCheck className="w-3.5 h-3.5 text-teal-300" />
+      Tested Writer
     </span>
   );
 }
 
 export function ListingValidityTag({
   validUntil,
-  validityType,
 }: {
   validUntil: string | Date | null | undefined;
   validityType?: string;
 }) {
   return (
     <div
-      title="Listing validity controls public discovery window only; confirmed bookings remain protected until their own delivery deadline."
-      className="inline-flex items-center gap-1.5 text-[11px] text-stone-600 bg-stone-100/90 px-2.5 py-1 rounded-lg border border-stone-200 font-tech"
+      title="Last day new clients can order. Active orders are never affected."
+      className="inline-flex items-center gap-1.5 text-[11px] text-slate-300 bg-white/[0.05] px-2.5 py-1 rounded-lg border border-white/[0.12] font-tech"
     >
-      <Calendar className="w-3 h-3 text-stone-500 shrink-0" />
+      <Calendar className="w-3 h-3 text-slate-400 shrink-0" />
       <span>
-        Valid <strong className="text-stone-800">{formatShortDate(validUntil)}</strong>
-        {validityType
-          ? ` · ${validityType
-              .replace("STANDARD_", "")
-              .replace("SHORT_", "")
-              .replace("ADMIN_", "")}`
-          : ""}
+        Open until <strong className="text-white">{formatShortDate(validUntil)}</strong>
       </span>
     </div>
   );
@@ -192,12 +332,12 @@ export function BookingDeadlineTag({
   const hoursLeft = getDeadlineHoursLeft(d);
 
   const tone = isCompleted
-    ? "bg-stone-100 text-stone-700 border-stone-200"
+    ? "bg-white/[0.05] text-slate-300 border-white/[0.12]"
     : hoursLeft < 0
-      ? "bg-rose-50 text-rose-800 border-rose-200"
+      ? "bg-rose-500/15 text-rose-300 border-rose-400/35"
       : hoursLeft < 48
-        ? "bg-amber-50 text-amber-800 border-amber-200"
-        : "bg-blue-50 text-blue-900 border-blue-200";
+        ? "bg-amber-500/15 text-amber-300 border-amber-400/35"
+        : "bg-sky-500/15 text-sky-300 border-sky-400/35";
 
   return (
     <div
@@ -207,9 +347,9 @@ export function BookingDeadlineTag({
       <span>
         Due <strong>{formatShortDate(d)}</strong>
         {!isCompleted && hoursLeft >= 0
-          ? ` (${hoursLeft}h)`
+          ? ` (${hoursLeft}h left)`
           : !isCompleted && hoursLeft < 0
-            ? " (Overdue)"
+            ? " (Late)"
             : ""}
       </span>
     </div>

@@ -1,9 +1,7 @@
 "use client";
 
-import {
-  CreatorAvatar,
-  ScoreRing,
-} from "@/components/ui/EditorialVisuals";
+import { ScoreRing } from "@/components/ui/EditorialVisuals";
+import { HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, ShieldCheck, XCircle } from "lucide-react";
@@ -76,55 +74,63 @@ export default function AdminCreatorVettingPage() {
         decision,
         reviewNote:
           notes[attemptId] ||
-          `Moderator calibration decision: ${decision}`,
+          `Team decision: ${decision === "APPROVED" ? "Approved" : "Declined"}`,
       }),
     });
     if (res.ok) {
-      setNotice(`Assessment ${attemptId} marked as ${decision}.`);
+      setNotice(
+        `Writer test ${decision === "APPROVED" ? "approved" : "declined"}.`
+      );
       await loadQueue();
     }
   }
 
   return (
     <AdminShell
-      title="Creator Assessment Vetting"
-      subtitle="Review borderline writing exam submissions across all 6 rubric dimensions and approve or reject Creators Hub access."
+      title="Review Writer Tests"
+      subtitle="Check writing samples that scored close to the pass mark and approve or decline writers."
       requiredScope="MODERATION_ADMIN"
     >
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-lg border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm">
           {notice}
         </div>
       )}
 
       {loading ? (
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading borderline assessments...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading writer tests to check...
         </div>
       ) : attempts.length === 0 ? (
-        <div className="editorial-card p-8 text-center text-sm text-stone-600 flex flex-col items-center gap-2">
-          <ShieldCheck className="w-8 h-8 text-[#0f766e]" />
-          No borderline Creator assessments awaiting calibration right now.
+        <div className="editorial-card p-8 text-center text-sm text-slate-300 flex flex-col items-center gap-2">
+          <ShieldCheck className="w-8 h-8 text-teal-300" />
+          No writer tests waiting for review right now.
         </div>
       ) : (
         <div className="space-y-4">
           {attempts.map((a) => (
-            <div key={a.id} className="editorial-card p-6 bg-white space-y-5">
+            <HudCard
+              key={a.id}
+              theme="cyan"
+              brackets
+              className="p-6 space-y-5"
+            >
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <div className="flex items-center gap-3.5">
-                  <CreatorAvatar
+                  <RadarAvatar
                     name={a.creatorProfile.displayName}
-                    username={a.creatorProfile.username}
                     size="md"
+                    theme="cyan"
                   />
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
                       <StatusPill status={a.autoDecision} />
-                      <span className="font-tech text-xs text-stone-500">
-                        @{a.creatorProfile.username} ({a.creatorProfile.user.email})
+                      <span className="font-tech text-xs text-slate-400">
+                        @{a.creatorProfile.username} (
+                        {a.creatorProfile.user.email})
                       </span>
                     </div>
-                    <h2 className="font-editorial text-xl font-semibold mt-1">
+                    <h2 className="font-editorial text-xl font-semibold text-white mt-1">
                       {a.creatorProfile.displayName} — {a.config.title}
                     </h2>
                   </div>
@@ -140,27 +146,30 @@ export default function AdminCreatorVettingPage() {
               <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
                 {[
                   ["Grammar", a.grammarScore],
-                  ["Coherence", a.coherenceScore],
-                  ["Instruction", a.instructionScore],
+                  ["Flow", a.coherenceScore],
+                  ["Answered Prompt", a.instructionScore],
                   ["Originality", a.originalityScore],
-                  ["Tone", a.toneScore],
-                  ["Research", a.researchScore],
+                  ["Tone & Style", a.toneScore],
+                  ["Facts & Sources", a.researchScore],
                 ].map(([label, val]) => {
-                  const pct = Math.min(100, Math.max(0, Math.round(Number(val ?? 0))));
+                  const pct = Math.min(
+                    100,
+                    Math.max(0, Math.round(Number(val ?? 0)))
+                  );
                   return (
                     <div
                       key={String(label)}
-                      className="p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5"
+                      className="p-3 rounded-xl bg-white/[0.045] border border-white/[0.11] space-y-1.5"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-stone-600">{label}</span>
-                        <span className="font-tech font-bold text-[#0f766e]">
+                        <span className="text-slate-300">{label}</span>
+                        <span className="font-tech font-bold text-teal-300">
                           {pct}%
                         </span>
                       </div>
-                      <div className="h-1.5 rounded-full bg-stone-200 overflow-hidden">
+                      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                         <div
-                          className="h-full bg-[#0f766e] rounded-full"
+                          className="h-full bg-teal-400 rounded-full"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -170,7 +179,7 @@ export default function AdminCreatorVettingPage() {
               </div>
 
               {a.responseText && (
-                <p className="text-xs text-stone-700 bg-[#faf7f2] p-4 rounded-xl border border-[#e6e0d4] whitespace-pre-wrap max-h-40 overflow-y-auto">
+                <p className="text-xs text-slate-200 bg-white/[0.04] p-4 rounded-xl border border-white/[0.11] whitespace-pre-wrap max-h-40 overflow-y-auto">
                   {a.responseText}
                 </p>
               )}
@@ -182,25 +191,25 @@ export default function AdminCreatorVettingPage() {
                   onChange={(e) =>
                     setNotes((p) => ({ ...p, [a.id]: e.target.value }))
                   }
-                  placeholder="Moderator calibration note..."
-                  className="flex-1 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
+                  placeholder="Write a short note for this writer..."
+                  className="hud-input flex-1 text-xs py-2"
                 />
                 <button
                   onClick={() => overrideDecision(a.id, "APPROVED")}
                   className="btn-creator px-4 py-2 text-xs gap-1.5"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  Approve Creator
+                  Approve Writer
                 </button>
                 <button
                   onClick={() => overrideDecision(a.id, "REJECTED")}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-xs font-semibold hover:bg-rose-500/25 transition-colors"
                 >
                   <XCircle className="w-3.5 h-3.5" />
-                  Reject
+                  Decline
                 </button>
               </div>
-            </div>
+            </HudCard>
           ))}
         </div>
       )}

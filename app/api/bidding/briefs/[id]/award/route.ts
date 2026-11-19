@@ -126,10 +126,10 @@ export async function POST(
           requirementsConfig: brief.category.requirementsSchema as Prisma.InputJsonValue,
           revisionPolicy:
             config?.revisionPolicyText ??
-            "Includes standard revision protection.",
+            "Includes free edits if something misses your instructions.",
           cancellationPolicy:
             config?.cancellationPolicyText ??
-            "Standard escrow cancellation protection applies.",
+            "Your payment stays protected until you approve the finished work.",
           status: "DRAFT",
         },
       });
@@ -169,7 +169,7 @@ export async function POST(
             create: {
               senderId: user.id,
               isSystemMessage: true,
-              body: `Awarded bid from ${brief.briefRef} (${pricing.checkoutMode.replace(/_/g, " ")}: ${brief.currency} ${pricing.totalPayable.toLocaleString()}). Complete IntaSend payment to lock escrow.`,
+              body: `Writer chosen for job ${brief.briefRef} (${pricing.checkoutMode.replace(/_/g, " ")}: ${brief.currency} ${pricing.totalPayable.toLocaleString()}). Complete payment to get started.`,
             },
           },
         },
@@ -197,8 +197,8 @@ export async function POST(
       await enqueueNotificationInTx(tx, {
         userId: bid.creatorProfile.userId,
         eventType: "BID_AWARDED",
-        title: `Your Bid Won: ${brief.briefRef}`,
-        body: `Client awarded "${brief.title}" to you (${bookingRef}). Waiting for escrow funding.`,
+        title: `You Got the Job: ${brief.briefRef}`,
+        body: `Client chose you for "${brief.title}" (${bookingRef}). Waiting for payment.`,
         linkUrl: `/creators-hub/bookings/${bookingRef}`,
         payload: { bookingRef, briefId: brief.id, bidId: bid.id },
       });

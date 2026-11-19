@@ -1,6 +1,8 @@
 "use client";
 
 import { ScoreRing } from "@/components/ui/EditorialVisuals";
+import { FlowSteps } from "@/components/ui/FlowGuide";
+import { AuroraHeading, HudCard } from "@/components/ui/AuroraPrimitives";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -32,12 +34,12 @@ interface AssessmentAttemptData {
 }
 
 const RUBRIC_CRITERIA = [
-  "Grammar & Mechanics",
-  "Coherence & Argument Flow",
-  "Instruction Adherence",
-  "Originality & Lexical Richness",
-  "Professional Tone",
-  "Research & Evidence Depth",
+  "Clear Grammar & Spelling",
+  "Easy to Follow",
+  "Answers the Question",
+  "Original Words",
+  "Right Tone & Style",
+  "True Facts & Sources",
 ];
 
 export default function LiveAssessmentStudioPage() {
@@ -136,8 +138,8 @@ export default function LiveAssessmentStudioPage() {
   if (loading || authLoading) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Preparing timed writing assessment studio...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Setting up your writing test...
         </div>
       </main>
     );
@@ -146,17 +148,17 @@ export default function LiveAssessmentStudioPage() {
   if (!user) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to take the Creator Assessment
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to take the Writing Test
           </h1>
           <Link
             href="/auth?next=/creators-hub/assessment/live"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+            className="btn-creator inline-flex px-5 py-2.5 text-sm font-semibold"
           >
             Sign In
           </Link>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -164,26 +166,26 @@ export default function LiveAssessmentStudioPage() {
   if (!attempt || !config) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto" />
-          <h1 className="text-xl font-editorial font-semibold">
-            {error || "Complete Creator onboarding before starting the exam."}
+        <HudCard theme="amber" brackets className="p-8 text-center space-y-4">
+          <AlertTriangle className="w-10 h-10 text-amber-300 mx-auto" />
+          <h1 className="text-xl font-editorial font-semibold text-white">
+            {error || "Please fill in your writer profile first."}
           </h1>
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-3 flex-wrap">
             <Link
               href="/creators-hub/onboarding"
-              className="px-4 py-2 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+              className="btn-creator px-4 py-2 text-sm font-semibold"
             >
-              Complete Onboarding
+              Set Up Writer Profile
             </Link>
             <Link
               href="/creators-hub/status"
-              className="px-4 py-2 rounded-lg border border-[#e6e0d4] bg-white text-sm"
+              className="btn-ghost px-4 py-2 text-sm"
             >
-              View Status
+              Check Test Status
             </Link>
           </div>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -199,33 +201,49 @@ export default function LiveAssessmentStudioPage() {
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6 animate-reveal">
-      <div className="editorial-card p-5 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <FlowSteps
+        accent="teal"
+        currentStep={2}
+        goalLabel="Goal: Score 75%+ to unlock your Writer Hub right away"
+        steps={[
+          { label: "1. Writer profile", hint: "Profile saved" },
+          { label: "2. 45-min writing test", hint: "Write your sample now" },
+          { label: "3. Approved & earn", hint: "Post services & get paid" },
+        ]}
+      />
+
+      <HudCard
+        theme="cyan"
+        brackets
+        microLabel="LIVE WRITING ASSESSMENT"
+        className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
-          <span className="text-[11px] font-tech font-semibold text-[#0f766e] uppercase tracking-wider flex items-center gap-1.5">
+          <span className="text-[11px] font-tech font-semibold text-teal-300 uppercase tracking-wider flex items-center gap-1.5">
             <Feather className="w-3.5 h-3.5" />
-            Zen Vetting Studio · 6-Criteria Exam
+            Step 2 of 3 · Timed Writing Test
           </span>
-          <h1 className="text-2xl font-editorial font-semibold mt-0.5 text-[#111827]">
+          <AuroraHeading as="h1" className="text-2xl font-semibold mt-0.5">
             {config.title}
-          </h1>
+          </AuroraHeading>
         </div>
 
         <div className="flex items-center gap-5">
-          <div className="space-y-1 min-w-[140px]">
+          <div className="space-y-1 min-w-[150px]">
             <div className="flex justify-between text-[11px] font-tech">
-              <span className="text-stone-500">Words</span>
+              <span className="text-slate-400">Words</span>
               <span
                 className={`font-bold ${
-                  inWordBand ? "text-emerald-700" : "text-amber-700"
+                  inWordBand ? "text-emerald-300" : "text-amber-300"
                 }`}
               >
                 {wordCount} / {config.minWords}–{config.maxWords}
               </span>
             </div>
-            <div className="h-2 rounded-full bg-[#f2ede3] overflow-hidden">
+            <div className="h-2 rounded-full bg-white/10 overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${
-                  inWordBand ? "bg-[#0f766e]" : "bg-amber-600"
+                  inWordBand ? "bg-teal-400" : "bg-amber-400"
                 }`}
                 style={{ width: `${wordPct}%` }}
               />
@@ -241,10 +259,10 @@ export default function LiveAssessmentStudioPage() {
             tone={mins < 5 ? "rose" : "emerald"}
           />
         </div>
-      </div>
+      </HudCard>
 
       {error && (
-        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
@@ -252,13 +270,13 @@ export default function LiveAssessmentStudioPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <form
           onSubmit={handleSubmit}
-          className="lg:col-span-2 editorial-card p-6 sm:p-7 bg-white space-y-5"
+          className="lg:col-span-2 editorial-card p-6 sm:p-7 space-y-5"
         >
-          <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-1.5">
-            <p className="text-[11px] font-tech font-semibold uppercase tracking-wider text-[#0f766e]">
-              Live Evaluation Prompt
+          <div className="p-4 rounded-2xl bg-white/[0.045] border border-white/[0.12] space-y-1.5">
+            <p className="text-[11px] font-tech font-semibold uppercase tracking-wider text-teal-300">
+              Your Writing Prompt
             </p>
-            <p className="text-sm text-[#111827] leading-relaxed">
+            <p className="text-sm text-white leading-relaxed">
               {config.promptText}
             </p>
           </div>
@@ -268,16 +286,16 @@ export default function LiveAssessmentStudioPage() {
             required
             value={responseText}
             onChange={(e) => setResponseText(e.target.value)}
-            placeholder="Compose a crisp, structured response addressing every dimension of the prompt..."
-            className="w-full rounded-2xl border border-[#e6e0d4] bg-[#faf7f2]/40 p-5 text-sm leading-relaxed focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#0f766e]/25 transition-colors"
+            placeholder="Write a clear, well-organized answer that covers every part of the topic above..."
+            className="hud-input p-5 leading-relaxed rounded-2xl"
           />
 
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-2 text-xs font-tech text-stone-500">
-              <Clock className="w-3.5 h-3.5 text-[#0f766e]" />
+            <div className="flex items-center gap-2 text-xs font-tech text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-teal-300" />
               <span>
-                Instant Unlock ≥{config.passScoreThreshold}/100 · Review Band{" "}
-                {config.reviewScoreThreshold}–{config.passScoreThreshold - 1}
+                Pass now: {config.passScoreThreshold}%+ · Team check:{" "}
+                {config.reviewScoreThreshold}–{config.passScoreThreshold - 1}%
               </span>
             </div>
             <button
@@ -286,32 +304,33 @@ export default function LiveAssessmentStudioPage() {
               className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
             >
               <Send className="w-4 h-4" />
-              {submitting ? "Evaluating Craft..." : "Submit Assessment"}
+              {submitting ? "Checking Writing..." : "Finish & Grade My Test"}
             </button>
           </div>
         </form>
 
         <aside className="space-y-4">
-          <div className="editorial-card p-5 bg-white space-y-4 sticky top-24">
-            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
-              6-Criteria Rubric
+          <HudCard theme="emerald" className="p-5 space-y-4 sticky top-24">
+            <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-teal-300" />
+              How We Grade Your Sample
             </h2>
             <div className="space-y-2">
               {RUBRIC_CRITERIA.map((c) => (
                 <div
                   key={c}
-                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-medium text-[#111827]"
+                  className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11] text-xs font-medium text-slate-200"
                 >
-                  <CheckCircle2 className="w-4 h-4 text-[#0f766e] shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 text-teal-300 shrink-0" />
                   <span>{c}</span>
                 </div>
               ))}
             </div>
-            <p className="text-[11px] text-stone-500 pt-2 border-t border-[#e6e0d4]">
-              Scoring {config.passScoreThreshold}+ adds Creator Hub permissions to your existing account immediately.
+            <p className="text-[11px] text-slate-400 pt-2 border-t border-white/[0.08]">
+              Score {config.passScoreThreshold}% or more to unlock your Writer
+              Hub right away and start posting services.
             </p>
-          </div>
+          </HudCard>
         </aside>
       </div>
     </main>

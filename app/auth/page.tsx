@@ -15,7 +15,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { AuroraHeading, HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 function AuthFormInner() {
   const router = useRouter();
@@ -87,30 +87,29 @@ function AuthFormInner() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start animate-reveal">
-      {/* Left Auth Studio Card */}
-      <div className="lg:col-span-7 editorial-card p-6 sm:p-8 bg-white space-y-6">
+      {/* Left Auth HUD Card */}
+      <HudCard theme="cyan" brackets className="lg:col-span-7 p-6 sm:p-8 space-y-6">
         <div className="space-y-1.5">
-          <h1 className="font-editorial text-3xl sm:text-4xl font-semibold text-[#111827]">
-            {mode === "login"
-              ? "Welcome back"
-              : "One account for every role"}
-          </h1>
-          <p className="text-sm text-stone-600">
-            Book vetted services, manage Pro perks, or join the Creators Hub.
+          <AuroraHeading as="h1" className="text-3xl sm:text-4xl">
+            {mode === "login" ? "Welcome back" : "Create your account"}
+          </AuroraHeading>
+          <p className="text-sm text-slate-300">
+            Order writing help, save with Pro, or sign up as a writer with one
+            account.
           </p>
         </div>
 
         {callbackUrl !== "/dashboard" && (
-          <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-xs text-blue-950 flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#1e3a8a] shrink-0" />
+          <div className="p-3.5 rounded-xl bg-sky-500/[0.12] border border-sky-400/35 text-xs text-sky-200 flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-sky-300 shrink-0" />
             <span>
-              Returning to: <strong className="font-tech">{callbackUrl}</strong>
+              Sign in and we&apos;ll take you right back where you left off.
             </span>
           </div>
         )}
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-800">
+          <div className="p-3.5 rounded-xl bg-rose-500/[0.12] border border-rose-400/35 text-xs text-rose-200">
             {error}
           </div>
         )}
@@ -145,21 +144,21 @@ function AuthFormInner() {
         </a>
 
         <div className="relative flex py-1 items-center">
-          <div className="flex-grow border-t border-[#e6e0d4]" />
-          <span className="flex-shrink mx-4 text-[11px] text-stone-400 uppercase font-tech">
+          <div className="flex-grow border-t border-white/[0.12]" />
+          <span className="flex-shrink mx-4 text-[11px] text-slate-400 uppercase font-tech">
             or email &amp; password
           </span>
-          <div className="flex-grow border-t border-[#e6e0d4]" />
+          <div className="flex-grow border-t border-white/[0.12]" />
         </div>
 
-        <div className="grid grid-cols-2 gap-1.5 bg-[#f2ede3] p-1 rounded-xl">
+        <div className="grid grid-cols-2 gap-1.5 bg-[#060b14]/80 border border-white/[0.1] p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setMode("login")}
             className={`py-2 rounded-lg text-xs font-semibold transition-all ${
               mode === "login"
-                ? "bg-white text-[#111827] shadow-xs"
-                : "text-stone-600"
+                ? "bg-white/[0.14] text-white shadow-xs"
+                : "text-slate-400 hover:text-white"
             }`}
           >
             Sign In
@@ -169,8 +168,8 @@ function AuthFormInner() {
             onClick={() => setMode("register")}
             className={`py-2 rounded-lg text-xs font-semibold transition-all ${
               mode === "register"
-                ? "bg-white text-[#111827] shadow-xs"
-                : "text-stone-600"
+                ? "bg-white/[0.14] text-white shadow-xs"
+                : "text-slate-400 hover:text-white"
             }`}
           >
             Create Account
@@ -181,7 +180,7 @@ function AuthFormInner() {
           {mode === "register" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Full Name
                 </label>
                 <input
@@ -190,47 +189,47 @@ function AuthFormInner() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Amina Wanjiku"
-                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                  className="hud-input w-full px-3.5 py-2.5 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-stone-700 mb-1">
-                  Phone (M-Pesa / OTP)
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Phone number (for M-Pesa)
                 </label>
                 <input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="0712345678"
-                  className="w-full px-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] font-tech"
+                  className="hud-input w-full px-3.5 py-2.5 text-sm font-tech"
                 />
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-200 mb-1">
               Email Address
             </label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@domain.com"
-                className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                className="hud-input w-full pl-10 pr-3.5 py-2.5 text-sm"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-stone-700 mb-1">
+            <label className="block text-xs font-semibold text-slate-200 mb-1">
               Password
             </label>
             <div className="relative">
-              <KeyRound className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
+              <KeyRound className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
               <input
                 type="password"
                 required
@@ -238,7 +237,7 @@ function AuthFormInner() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 8 characters"
-                className="w-full pl-10 pr-3.5 py-2.5 text-sm rounded-xl border border-[#e6e0d4] bg-[#faf7f2] focus:outline-none focus:border-[#1e3a8a]"
+                className="hud-input w-full pl-10 pr-3.5 py-2.5 text-sm"
               />
             </div>
           </div>
@@ -250,7 +249,9 @@ function AuthFormInner() {
           >
             <span>
               {loading
-                ? "Authenticating..."
+                ? mode === "login"
+                  ? "Signing in..."
+                  : "Creating account..."
                 : mode === "login"
                   ? "Sign In"
                   : "Create Account"}
@@ -262,36 +263,39 @@ function AuthFormInner() {
         <div className="pt-1 text-center">
           <Link
             href="/auth/verify"
-            className="text-xs font-medium text-[#1e3a8a] hover:underline"
+            className="text-xs font-medium text-sky-300 hover:underline"
           >
-            Open Email &amp; Phone OTP Verification Center
+            Confirm your email or phone number
           </Link>
         </div>
-      </div>
+      </HudCard>
 
-      {/* Right Visual Showcase + Seeded Demo Persona Switcher */}
+      {/* Try a Demo Account */}
       <aside className="lg:col-span-5 space-y-5">
-        <div className="editorial-card overflow-hidden bg-white p-2">
+        <div className="editorial-card overflow-hidden p-2">
           <Image
             src="/images/auth-editorial.svg"
-            alt="Tovolana unified passport roles showcase"
+            alt="Tovolana account roles overview"
             width={560}
             height={440}
             priority
-            className="w-full h-auto rounded-xl"
+            className="w-full h-auto rounded-xl opacity-90"
           />
         </div>
 
-        <div className="editorial-card p-5 bg-[#faf7f2] space-y-3">
+        <HudCard theme="violet" brackets className="p-5 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#111827]">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              Instant Demo Accounts
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              Try a Demo Account
             </span>
-            <code className="font-tech text-[11px] bg-white px-2 py-0.5 rounded border border-[#e6e0d4]">
+            <code className="font-tech text-[11px] bg-white/[0.08] text-cyan-200 px-2 py-0.5 rounded border border-white/[0.14]">
               Password123!
             </code>
           </div>
+          <p className="text-[11px] text-slate-300">
+            Click any role below to sign in right away and explore the site.
+          </p>
 
           <div className="space-y-2">
             {[
@@ -299,36 +303,49 @@ function AuthFormInner() {
                 email: "free.customer@tovolana.com",
                 target: "/dashboard",
                 name: "Brian Kiprop",
-                role: "Free Customer",
-                badge: <span className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-stone-100">FREE</span>,
+                role: "Client · Free Plan",
+                theme: "sky" as const,
+                badge: (
+                  <span className="text-[10px] font-tech px-2 py-0.5 rounded-full bg-white/[0.08] text-slate-300 border border-white/[0.14]">
+                    FREE
+                  </span>
+                ),
               },
               {
                 email: "pro.customer@tovolana.com",
                 target: "/dashboard",
                 name: "Grace Wambui",
-                role: "Pro Subscriber",
-                badge: <Crown className="w-4 h-4 text-amber-600" />,
+                role: "Client · Pro Plan",
+                theme: "amber" as const,
+                badge: <Crown className="w-4 h-4 text-amber-300" />,
               },
               {
                 email: "creator@tovolana.com",
                 target: "/creators-hub",
                 name: "Amara Njoroge",
-                role: "Vetted Creator",
-                badge: <UserCheck className="w-4 h-4 text-[#0f766e]" />,
+                role: "Approved Writer",
+                theme: "cyan" as const,
+                badge: <UserCheck className="w-4 h-4 text-teal-300" />,
               },
               {
                 email: "applicant@tovolana.com",
                 target: "/creators-hub/onboarding",
                 name: "Faith Chebet",
-                role: "Assessment Candidate",
-                badge: <span className="text-[10px] font-tech text-amber-700 font-semibold">APPLICANT</span>,
+                role: "New Writer Applicant",
+                theme: "emerald" as const,
+                badge: (
+                  <span className="text-[10px] font-tech text-amber-300 font-semibold">
+                    APPLICANT
+                  </span>
+                ),
               },
               {
                 email: "admin@tovolana.com",
                 target: "/admin",
                 name: "Wanjiku Omondi",
-                role: "Super Administrator",
-                badge: <Shield className="w-4 h-4 text-[#1e3a8a]" />,
+                role: "Admin",
+                theme: "violet" as const,
+                badge: <Shield className="w-4 h-4 text-violet-300" />,
               },
             ].map((p) => (
               <button
@@ -336,15 +353,15 @@ function AuthFormInner() {
                 type="button"
                 disabled={loading}
                 onClick={() => loginAsDemo(p.email, p.target)}
-                className="w-full p-2.5 rounded-xl bg-white border border-[#e6e0d4] hover:border-[#1e3a8a] text-left transition-colors flex items-center justify-between gap-2"
+                className="w-full p-2.5 rounded-xl bg-white/[0.045] border border-white/[0.12] hover:border-cyan-400/50 hover:bg-white/[0.08] text-left transition-all flex items-center justify-between gap-2 cursor-pointer"
               >
                 <span className="flex items-center gap-2.5 min-w-0">
-                  <CreatorAvatar name={p.name} size="sm" />
+                  <RadarAvatar name={p.name} theme={p.theme} size="sm" />
                   <span className="min-w-0">
-                    <span className="text-xs font-semibold text-[#111827] block truncate">
+                    <span className="text-xs font-semibold text-white block truncate">
                       {p.name}
                     </span>
-                    <span className="text-[11px] text-stone-500 block truncate">
+                    <span className="text-[11px] text-slate-400 block truncate">
                       {p.role}
                     </span>
                   </span>
@@ -353,7 +370,7 @@ function AuthFormInner() {
               </button>
             ))}
           </div>
-        </div>
+        </HudCard>
       </aside>
     </div>
   );
@@ -363,7 +380,7 @@ export default function AuthPage() {
   return (
     <Suspense
       fallback={
-        <div className="max-w-3xl mx-auto p-12 text-center text-sm text-stone-500">
+        <div className="max-w-3xl mx-auto p-12 text-center text-sm text-slate-400">
           Loading studio...
         </div>
       }

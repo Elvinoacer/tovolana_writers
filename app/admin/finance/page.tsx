@@ -1,11 +1,17 @@
 "use client";
 
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
-import { StatusPill, formatKes, formatShortDate } from "@/components/ui/Badges";
+import {
+  StatusPill,
+  formatKes,
+  formatPaymentChannel,
+  formatPaymentPurpose,
+  formatShortDate,
+} from "@/components/ui/Badges";
 
 interface FinanceData {
   transactions: Array<{
@@ -107,72 +113,76 @@ export default function AdminFinancePage() {
         action: "MARK_PAYOUT_PAID",
         payoutId,
         providerRef: `MPESA_B2C_${payoutId.slice(-8).toUpperCase()}`,
-        reason: "Settled via M-Pesa B2C batch",
+        reason: "Paid via M-Pesa",
       }),
     });
     const j = await res.json();
     if (!res.ok) {
-      setError(j.error?.message || "Could not mark payout paid.");
+      setError(j.error?.message || "Could not mark payout as paid.");
       return;
     }
-    setNotice("Creator payout marked PAID.");
+    setNotice("Writer payout marked as paid.");
     await loadFinance();
   }
 
   return (
     <AdminShell
-      title="IntaSend Finance, Refunds & Creator Payouts"
-      subtitle="Audit payment webhook transactions, reconcile customer refunds, and settle Creator B2C M-Pesa payouts."
+      title="Payments & Payouts"
+      subtitle="See incoming payments, send client refunds, and mark writer M-Pesa payouts as paid."
       requiredScope="FINANCE_ADMIN"
     >
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-lg border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-lg border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm">
           {notice}
         </div>
       )}
 
       {loading || !data ? (
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading IntaSend financial ledger...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading payments and payouts...
         </div>
       ) : (
         <div className="space-y-6">
-          <div className="editorial-card p-6 bg-white space-y-4">
-            <h2 className="font-editorial text-lg font-semibold">
-              Creator B2C M-Pesa Payout Requests ({data.payouts.length})
+          <HudCard theme="emerald" className="p-6 space-y-4">
+            <h2 className="font-editorial text-lg font-semibold text-white">
+              Writer M-Pesa Payout Requests ({data.payouts.length})
             </h2>
             {data.payouts.length === 0 ? (
-              <p className="text-xs text-stone-500">No payouts requested.</p>
+              <p className="text-xs text-slate-400">
+                No payouts requested yet.
+              </p>
             ) : (
               <div className="space-y-2.5 text-xs">
                 {data.payouts.map((p) => (
                   <div
                     key={p.id}
-                    className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between gap-3 flex-wrap"
+                    className="p-3.5 rounded-xl bg-white/[0.045] border border-white/[0.11] flex items-center justify-between gap-3 flex-wrap"
                   >
                     <div className="flex items-center gap-3">
-                      <CreatorAvatar
+                      <RadarAvatar
                         name={p.creator.displayName}
-                        username={p.creator.username}
                         size="sm"
+                        theme="emerald"
                       />
                       <div>
-                        <p className="font-semibold">
+                        <p className="font-semibold text-white">
                           {p.creator.displayName} (@{p.creator.username}) ·{" "}
-                          <span className="font-tech">{p.destinationPhone}</span>
+                          <span className="font-tech text-teal-300">
+                            {p.destinationPhone}
+                          </span>
                         </p>
-                        <p className="text-stone-500">
+                        <p className="text-slate-400">
                           Requested {formatShortDate(p.requestedAt)}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="font-tech font-bold text-sm">
+                      <span className="font-tech font-bold text-sm text-white">
                         {formatKes(p.amount, p.currency)}
                       </span>
                       <StatusPill status={p.status} />
@@ -182,7 +192,7 @@ export default function AdminFinancePage() {
                           className="btn-creator px-3.5 py-1.5 text-xs gap-1"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
-                          Settle Payout
+                          Mark Paid via M-Pesa
                         </button>
                       )}
                     </div>
@@ -190,35 +200,40 @@ export default function AdminFinancePage() {
                 ))}
               </div>
             )}
-          </div>
+          </HudCard>
 
-          <div className="editorial-card p-6 bg-white space-y-4 overflow-x-auto">
-            <h2 className="font-editorial text-lg font-semibold">
-              IntaSend Payment Ledger
+          <div className="editorial-card p-6 space-y-4 overflow-x-auto">
+            <h2 className="font-editorial text-lg font-semibold text-white">
+              All Payments
             </h2>
             <table className="w-full text-left text-xs">
-              <thead className="bg-[#faf7f2] border-b border-[#e6e0d4] text-stone-600">
+              <thead className="bg-white/[0.04] border-b border-white/[0.08] text-slate-400">
                 <tr>
-                  <th className="p-3.5">Ref</th>
-                  <th className="p-3.5">User / Purpose</th>
+                  <th className="p-3.5">Payment Ref</th>
+                  <th className="p-3.5">Person / Reason</th>
                   <th className="p-3.5">Amount</th>
                   <th className="p-3.5">Status</th>
-                  <th className="p-3.5">Reconcile</th>
+                  <th className="p-3.5">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#e6e0d4]">
+              <tbody className="divide-y divide-white/[0.08]">
                 {data.transactions.map((t) => (
-                  <tr key={t.id} className="hover:bg-[#faf7f2]/60 transition-colors">
-                    <td className="p-3.5 font-tech">{t.apiRef}</td>
+                  <tr
+                    key={t.id}
+                    className="hover:bg-white/[0.03] transition-colors"
+                  >
+                    <td className="p-3.5 font-tech text-slate-300">
+                      {t.apiRef}
+                    </td>
                     <td className="p-3.5">
-                      <p className="font-semibold text-[#111827]">{t.user.name}</p>
-                      <p className="text-stone-500">
-                        {t.purpose}{" "}
+                      <p className="font-semibold text-white">{t.user.name}</p>
+                      <p className="text-slate-400">
+                        {formatPaymentPurpose(t.purpose)}{" "}
                         {t.booking ? `(${t.booking.bookingRef})` : ""} ·{" "}
-                        {t.channel}
+                        {formatPaymentChannel(t.channel)}
                       </p>
                     </td>
-                    <td className="p-3.5 font-tech font-bold">
+                    <td className="p-3.5 font-tech font-bold text-cyan-300">
                       {formatKes(t.amount, t.currency)}
                     </td>
                     <td className="p-3.5">
@@ -228,10 +243,10 @@ export default function AdminFinancePage() {
                       {t.status === "COMPLETE" && (
                         <button
                           onClick={() => issueRefund(t.id, t.amount)}
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 font-semibold transition-colors"
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-rose-400/35 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25 font-semibold transition-colors"
                         >
                           <RotateCcw className="w-3 h-3" />
-                          Refund
+                          Issue Refund
                         </button>
                       )}
                     </td>

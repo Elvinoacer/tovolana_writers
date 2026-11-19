@@ -1,6 +1,11 @@
 "use client";
 
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { FlowSteps } from "@/components/ui/FlowGuide";
+import {
+  AuroraHeading,
+  HudCard,
+  RadarAvatar,
+} from "@/components/ui/AuroraPrimitives";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -72,11 +77,11 @@ export default function CreatorOnboardingPage() {
     e.preventDefault();
     setError(null);
     if (!pledgeAccepted) {
-      setError("Please accept the Academic & Originality Integrity Pledge.");
+      setError("Please check the Original Work Promise box first.");
       return;
     }
     if (selectedCategories.length === 0) {
-      setError("Select at least one writing category.");
+      setError("Pick at least one topic you write about.");
       return;
     }
 
@@ -96,12 +101,16 @@ export default function CreatorOnboardingPage() {
       });
       const j = await res.json();
       if (!res.ok) {
-        throw new Error(j.error?.message || "Could not save creator profile.");
+        throw new Error(
+          j.error?.message || "Could not save your writer profile."
+        );
       }
       await refresh();
       router.push("/creators-hub/assessment/live");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Onboarding failed.");
+      setError(
+        err instanceof Error ? err.message : "Could not save your profile."
+      );
     } finally {
       setSubmitting(false);
     }
@@ -110,8 +119,8 @@ export default function CreatorOnboardingPage() {
   if (authLoading) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading Creator onboarding...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading writer sign-up...
         </div>
       </main>
     );
@@ -120,61 +129,84 @@ export default function CreatorOnboardingPage() {
   if (!user) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <Feather className="w-10 h-10 text-[#0f766e] mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to Join the Creators Hub
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <Feather className="w-10 h-10 text-teal-300 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to Apply as a Writer
           </h1>
-          <p className="text-sm text-stone-600">
-            Joining adds Creator permissions to your existing Tovolana account —
-            no separate login required.
+          <p className="text-sm text-slate-300">
+            Use your normal Tovolana account to apply — no extra account needed.
           </p>
           <Link
             href="/auth?next=/creators-hub/onboarding"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+            className="btn-creator inline-flex px-5 py-2.5 text-sm font-semibold"
           >
             Sign In / Create Account
           </Link>
-        </div>
+        </HudCard>
       </main>
     );
   }
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
-      <div className="editorial-card p-5 bg-teal-50/70 border-teal-200 flex items-center justify-between gap-4 flex-wrap">
+      <FlowSteps
+        accent="teal"
+        currentStep={1}
+        goalLabel="Goal: Pass the short writing test and start earning"
+        steps={[
+          { label: "1. Writer profile", hint: "Tell clients what you write" },
+          {
+            label: "2. 45-min writing test",
+            hint: "No IDs or certificates needed",
+          },
+          {
+            label: "3. Approved & earn",
+            hint: "Post services & get M-Pesa pay",
+          },
+        ]}
+      />
+
+      <div className="editorial-card p-5 bg-teal-500/[0.09] border-teal-400/35 flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-xl bg-teal-100 text-[#0f766e] flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-xl bg-teal-500/20 border border-teal-400/40 text-teal-300 flex items-center justify-center shrink-0">
             <ShieldCheck className="w-5 h-5" />
           </div>
-          <div className="text-xs text-teal-950">
-            <p className="font-semibold text-sm">
-              Craft-First Vetting — Zero ID Cards or Degree Uploads
+          <div className="text-xs text-teal-100">
+            <p className="font-semibold text-sm text-white">
+              Simple Application — No ID Cards or Certificates Needed
             </p>
-            <p className="text-teal-800 mt-0.5">
-              Publish your writer profile, accept the originality pledge, and unlock Creator privileges immediately by passing the 6-criteria assessment.
+            <p className="text-teal-200/90 mt-0.5">
+              Fill in your writer profile, check the promise below, and take the
+              short writing test to unlock your Writer Hub.
             </p>
           </div>
         </div>
-        <span className="font-tech text-[11px] px-3 py-1 rounded-full bg-white border border-teal-200 text-[#0f766e] font-semibold">
-          STEP 1 OF 2
-        </span>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
-        <div className="lg:col-span-3 editorial-card p-6 sm:p-8 bg-white space-y-6">
+        <HudCard
+          theme="cyan"
+          brackets
+          dotMatrix="left"
+          microLabel="STEP 1 OF 3 · WRITER PROFILE"
+          className="lg:col-span-3 p-6 sm:p-8 space-y-6"
+        >
           <div>
-            <div className="flex items-center gap-2 text-xs font-tech uppercase tracking-wider font-semibold text-[#0f766e]">
+            <div className="flex items-center gap-2 text-xs font-tech uppercase tracking-wider font-semibold text-teal-300">
               <Sparkles className="w-4 h-4" />
-              <span>Writer Studio Profile</span>
+              <span>Step 1 of 3 · Your Writer Profile</span>
             </div>
-            <h1 className="text-3xl font-editorial font-semibold mt-1">
+            <AuroraHeading
+              as="h1"
+              className="text-3xl font-semibold mt-1"
+            >
               Set Up Your Writer Profile
-            </h1>
+            </AuroraHeading>
           </div>
 
           {error && (
-            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+            <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
               {error}
             </div>
           )}
@@ -182,8 +214,8 @@ export default function CreatorOnboardingPage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                  Creator Handle
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                  Username
                 </label>
                 <input
                   type="text"
@@ -192,13 +224,13 @@ export default function CreatorOnboardingPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="wanjiku_writes"
-                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+                  className="hud-input font-tech"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                  Display Name
+                <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                  Public Name
                 </label>
                 <input
                   type="text"
@@ -206,14 +238,14 @@ export default function CreatorOnboardingPage() {
                   minLength={2}
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                  className="hud-input"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                Specialist Headline
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                Short Headline
               </label>
               <input
                 type="text"
@@ -221,14 +253,14 @@ export default function CreatorOnboardingPage() {
                 minLength={6}
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
-                placeholder="e.g. Policy Research Analyst & Business Proposal Specialist"
-                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                placeholder="e.g. Research Writer & Business Plan Specialist"
+                className="hud-input"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500 mb-1.5">
-                Bio &amp; Methodology
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1.5">
+                About Your Writing
               </label>
               <textarea
                 required
@@ -236,14 +268,14 @@ export default function CreatorOnboardingPage() {
                 rows={4}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                placeholder="Describe your research rigor, citation standards, and core specialties..."
-                className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+                placeholder="Tell clients what you are great at writing, your style, and topics you know best..."
+                className="hud-input"
               />
             </div>
 
             <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-wide text-stone-500">
-                Writing Disciplines
+              <label className="block text-xs font-semibold uppercase tracking-wide text-slate-400">
+                Categories You Write
               </label>
               <div className="flex flex-wrap gap-2">
                 {(categories.length > 0
@@ -265,11 +297,13 @@ export default function CreatorOnboardingPage() {
                       onClick={() => toggleCategory(name)}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                         active
-                          ? "bg-[#0f766e] text-white border-[#0f766e] shadow-xs"
-                          : "bg-[#faf7f2] text-stone-700 border-[#e6e0d4] hover:bg-white"
+                          ? "bg-teal-400/20 text-teal-100 border-teal-400/60 shadow-[0_0_16px_rgba(45,212,191,0.22)]"
+                          : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:bg-white/[0.09] hover:text-white"
                       }`}
                     >
-                      {active && <CheckCircle2 className="w-3 h-3 inline mr-1" />}
+                      {active && (
+                        <CheckCircle2 className="w-3 h-3 inline mr-1 text-teal-300" />
+                      )}
                       {name}
                     </button>
                   );
@@ -277,83 +311,90 @@ export default function CreatorOnboardingPage() {
               </div>
             </div>
 
-            <label className="flex items-start gap-3 p-4 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] cursor-pointer text-xs text-stone-700">
+            <label className="flex items-start gap-3 p-4 rounded-xl border border-white/[0.12] bg-white/[0.04] cursor-pointer text-xs text-slate-300 hover:bg-white/[0.06] transition-colors">
               <input
                 type="checkbox"
                 checked={pledgeAccepted}
                 onChange={(e) => setPledgeAccepted(e.target.checked)}
-                className="mt-0.5"
+                className="mt-0.5 accent-teal-400"
               />
               <span>
-                <strong>Originality Pledge:</strong> Every deliverable I submit is original human-authored writing without plagiarism or fabricated citations.
+                <strong className="text-white">Original Work Promise:</strong>{" "}
+                Everything I write is original, written by me, and never copied
+                or made up.
               </span>
             </label>
 
             <div className="flex items-center justify-between pt-2 flex-wrap gap-3">
               <Link
                 href="/creators-hub/status"
-                className="text-xs font-semibold text-[#0f766e] hover:underline"
+                className="text-xs font-semibold text-teal-300 hover:text-teal-200 hover:underline"
               >
-                Check existing status →
+                Already took the test? Check status →
               </Link>
               <button
                 type="submit"
                 disabled={submitting}
                 className="btn-creator px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
               >
-                {submitting ? "Saving..." : "Launch Live Assessment"}
+                {submitting ? "Saving..." : "Next: Start Writing Test"}
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </form>
-        </div>
+        </HudCard>
 
         {/* Live Writer Profile Card Preview */}
-        <aside className="lg:col-span-2 editorial-card p-6 bg-white space-y-5 sticky top-24">
-          <div className="flex items-center justify-between text-[11px] font-tech uppercase text-stone-500">
-            <span>Live Public Preview</span>
-            <span className="text-[#0f766e] font-semibold">Vetted Writer Card</span>
-          </div>
-
-          <div className="p-5 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] space-y-4">
-            <div className="flex items-center gap-3.5">
-              <CreatorAvatar
-                name={displayName || "Creator Name"}
-                username={username || "creator"}
-                available
-                size="lg"
-              />
-              <div className="min-w-0">
-                <p className="font-editorial text-xl font-semibold text-[#111827] truncate">
-                  {displayName || "Your Display Name"}
-                </p>
-                <p className="font-tech text-xs text-stone-500 truncate">
-                  @{username || "your_handle"}
-                </p>
-              </div>
+        <aside className="lg:col-span-2 sticky top-24">
+          <HudCard theme="violet" brackets className="p-6 space-y-5">
+            <div className="flex items-center justify-between text-[11px] font-tech uppercase text-slate-400">
+              <span>Profile Preview</span>
+              <span className="text-teal-300 font-semibold">
+                How Clients See You
+              </span>
             </div>
 
-            <p className="text-sm font-medium text-[#111827]">
-              {headline || "Your specialist editorial headline appears here"}
-            </p>
-
-            <p className="text-xs text-stone-600 line-clamp-4">
-              {bio || "Summarize your citation mastery, discipline depth, and research clarity so clients can hire with confidence."}
-            </p>
-
-            {selectedCategories.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {selectedCategories.map((cat) => (
-                  <span
-                    key={cat}
-                    className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-white border border-[#e6e0d4] text-[#0f766e]"
-                  >
-                    {cat}
-                  </span>
-                ))}
+            <div className="p-5 rounded-2xl bg-white/[0.045] border border-white/[0.11] space-y-4">
+              <div className="flex items-center gap-3.5">
+                <RadarAvatar
+                  name={displayName || "Your Name"}
+                  available
+                  theme="cyan"
+                  size="lg"
+                />
+                <div className="min-w-0">
+                  <p className="font-editorial text-xl font-semibold text-white truncate">
+                    {displayName || "Your Name"}
+                  </p>
+                  <p className="font-tech text-xs text-slate-400 truncate">
+                    @{username || "your_username"}
+                  </p>
+                </div>
               </div>
-            )}
-          </div>
+
+              <p className="text-sm font-medium text-white">
+                {headline || "Your short headline shows here"}
+              </p>
+
+              <p className="text-xs text-slate-300 line-clamp-4">
+                {bio ||
+                  "Write a few sentences about your skills so clients feel confident choosing you."}
+              </p>
+
+              {selectedCategories.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {selectedCategories.map((cat) => (
+                    <span
+                      key={cat}
+                      className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-teal-500/15 border border-teal-400/35 text-teal-200"
+                    >
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </HudCard>
         </aside>
       </div>
     </main>

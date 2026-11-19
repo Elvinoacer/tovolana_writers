@@ -59,15 +59,15 @@ export async function POST(
           bookingId: booking.id,
           senderId: user.id,
           isSystemMessage: false,
-          body: `Deliverable Submitted:\n${body.deliverySummary.trim()}`,
+          body: `Finished Work Sent:\n${body.deliverySummary.trim()}`,
         },
       });
 
       await enqueueNotificationInTx(tx, {
         userId: booking.customerId,
         eventType: "BOOKING_DELIVERED",
-        title: `Deliverable Ready: ${booking.bookingRef}`,
-        body: `Your work for "${booking.taskTitleSnapshot}" has been delivered. Review and mark complete or request a revision.`,
+        title: `Your Work Is Ready: ${booking.bookingRef}`,
+        body: `Your finished work for "${booking.taskTitleSnapshot}" is ready. Check it now and accept it or ask for a free edit.`,
         linkUrl: `/dashboard/bookings/${booking.bookingRef}`,
       });
 

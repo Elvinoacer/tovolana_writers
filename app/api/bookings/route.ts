@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
           create: {
             senderId: user.id,
             isSystemMessage: true,
-            body: `Booking ${bookingRef} created (${task.currency} ${pricing.totalPayable.toLocaleString()}). Complete IntaSend payment to lock creator delivery deadline.`,
+            body: `Order ${bookingRef} created (${task.currency} ${pricing.totalPayable.toLocaleString()}). Complete payment to lock in your delivery date.`,
           },
         },
       },

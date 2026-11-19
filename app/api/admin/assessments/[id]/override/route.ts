@@ -80,11 +80,11 @@ export async function POST(
       await enqueueNotificationInTx(tx, {
         userId: attempt.creatorProfile.userId,
         eventType: "CREATOR_ASSESSMENT_REVIEWED",
-        title: `Creator Application ${body.decision === "APPROVED" ? "Approved" : "Decision"}`,
+        title: `Writer Application ${body.decision === "APPROVED" ? "Approved" : "Update"}`,
         body:
           body.decision === "APPROVED"
-            ? "An editorial administrator approved your writing assessment. Creators Hub is now unlocked."
-            : `Your writing assessment decision: ${body.reviewNote.trim()}`,
+            ? "Our team approved your writing test. Your Writer Hub is now open."
+            : `Writing test update: ${body.reviewNote.trim()}`,
         linkUrl: body.decision === "APPROVED" ? "/creators-hub" : "/creators-hub/status",
       });
 

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
+import { getCardHudTheme } from "@/lib/design-tokens";
 import {
   calculateBookingPricing,
   isFutureTimestamp,
@@ -29,14 +30,21 @@ import {
   ListingValidityTag,
   StatusPill,
   VettedCreatorBadge,
+  formatCreatorTier,
   formatShortDate,
 } from "@/components/ui/Badges";
+import { FlowSteps } from "@/components/ui/FlowGuide";
 import {
-  CreatorAvatar,
   EscrowStepVisualizer,
   ScoreRing,
   getCategoryPhotoSrc,
 } from "@/components/ui/EditorialVisuals";
+import {
+  AuroraHeading,
+  HudBadge,
+  HudMediaFrame,
+  RadarAvatar,
+} from "@/components/ui/AuroraPrimitives";
 import { TaskCard } from "@/components/TaskCard";
 import { TaskCommissionSidebar } from "@/components/TaskCommissionSidebar";
 
@@ -62,19 +70,6 @@ interface PortfolioSample {
   url?: string;
   attachmentUrl?: string;
   attachmentName?: string;
-}
-
-function getCreatorTierLabel(tier: string | null | undefined): string {
-  switch (tier) {
-    case "ELITE":
-      return "Elite Tier";
-    case "TOP_RATED":
-      return "Top Rated";
-    case "RISING_TALENT":
-      return "Rising Talent";
-    default:
-      return "Vetted Writer";
-  }
 }
 
 export default async function TaskDetailPage({
@@ -198,47 +193,51 @@ export default async function TaskDetailPage({
 
   const isProEarlyAccess = isFutureTimestamp(task.proEarlyAccessUntil);
   const photoSrc = getCategoryPhotoSrc(task.category.slug);
+  const heroTheme = getCardHudTheme(task.category.slug);
   const portfolioSamples = Array.isArray(task.creator?.portfolioSamples)
     ? (task.creator?.portfolioSamples as PortfolioSample[]).slice(0, 2)
     : [];
 
   return (
     <div className="animate-reveal">
-      {/* Editorial hero */}
-      <section className="relative overflow-hidden border-b border-[#e6e0d4] bg-[#f2ede3]">
+      {/* Dark Aurora HUD Service Hero */}
+      <section
+        data-hud-theme={heroTheme}
+        className="relative overflow-hidden border-b border-white/[0.08] bg-[#060a14]/75"
+      >
         <Image
           src={photoSrc}
           alt=""
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center opacity-[0.28]"
+          className="object-cover object-center opacity-[0.18]"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-r from-[#f2ede3] via-[#f2ede3]/92 to-[#f2ede3]/55"
+          className="absolute inset-0 bg-gradient-to-r from-[#05080f] via-[#05080f]/90 to-[#05080f]/60"
         />
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-gradient-to-t from-[#f2ede3] via-transparent to-[#f2ede3]/50"
+          className="absolute inset-0 bg-gradient-to-t from-[#05080f] via-transparent to-[#05080f]/55"
         />
 
         <div className="relative z-10 mx-auto max-w-7xl space-y-7 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-7 lg:px-8">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <nav
               aria-label="Breadcrumb"
-              className="flex flex-wrap items-center gap-1.5 text-xs text-[#6b7280]"
+              className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400"
             >
               <Link
                 href="/explore"
-                className="cursor-pointer font-semibold text-[#4b5563] transition-colors hover:text-[#1e3a8a]"
+                className="cursor-pointer font-semibold text-slate-300 transition-colors hover:text-cyan-300"
               >
-                Explore
+                Find Writers
               </Link>
-              <ChevronRight className="h-3.5 w-3.5 text-[#c4bdb0]" aria-hidden="true" />
+              <ChevronRight className="h-3.5 w-3.5 text-slate-500" aria-hidden="true" />
               <Link
                 href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
-                className="cursor-pointer font-medium transition-colors hover:text-[#1e3a8a]"
+                className="cursor-pointer font-medium transition-colors hover:text-cyan-300"
               >
                 {task.category.name}
               </Link>
@@ -253,63 +252,73 @@ export default async function TaskDetailPage({
               {(isOwner || isAdmin) && (
                 <Link
                   href={`/creators-hub/listings/new?edit=${encodeURIComponent(task.slug)}`}
-                  className="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-full border border-[#d6cfc2] bg-white/90 px-3 py-1 text-xs font-semibold text-[#111827] backdrop-blur-sm transition-colors hover:bg-white"
+                  className="inline-flex min-h-[32px] cursor-pointer items-center gap-1.5 rounded-full border border-white/[0.16] bg-white/[0.08] px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/[0.15]"
                 >
-                  <Pencil className="h-3 w-3 text-[#1e3a8a]" aria-hidden="true" />
+                  <Pencil className="h-3 w-3 text-cyan-300" aria-hidden="true" />
                   Edit
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="max-w-3xl space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-md border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-xs font-semibold text-[#0f766e] backdrop-blur-sm">
-                {task.category.name}
-                <span className="mx-1.5 text-[#d6cfc2]">·</span>
-                {task.serviceType}
-              </span>
-              {isProEarlyAccess && (
-                <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50/95 px-2.5 py-1 text-xs font-semibold text-amber-900 backdrop-blur-sm">
-                  <Crown className="h-3.5 w-3.5 text-[#b45309]" aria-hidden="true" />
-                  Pro Early Access
-                </span>
-              )}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div className="lg:col-span-7 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <HudBadge label={`${task.category.name} · ${task.serviceType}`} sparkle />
+                {isProEarlyAccess && (
+                  <span className="inline-flex items-center gap-1 rounded-md border border-amber-400/45 bg-amber-500/15 px-2.5 py-1 text-xs font-semibold text-amber-200 backdrop-blur-sm">
+                    <Crown className="h-3.5 w-3.5 text-amber-300" aria-hidden="true" />
+                    Pro Early Access
+                  </span>
+                )}
+              </div>
+
+              <h1 className="font-editorial text-[1.85rem] font-bold leading-[1.12] tracking-tight text-white sm:text-4xl lg:text-[2.65rem]">
+                {task.title}
+              </h1>
+
+              <p className="max-w-2xl text-base leading-relaxed text-slate-300 sm:text-lg">
+                {task.shortDescription}
+              </p>
             </div>
 
-            <h1 className="font-editorial text-[1.85rem] font-bold leading-[1.12] tracking-tight text-[#111827] sm:text-4xl lg:text-[2.65rem]">
-              {task.title}
-            </h1>
-
-            <p className="max-w-2xl text-base leading-relaxed text-[#4b5563] sm:text-lg">
-              {task.shortDescription}
-            </p>
+            <div className="lg:col-span-5">
+              <HudMediaFrame
+                src={photoSrc}
+                alt={task.category.name}
+                categoryLabel={task.category.name}
+                theme={heroTheme}
+                aspectClass="aspect-[16/9] w-full"
+                sizes="(max-width: 1024px) 100vw, 480px"
+                priority
+              />
+            </div>
           </div>
 
-          {/* Prospectus meta strip */}
-          <div className="overflow-hidden rounded-2xl border border-[#e6e0d4] bg-white/90 shadow-[0_1px_2px_rgba(17,24,39,0.03)] backdrop-blur-sm">
+          {/* Prospectus Meta Strip */}
+          <div className="overflow-hidden rounded-2xl border border-white/[0.12] bg-white/[0.045] backdrop-blur-md">
             <div className="flex flex-col gap-0 lg:flex-row lg:items-stretch">
               {task.creator ? (
                 <Link
                   href={`/creators/${task.creator.username}`}
-                  className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 border-b border-[#e6e0d4] px-4 py-4 transition-colors hover:bg-[#faf7f2]/80 sm:px-5 lg:border-b-0 lg:border-r"
+                  className="group flex min-w-0 flex-1 cursor-pointer items-center gap-3.5 border-b border-white/[0.1] px-4 py-4 transition-colors hover:bg-white/[0.04] sm:px-5 lg:border-b-0 lg:border-r"
                 >
-                  <CreatorAvatar
+                  <RadarAvatar
                     name={task.creator.displayName}
-                    username={task.creator.username}
                     avatarUrl={task.creator.user?.avatarUrl}
                     available={task.creator.isAvailable}
+                    theme={heroTheme}
                     size="md"
                   />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-sm font-semibold text-[#111827] transition-colors group-hover:text-[#1e3a8a]">
+                      <span className="text-sm font-semibold text-white transition-colors group-hover:text-cyan-300">
                         {task.creator.displayName}
                       </span>
-                      <BadgeCheck className="h-4 w-4 shrink-0 text-[#0f766e]" aria-hidden="true" />
+                      <BadgeCheck className="h-4 w-4 shrink-0 text-teal-400" aria-hidden="true" />
                     </div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[#4b5563]">
-                      <span className="inline-flex items-center gap-1 font-tech font-semibold text-[#111827]">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-300">
+                      <span className="inline-flex items-center gap-1 font-tech font-semibold text-white">
                         <Star
                           className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
                           aria-hidden="true"
@@ -317,46 +326,47 @@ export default async function TaskDetailPage({
                         {task.creator.ratingAverage.toFixed(1)}
                       </span>
                       {typeof task.creator.assessmentScore === "number" && (
-                        <span className="font-semibold text-[#0f766e]">
-                          {Math.round(task.creator.assessmentScore)}% rubric
+                        <span className="font-semibold text-teal-300">
+                          {Math.round(task.creator.assessmentScore)}% test score
                         </span>
                       )}
-                      <span>
+                      <span className="text-slate-400">
                         {task.creator.isAvailable
-                          ? "Accepting orders"
-                          : "At capacity"}
+                          ? "Available"
+                          : "Busy right now"}
                       </span>
                     </div>
                   </div>
                 </Link>
               ) : (
-                <div className="flex flex-1 items-center gap-2 border-b border-[#e6e0d4] px-4 py-4 text-sm text-[#4b5563] sm:px-5 lg:border-b-0 lg:border-r">
-                  <BadgeCheck className="h-4 w-4 text-[#0f766e]" aria-hidden="true" />
-                  Vetted Tovolana Specialist
+                <div className="flex flex-1 items-center gap-2 border-b border-white/[0.1] px-4 py-4 text-sm text-slate-300 sm:px-5 lg:border-b-0 lg:border-r">
+                  <BadgeCheck className="h-4 w-4 text-teal-400" aria-hidden="true" />
+                  Tested Tovolana Writer
                 </div>
               )}
 
-              <div className="grid flex-[1.2] grid-cols-3 divide-x divide-[#e6e0d4]">
+              <div className="grid flex-[1.2] grid-cols-3 divide-x divide-white/[0.1]">
                 <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
-                  <Clock className="h-4 w-4 text-[#1e3a8a]" aria-hidden="true" />
-                  <span className="font-tech text-sm font-bold text-[#111827]">
-                    {task.deliveryTurnaroundDays}d
+                  <Clock className="h-4 w-4 text-sky-300" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-white">
+                    {task.deliveryTurnaroundDays}{" "}
+                    {task.deliveryTurnaroundDays === 1 ? "day" : "days"}
                   </span>
-                  <span className="text-[11px] text-[#6b7280]">Delivery</span>
+                  <span className="text-[11px] text-slate-400">Delivery</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
-                  <RotateCcw className="h-4 w-4 text-[#0f766e]" aria-hidden="true" />
-                  <span className="font-tech text-sm font-bold text-[#111827]">
-                    {task.maxRevisions}x
+                  <RotateCcw className="h-4 w-4 text-teal-300" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-white">
+                    {task.maxRevisions}
                   </span>
-                  <span className="text-[11px] text-[#6b7280]">Revisions</span>
+                  <span className="text-[11px] text-slate-400">Free edits</span>
                 </div>
                 <div className="flex flex-col items-center justify-center gap-1 px-3 py-4 text-center">
-                  <Layers className="h-4 w-4 text-[#b45309]" aria-hidden="true" />
-                  <span className="font-tech text-sm font-bold text-[#111827]">
-                    {task.pricingType === "QUOTE_BASED" ? "Quote" : "Fixed"}
+                  <Layers className="h-4 w-4 text-amber-300" aria-hidden="true" />
+                  <span className="font-tech text-sm font-bold text-white">
+                    {task.pricingType === "QUOTE_BASED" ? "Custom quote" : "Fixed"}
                   </span>
-                  <span className="text-[11px] text-[#6b7280]">Scope</span>
+                  <span className="text-[11px] text-slate-400">Price type</span>
                 </div>
               </div>
             </div>
@@ -371,28 +381,28 @@ export default async function TaskDetailPage({
             {/* About */}
             <section className="space-y-5">
               <div className="space-y-2">
-                <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                <h2 className="font-editorial text-xl font-bold tracking-tight text-white sm:text-2xl">
                   About this service
                 </h2>
-                <div className="h-0.5 w-12 rounded-full bg-[#1e3a8a]" aria-hidden="true" />
+                <div className="h-0.5 w-12 rounded-full bg-gradient-to-r from-cyan-400 to-sky-400" aria-hidden="true" />
               </div>
-              <div className="max-w-[70ch] whitespace-pre-line text-[15px] leading-[1.8] text-[#374151]">
+              <div className="max-w-[70ch] whitespace-pre-line text-[15px] leading-[1.8] text-slate-300">
                 {task.fullDescription}
               </div>
 
               {task.deliverablesSummary.length > 0 && (
-                <div className="mt-2 space-y-3 rounded-2xl border border-[#e6e0d4] bg-[#faf7f2]/80 p-5 sm:p-6">
-                  <h3 className="text-sm font-semibold text-[#111827]">
-                    Included deliverables
+                <div className="mt-2 space-y-3 editorial-card p-5 sm:p-6">
+                  <h3 className="text-sm font-semibold text-white">
+                    What&apos;s included
                   </h3>
                   <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {task.deliverablesSummary.map((item, idx) => (
                       <li
                         key={idx}
-                        className="flex items-start gap-2.5 text-sm text-[#1f2937]"
+                        className="flex items-start gap-2.5 text-sm text-slate-200"
                       >
                         <CheckCircle2
-                          className="mt-0.5 h-4 w-4 shrink-0 text-[#0f766e]"
+                          className="mt-0.5 h-4 w-4 shrink-0 text-teal-400"
                           aria-hidden="true"
                         />
                         <span>{item}</span>
@@ -401,6 +411,17 @@ export default async function TaskDetailPage({
                   </ul>
                 </div>
               )}
+
+              <FlowSteps
+                steps={[
+                  { label: "Share your details" },
+                  { label: "Pay safely" },
+                  { label: "Writer delivers" },
+                  { label: "Approve & done" },
+                ]}
+                currentStep={1}
+                goalLabel="Goal: Finished work you're happy with"
+              />
             </section>
 
             {/* Requirements */}
@@ -408,13 +429,13 @@ export default async function TaskDetailPage({
               <section className="space-y-4">
                 <div className="flex flex-wrap items-end justify-between gap-2">
                   <div className="space-y-2">
-                    <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
-                      What we need from you
+                    <h2 className="font-editorial text-xl font-bold tracking-tight text-white sm:text-2xl">
+                      What you&apos;ll fill in on the next page
                     </h2>
-                    <div className="h-0.5 w-12 rounded-full bg-[#0f766e]" aria-hidden="true" />
+                    <div className="h-0.5 w-12 rounded-full bg-teal-400" aria-hidden="true" />
                   </div>
-                  <span className="text-xs text-[#6b7280]">
-                    Collected at checkout
+                  <span className="text-xs text-slate-400">
+                    Takes 2 minutes
                   </span>
                 </div>
 
@@ -422,23 +443,23 @@ export default async function TaskDetailPage({
                   {reqFields.map((field) => (
                     <div
                       key={field.key}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-3"
+                      className="flex items-center justify-between gap-3 rounded-xl border border-white/[0.11] bg-white/[0.045] px-3.5 py-3"
                     >
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#111827]">
+                        <p className="truncate text-sm font-semibold text-white">
                           {field.label}
                         </p>
                         {field.options && field.options.length > 0 && (
-                          <p className="truncate text-[11px] text-[#6b7280]">
+                          <p className="truncate text-[11px] text-slate-400">
                             {field.options.slice(0, 3).join(" · ")}
                           </p>
                         )}
                       </div>
                       <span
-                        className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${
+                        className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold border ${
                           field.required
-                            ? "bg-[#eff6ff] text-[#1e3a8a]"
-                            : "bg-[#f2ede3] text-[#6b7280]"
+                            ? "bg-sky-500/15 text-sky-300 border-sky-400/35"
+                            : "bg-white/[0.06] text-slate-400 border-white/[0.12]"
                         }`}
                       >
                         {field.required ? "Required" : "Optional"}
@@ -447,41 +468,42 @@ export default async function TaskDetailPage({
                   ))}
                 </div>
 
-                <p className="flex items-center gap-2 text-xs text-[#6b7280]">
-                  <FileText className="h-3.5 w-3.5 shrink-0 text-[#1e3a8a]" aria-hidden="true" />
-                  PDF, DOCX, XLSX, and ZIP attachments accepted in checkout.
+                <p className="flex items-center gap-2 text-xs text-slate-400">
+                  <FileText className="h-3.5 w-3.5 shrink-0 text-sky-300" aria-hidden="true" />
+                  You can attach PDF, Word, Excel, or ZIP files on the next page.
                 </p>
               </section>
             )}
 
             {/* Escrow */}
-            <section className="space-y-5 rounded-2xl border border-[#e6e0d4] bg-white p-5 sm:p-7">
+            <section className="editorial-card space-y-5 p-5 sm:p-7">
               <div className="space-y-2">
-                <h2 className="font-editorial flex items-center gap-2 text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
-                  <ShieldCheck className="h-5 w-5 text-[#0f766e]" aria-hidden="true" />
-                  Escrow protection
+                <h2 className="font-editorial flex items-center gap-2 text-xl font-bold tracking-tight text-white sm:text-2xl">
+                  <ShieldCheck className="h-5 w-5 text-teal-400" aria-hidden="true" />
+                  Your money is safe
                 </h2>
-                <p className="max-w-[60ch] text-sm text-[#4b5563]">
-                  Payment stays locked until you approve the final delivery.
+                <p className="max-w-[60ch] text-sm text-slate-300">
+                  We hold your payment safely and only pay the writer after you
+                  check and approve the finished work.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-[#e6e0d4] bg-[#faf7f2] p-4">
+              <div className="rounded-xl border border-white/[0.11] bg-white/[0.04] p-4">
                 <EscrowStepVisualizer status="PAID_AWAITING_ACCEPTANCE" />
               </div>
 
-              <div className="grid grid-cols-1 gap-5 border-t border-[#e6e0d4] pt-5 text-sm leading-relaxed text-[#4b5563] sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 border-t border-white/[0.1] pt-5 text-sm leading-relaxed text-slate-300 sm:grid-cols-2">
                 <div>
-                  <h3 className="mb-1.5 text-sm font-semibold text-[#111827]">
-                    Revisions ({task.maxRevisions} rounds)
+                  <h3 className="mb-1.5 text-sm font-semibold text-white">
+                    Free edits ({task.maxRevisions} included)
                   </h3>
                   <p className="text-xs leading-relaxed sm:text-sm">
                     {task.revisionPolicy}
                   </p>
                 </div>
                 <div>
-                  <h3 className="mb-1.5 text-sm font-semibold text-[#111827]">
-                    Cancellation &amp; escrow
+                  <h3 className="mb-1.5 text-sm font-semibold text-white">
+                    Cancellations &amp; refunds
                   </h3>
                   <p className="text-xs leading-relaxed sm:text-sm">
                     {task.cancellationPolicy}
@@ -492,29 +514,29 @@ export default async function TaskDetailPage({
 
             {/* Creator plate */}
             {task.creator && (
-              <section className="overflow-hidden rounded-2xl border border-[#e6e0d4] bg-[#f2ede3]/90">
-                <div className="border-b border-[#e6e0d4]/80 px-5 py-5 sm:px-7 sm:py-6">
+              <section className="editorial-card overflow-hidden border-teal-400/25">
+                <div className="border-b border-white/[0.1] px-5 py-5 sm:px-7 sm:py-6">
                   <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                     <div className="flex min-w-0 items-center gap-4">
-                      <CreatorAvatar
+                      <RadarAvatar
                         name={task.creator.displayName}
-                        username={task.creator.username}
                         avatarUrl={task.creator.user?.avatarUrl}
                         available={task.creator.isAvailable}
+                        theme="cyan"
                         size="lg"
                       />
                       <div className="min-w-0 space-y-1.5">
                         <div className="flex flex-wrap items-center gap-2">
                           <VettedCreatorBadge />
-                          <span className="rounded-full border border-[#e6e0d4] bg-white/90 px-2.5 py-0.5 text-[11px] font-semibold text-[#1e3a8a]">
-                            {getCreatorTierLabel(task.creator.creatorTier)}
+                          <span className="rounded-full border border-sky-400/35 bg-sky-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-sky-300">
+                            {formatCreatorTier(task.creator.creatorTier)}
                           </span>
                         </div>
-                        <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
-                          {task.creator.displayName}
+                        <h2 className="font-editorial text-xl font-bold tracking-tight text-white sm:text-2xl">
+                          Meet {task.creator.displayName}
                         </h2>
                         {task.creator.headline && (
-                          <p className="text-sm text-[#4b5563]">
+                          <p className="text-sm text-slate-300">
                             {task.creator.headline}
                           </p>
                         )}
@@ -525,7 +547,7 @@ export default async function TaskDetailPage({
                       href={`/creators/${task.creator.username}`}
                       className="btn-ghost min-h-[40px] shrink-0 cursor-pointer self-start px-4 py-2 text-xs sm:self-center"
                     >
-                      View portfolio
+                      See full profile
                       <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     </Link>
                   </div>
@@ -533,32 +555,32 @@ export default async function TaskDetailPage({
 
                 <div className="grid grid-cols-1 items-center gap-6 px-5 py-5 sm:px-7 sm:py-6 md:grid-cols-12">
                   <div className="space-y-3 md:col-span-8">
-                    <p className="text-sm leading-relaxed text-[#374151]">
+                    <p className="text-sm leading-relaxed text-slate-300">
                       {task.creator.bio}
                     </p>
                     <div className="flex flex-wrap gap-2 text-xs">
                       {task.creator.educationCredentials && (
-                        <span className="rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 font-medium text-[#1f2937]">
+                        <span className="rounded-lg border border-white/[0.12] bg-white/[0.05] px-2.5 py-1 font-medium text-slate-200">
                           {task.creator.educationCredentials}
                         </span>
                       )}
                       {task.creator.yearsExperience > 0 && (
-                        <span className="font-tech rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-[#4b5563]">
-                          {task.creator.yearsExperience}+ yrs
+                        <span className="font-tech rounded-lg border border-white/[0.12] bg-white/[0.05] px-2.5 py-1 text-slate-300">
+                          {task.creator.yearsExperience}+ yrs experience
                         </span>
                       )}
-                      <span className="font-tech rounded-lg border border-[#e6e0d4] bg-white/90 px-2.5 py-1 text-[#0f766e]">
-                        {task.creator.onTimeDeliveryRate.toFixed(0)}% on-time
+                      <span className="font-tech rounded-lg border border-teal-400/35 bg-teal-500/15 px-2.5 py-1 text-teal-300">
+                        {task.creator.onTimeDeliveryRate.toFixed(0)}% on time
                       </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e6e0d4] bg-white p-3 text-center md:col-span-4">
+                  <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/[0.12] bg-white/[0.04] p-3 text-center md:col-span-4">
                     <ScoreRing
                       score={task.creator.assessmentScore ?? 90}
                       size={72}
                       tone="emerald"
-                      sublabel="Rubric"
+                      sublabel="Test score"
                     />
                     <ScoreRing
                       score={(task.creator.ratingAverage / 5) * 100}
@@ -571,7 +593,7 @@ export default async function TaskDetailPage({
                 </div>
 
                 {portfolioSamples.length > 0 && (
-                  <div className="grid grid-cols-1 gap-3 border-t border-[#e6e0d4]/80 px-5 py-5 sm:grid-cols-2 sm:px-7 sm:py-6">
+                  <div className="grid grid-cols-1 gap-3 border-t border-white/[0.1] px-5 py-5 sm:grid-cols-2 sm:px-7 sm:py-6">
                     {portfolioSamples.map((sample, idx) => {
                       const attachmentUrl = sample.attachmentUrl?.trim() || "";
                       const safeAttachment = isSafeMediaDisplayUrl(attachmentUrl)
@@ -580,18 +602,18 @@ export default async function TaskDetailPage({
                       return (
                         <div
                           key={idx}
-                          className="space-y-1.5 rounded-xl border border-[#e6e0d4] bg-white/95 p-4"
+                          className="space-y-1.5 rounded-xl border border-white/[0.11] bg-white/[0.045] p-4"
                         >
                           {sample.category && (
-                            <span className="block text-[11px] font-medium text-[#0f766e]">
+                            <span className="block text-[11px] font-medium text-teal-300">
                               {sample.category}
                             </span>
                           )}
-                          <h3 className="font-editorial text-sm font-semibold leading-snug text-[#111827]">
+                          <h3 className="font-editorial text-sm font-semibold leading-snug text-white">
                             {sample.title || "Writing Sample"}
                           </h3>
                           {sample.excerpt && (
-                            <p className="line-clamp-2 text-xs leading-relaxed text-[#4b5563]">
+                            <p className="line-clamp-2 text-xs leading-relaxed text-slate-400">
                               {sample.excerpt}
                             </p>
                           )}
@@ -600,7 +622,7 @@ export default async function TaskDetailPage({
                               href={safeAttachment}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex cursor-pointer items-center gap-1 pt-1 text-[11px] font-semibold text-[#1e3a8a] hover:underline"
+                              className="inline-flex cursor-pointer items-center gap-1 pt-1 text-[11px] font-semibold text-sky-300 hover:underline"
                             >
                               Read sample
                               <ExternalLink className="h-3 w-3" aria-hidden="true" />
@@ -618,40 +640,40 @@ export default async function TaskDetailPage({
             {task.reviews.length > 0 ? (
               <section className="space-y-5">
                 <div className="space-y-2">
-                  <h2 className="font-editorial text-xl font-bold tracking-tight text-[#111827] sm:text-2xl">
+                  <h2 className="font-editorial text-xl font-bold tracking-tight text-white sm:text-2xl">
                     Client reviews
-                    <span className="ml-2 font-tech text-base font-semibold text-[#6b7280]">
+                    <span className="ml-2 font-tech text-base font-semibold text-slate-400">
                       ({task.reviews.length})
                     </span>
                   </h2>
-                  <div className="h-0.5 w-12 rounded-full bg-[#b45309]" aria-hidden="true" />
+                  <div className="h-0.5 w-12 rounded-full bg-amber-400" aria-hidden="true" />
                 </div>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   {task.reviews.map((rev) => (
                     <figure
                       key={rev.id}
-                      className="relative space-y-3 rounded-2xl border border-[#e6e0d4] bg-white p-5"
+                      className="editorial-card relative space-y-3 p-5"
                     >
                       <Quote
-                        className="absolute right-4 top-4 h-5 w-5 text-[#e6e0d4]"
+                        className="absolute right-4 top-4 h-5 w-5 text-white/10"
                         aria-hidden="true"
                       />
                       <div className="flex items-center justify-between gap-2 pr-6">
-                        <figcaption className="text-sm font-semibold text-[#111827]">
+                        <figcaption className="text-sm font-semibold text-white">
                           {rev.customer.name}
                         </figcaption>
-                        <span className="font-tech inline-flex items-center gap-1 text-xs font-bold text-amber-800">
+                        <span className="font-tech inline-flex items-center gap-1 text-xs font-bold text-amber-300">
                           <Star
-                            className="h-3 w-3 fill-amber-500 text-amber-500"
+                            className="h-3 w-3 fill-amber-400 text-amber-400"
                             aria-hidden="true"
                           />
                           {rev.rating}.0
                         </span>
                       </div>
-                      <blockquote className="text-sm leading-relaxed text-[#4b5563]">
+                      <blockquote className="text-sm leading-relaxed text-slate-300">
                         {rev.comment}
                       </blockquote>
-                      <time className="font-tech block text-[11px] text-[#9ca3af]">
+                      <time className="font-tech block text-[11px] text-slate-400">
                         {formatShortDate(rev.createdAt)}
                       </time>
                     </figure>
@@ -659,8 +681,8 @@ export default async function TaskDetailPage({
                 </div>
               </section>
             ) : (
-              <p className="text-xs text-[#6b7280]">
-                Reviews appear after verified escrow delivery and client approval.
+              <p className="text-xs text-slate-400">
+                Reviews show up here once clients complete and approve an order.
               </p>
             )}
           </div>
@@ -707,31 +729,35 @@ export default async function TaskDetailPage({
 
         {/* Related */}
         {relatedTasks.length > 0 && (
-          <section className="space-y-6 border-t border-[#e6e0d4] pt-10">
+          <section className="space-y-6 border-t border-white/[0.1] pt-10">
             <div className="flex items-end justify-between gap-3">
               <div className="space-y-2">
-                <h2 className="font-editorial text-2xl font-bold tracking-tight text-[#111827] sm:text-3xl">
-                  Related services
-                </h2>
-                <div className="h-0.5 w-12 rounded-full bg-[#1e3a8a]" aria-hidden="true" />
+                <AuroraHeading
+                  as="h2"
+                  className="text-2xl sm:text-3xl"
+                >
+                  Similar services
+                </AuroraHeading>
+                <div className="h-0.5 w-12 rounded-full bg-cyan-400" aria-hidden="true" />
               </div>
               <Link
                 href={`/explore?category=${encodeURIComponent(task.category.slug)}`}
-                className="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-[#1e3a8a] hover:underline"
+                className="inline-flex cursor-pointer items-center gap-1 text-sm font-semibold text-sky-400 hover:text-sky-300 hover:underline"
               >
-                Browse {task.category.name}
+                See more in {task.category.name}
                 <ChevronRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </div>
 
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {relatedTasks.map((related) => (
+              {relatedTasks.map((related, idx) => (
                 <TaskCard
                   key={related.id}
                   task={related}
                   standardFeePct={feePct}
                   proDiscountPct={proDiscountPct}
                   userIsPro={userIsPro}
+                  index={idx}
                 />
               ))}
             </div>

@@ -18,7 +18,18 @@ import {
 } from "lucide-react";
 import { CreatorShell } from "@/components/CreatorShell";
 import { useAuth } from "@/components/AuthContext";
-import { formatKes, formatShortDate } from "@/components/ui/Badges";
+import {
+  formatConnectTxType,
+  formatCreatorTier,
+  formatKes,
+  formatShortDate,
+} from "@/components/ui/Badges";
+import {
+  HudBadge,
+  HudCard,
+  HudPriceDock,
+} from "@/components/ui/AuroraPrimitives";
+import type { HudThemeKey } from "@/lib/design-tokens";
 
 interface ConnectsBundleItem {
   id: "starter" | "growth" | "studio" | "agency";
@@ -64,6 +75,13 @@ interface ConnectsData {
     createdAt: string;
   }>;
 }
+
+const BUNDLE_THEMES: Record<ConnectsBundleItem["id"], HudThemeKey> = {
+  starter: "cyan",
+  growth: "amber",
+  studio: "violet",
+  agency: "emerald",
+};
 
 export default function CreatorConnectsStorePage() {
   const { user, refresh } = useAuth();
@@ -121,11 +139,11 @@ export default function CreatorConnectsStorePage() {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j?.error?.message || "Connects purchase failed.");
+        throw new Error(j?.error?.message || "Could not buy credits.");
       }
       if (j.data.credited) {
         setNotice(
-          `+${bundle.totalConnects} Connects credited! New balance: ${j.data.balance} Connects.`
+          `+${bundle.totalConnects} Credits added! New balance: ${j.data.balance} Credits.`
         );
         setPendingTx(null);
         await Promise.all([loadConnects(), refresh()]);
@@ -138,7 +156,7 @@ export default function CreatorConnectsStorePage() {
           amount: bundle.priceKes,
         });
         setNotice(
-          `IntaSend checkout initiated (${j.data.transaction.apiRef}). Complete payment or simulate sandbox webhook below.`
+          `Payment request sent (${j.data.transaction.apiRef}). Complete it or click Test Mode below.`
         );
       }
     } catch (err) {
@@ -160,13 +178,17 @@ export default function CreatorConnectsStorePage() {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j?.error?.message || "Webhook simulation failed.");
+        throw new Error(j?.error?.message || "Test confirmation failed.");
       }
-      setNotice(`Sandbox webhook settled ${pendingTx.bundleName}!`);
+      setNotice(`Demo payment done — ${pendingTx.bundleName} credits added!`);
       setPendingTx(null);
       await Promise.all([loadConnects(), refresh()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Simulation error.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Could not complete demo payment."
+      );
     } finally {
       setBusyKey(null);
     }
@@ -191,11 +213,13 @@ export default function CreatorConnectsStorePage() {
         throw new Error(j?.error?.message || "Swap failed.");
       }
       setNotice(
-        `Swapped ${formatKes(j.data.deductedKes)} earnings for +${swapCount} Connects!`
+        `Swapped ${formatKes(j.data.deductedKes)} earnings for +${swapCount} Credits!`
       );
       await Promise.all([loadConnects(), refresh()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Swap error.");
+      setError(
+        err instanceof Error ? err.message : "Could not swap earnings."
+      );
     } finally {
       setBusyKey(null);
     }
@@ -215,14 +239,16 @@ export default function CreatorConnectsStorePage() {
       });
       const j = await res.json().catch(() => null);
       if (!res.ok) {
-        throw new Error(j?.error?.message || "Boost activation failed.");
+        throw new Error(j?.error?.message || "Could not turn on boost.");
       }
       setNotice(
-        `Boost activated! Tier: ${j.data.creatorTier} · Remaining balance: ${j.data.balance} Connects.`
+        `Boost active! Level: ${formatCreatorTier(j.data.creatorTier)} · Credits left: ${j.data.balance}.`
       );
       await Promise.all([loadConnects(), refresh()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Boost error.");
+      setError(
+        err instanceof Error ? err.message : "Could not turn on boost."
+      );
     } finally {
       setBusyKey(null);
     }
@@ -230,75 +256,79 @@ export default function CreatorConnectsStorePage() {
 
   return (
     <CreatorShell
-      title="Connects Store & Standout Boosters"
-      subtitle="Power #1 boosted proposal ranks, activate Elite profile visibility, or swap cleared earnings for Connects."
+      title="Credits & Boosts"
+      subtitle="Use Bid Credits to apply for Open Jobs, highlight your offers, or boost your writer profile."
     >
       {error && (
-        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-4 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-4 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-900 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-4 rounded-xl border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-300" />
           <span>{notice}</span>
         </div>
       )}
 
       {loading || !data ? (
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading Connects wallet and boost inventory...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading your credits and boosts...
         </div>
       ) : (
         <div className="space-y-8">
           {/* KPI Strip */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="editorial-card p-5 bg-gradient-to-br from-amber-50 to-white border-amber-200 space-y-1">
-              <span className="text-xs text-amber-900 font-medium flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-amber-600" />
-                Available Connects
+            <HudCard theme="amber" brackets className="p-5 space-y-1">
+              <span className="text-xs text-amber-200 font-medium flex items-center gap-1.5">
+                <Zap className="w-4 h-4 text-amber-300" />
+                Credits Left
               </span>
-              <p className="font-tech text-3xl font-bold text-amber-950">
+              <p className="font-tech text-3xl font-bold text-white">
                 {data.balance}
               </p>
-            </div>
-            <div className="editorial-card p-5 bg-white space-y-1">
-              <span className="text-xs text-stone-500 flex items-center gap-1.5">
-                <TrendingUp className="w-4 h-4 text-[#0f766e]" />
-                Creator Rank Tier
+            </HudCard>
+            <div className="editorial-card p-5 space-y-1">
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <TrendingUp className="w-4 h-4 text-teal-300" />
+                Writer Level
               </span>
-              <p className="font-tech text-2xl font-bold text-[#111827]">
-                {data.creatorTier.replace(/_/g, " ")}
+              <p className="font-tech text-2xl font-bold text-white">
+                {formatCreatorTier(data.creatorTier)}
               </p>
             </div>
-            <div className="editorial-card p-5 bg-white space-y-1">
-              <span className="text-xs text-stone-500 flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-[#1e3a8a]" />
-                Standout Score
+            <div className="editorial-card p-5 space-y-1">
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-sky-300" />
+                Profile Strength
               </span>
-              <p className="font-tech text-2xl font-bold text-[#1e3a8a]">
+              <p className="font-tech text-2xl font-bold text-sky-300">
                 {data.standoutReport.score}%
               </p>
             </div>
-            <div className="editorial-card p-5 bg-white space-y-1">
-              <span className="text-xs text-stone-500 flex items-center gap-1.5">
-                <Flame className="w-4 h-4 text-rose-600" />
-                Connects Invested
+            <div className="editorial-card p-5 space-y-1">
+              <span className="text-xs text-slate-400 flex items-center gap-1.5">
+                <Flame className="w-4 h-4 text-rose-300" />
+                Credits Used
               </span>
-              <p className="font-tech text-2xl font-bold text-[#111827]">
+              <p className="font-tech text-2xl font-bold text-white">
                 {data.totalConnectsSpent}
               </p>
             </div>
           </div>
 
-          {/* Pending Sandbox Webhook Simulation */}
+          {/* Pending Demo Payment Confirmation */}
           {pendingTx && (
-            <div className="editorial-card p-5 bg-blue-50/70 border-blue-300 flex flex-wrap items-center justify-between gap-4">
-              <div className="text-xs text-blue-950 space-y-1">
-                <p className="font-semibold">
-                  Pending IntaSend Transaction: {pendingTx.apiRef}
+            <HudCard
+              theme="sky"
+              brackets
+              className="p-5 flex flex-wrap items-center justify-between gap-4"
+            >
+              <div className="text-xs text-sky-100 space-y-1">
+                <p className="font-semibold text-white">
+                  Waiting for Payment: {pendingTx.apiRef}
                 </p>
-                <p>
+                <p className="text-sky-200/90">
                   {pendingTx.bundleName} · {formatKes(pendingTx.amount)}
                 </p>
               </div>
@@ -308,42 +338,43 @@ export default function CreatorConnectsStorePage() {
                 onClick={handleSimulatePending}
                 className="btn-primary px-4 py-2 text-xs"
               >
-                Simulate IntaSend COMPLETE Webhook
+                Mark Payment Complete (Demo)
               </button>
-            </div>
+            </HudCard>
           )}
 
-          {/* Buy Connects Bundles */}
+          {/* Buy Credit Packs */}
           <section className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
               <div>
-                <h2 className="font-editorial text-2xl font-semibold text-[#111827]">
-                  Buy Connects Bundles (IntaSend M-Pesa / Card)
+                <h2 className="font-editorial text-2xl font-semibold text-white">
+                  Buy Bid Credit Packs
                 </h2>
-                <p className="text-xs text-stone-600">
-                  Win #1 boosted slots on open briefs and unlock high-converting profile badges.
+                <p className="text-xs text-slate-400">
+                  Apply for Open Jobs, boost your offers higher, and unlock
+                  profile badges.
                 </p>
               </div>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs flex-wrap">
                 <button
                   type="button"
                   onClick={() => setChannel("MPESA_STK")}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold transition-all ${
                     channel === "MPESA_STK"
-                      ? "bg-[#0f766e] text-white border-[#0f766e]"
-                      : "bg-white text-stone-700 border-[#e6e0d4]"
+                      ? "bg-teal-500/20 text-teal-100 border-teal-400/50"
+                      : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:text-white"
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" />
-                  M-Pesa STK
+                  M-Pesa
                 </button>
                 <button
                   type="button"
                   onClick={() => setChannel("CARD")}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-semibold transition-all ${
                     channel === "CARD"
-                      ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
-                      : "bg-white text-stone-700 border-[#e6e0d4]"
+                      ? "bg-sky-500/20 text-sky-100 border-sky-400/50"
+                      : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:text-white"
                   }`}
                 >
                   <CreditCard className="w-3.5 h-3.5" />
@@ -355,156 +386,160 @@ export default function CreatorConnectsStorePage() {
                     value={phone}
                     onChange={(e) => setPhoneOverride(e.target.value)}
                     placeholder="0712345678"
-                    className="w-36 rounded-xl border border-[#e6e0d4] px-3 py-1.5 font-tech bg-white"
+                    className="hud-input w-36 py-1.5 font-tech"
                   />
                 )}
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {data.bundles.map((bundle) => (
-                <div
-                  key={bundle.id}
-                  className={`editorial-card p-5 flex flex-col justify-between space-y-4 ${
-                    bundle.id === "growth"
-                      ? "bg-gradient-to-br from-amber-50/70 via-white to-white border-amber-300 ring-1 ring-amber-200"
-                      : "bg-white"
-                  }`}
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-editorial text-lg font-semibold text-[#111827]">
-                        {bundle.name}
-                      </span>
-                      {bundle.badge && (
-                        <span className="text-[10px] font-tech uppercase font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900">
-                          {bundle.badge}
+              {data.bundles.map((bundle) => {
+                const theme = BUNDLE_THEMES[bundle.id] ?? "cyan";
+                return (
+                  <HudCard
+                    key={bundle.id}
+                    theme={theme}
+                    brackets={bundle.id === "growth"}
+                    dotMatrix={bundle.id === "growth" ? "right" : "none"}
+                    className="p-5 flex flex-col justify-between space-y-4"
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-editorial text-lg font-semibold text-white">
+                          {bundle.name}
                         </span>
-                      )}
+                        {bundle.badge && <HudBadge label={bundle.badge} />}
+                      </div>
+                      <p className="font-tech text-3xl font-bold text-white">
+                        {bundle.totalConnects}{" "}
+                        <span className="text-sm font-normal text-amber-300">
+                          Credits
+                        </span>
+                      </p>
+                      <HudPriceDock
+                        label={`KES ${(bundle.priceKes / bundle.totalConnects).toFixed(1)}/CREDIT`}
+                        price={formatKes(bundle.priceKes)}
+                        theme={theme}
+                        size="sm"
+                        className="w-full"
+                      />
+                      <p className="text-xs text-slate-300 leading-relaxed">
+                        {bundle.tagline}
+                      </p>
                     </div>
-                    <p className="font-tech text-3xl font-bold text-[#111827]">
-                      {bundle.totalConnects}{" "}
-                      <span className="text-sm font-normal text-amber-700">
-                        Connects
-                      </span>
-                    </p>
-                    <p className="text-xs font-tech text-[#0f766e] font-semibold">
-                      {formatKes(bundle.priceKes)} · KES{" "}
-                      {(bundle.priceKes / bundle.totalConnects).toFixed(1)}/⚡
-                    </p>
-                    <p className="text-xs text-stone-600 leading-relaxed">
-                      {bundle.tagline}
-                    </p>
-                  </div>
 
-                  <div className="space-y-2">
-                    <button
-                      type="button"
-                      disabled={busyKey === `bundle:${bundle.id}`}
-                      onClick={() => handleBuyBundle(bundle, false)}
-                      className="btn-primary w-full py-2.5 text-xs"
-                    >
-                      Pay {formatKes(bundle.priceKes)} via IntaSend
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busyKey === `bundle:${bundle.id}`}
-                      onClick={() => handleBuyBundle(bundle, true)}
-                      className="w-full py-2 rounded-xl border border-[#e6e0d4] bg-[#faf7f2] text-[11px] font-semibold text-stone-700 hover:bg-stone-100"
-                    >
-                      Sandbox Instant Test Credit
-                    </button>
-                  </div>
-                </div>
-              ))}
+                    <div className="space-y-2">
+                      <button
+                        type="button"
+                        disabled={busyKey === `bundle:${bundle.id}`}
+                        onClick={() => handleBuyBundle(bundle, false)}
+                        className="btn-primary w-full py-2.5 text-xs"
+                      >
+                        Buy for {formatKes(bundle.priceKes)}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busyKey === `bundle:${bundle.id}`}
+                        onClick={() => handleBuyBundle(bundle, true)}
+                        className="w-full py-2 rounded-xl border border-white/[0.12] bg-white/[0.04] text-[11px] font-semibold text-slate-300 hover:bg-white/[0.09] hover:text-white transition-colors"
+                      >
+                        Test Mode: Add Free Credits (Demo)
+                      </button>
+                    </div>
+                  </HudCard>
+                );
+              })}
             </div>
           </section>
 
-          {/* Instant Earnings Swap + Profile Boosters */}
+          {/* Swap Earnings + Profile Boosts */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Swap Earnings */}
-            <form
-              onSubmit={handleSwapEarnings}
-              className="lg:col-span-5 editorial-card p-6 bg-white space-y-4"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="font-editorial text-xl font-semibold">
-                  Swap Earnings for Connects
-                </h2>
-                <RefreshCw className="w-4 h-4 text-[#0f766e]" />
-              </div>
-              <p className="text-xs text-stone-600">
-                Convert cleared escrow earnings instantly at{" "}
-                <strong>KES {data.earningsRateKes} / Connect</strong> with zero
-                withdrawal wait.
-              </p>
-              <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 flex items-center justify-between text-xs">
-                <span className="text-teal-900 font-medium">
-                  Available Escrow Balance
-                </span>
-                <span className="font-tech font-bold text-[#0f766e]">
-                  {formatKes(data.availableEarningsBalance)}
-                </span>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Connects to Mint (Min 10)
-                </label>
-                <input
-                  type="number"
-                  min={10}
-                  max={2000}
-                  value={swapCount}
-                  onChange={(e) => setSwapCount(Number(e.target.value))}
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2.5 text-sm font-tech font-bold"
-                />
-                <p className="text-[11px] font-tech text-stone-500 mt-1">
-                  Cost: {formatKes(swapCount * data.earningsRateKes)}
+            <HudCard theme="emerald" className="lg:col-span-5 p-6">
+              <form onSubmit={handleSwapEarnings} className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-editorial text-xl font-semibold text-white">
+                    Trade Earnings for Credits
+                  </h2>
+                  <RefreshCw className="w-4 h-4 text-teal-300" />
+                </div>
+                <p className="text-xs text-slate-300">
+                  Turn your finished-order balance into credits right away at{" "}
+                  <strong className="text-white">
+                    KES {data.earningsRateKes} per Credit
+                  </strong>
+                  .
                 </p>
-              </div>
-              <button
-                type="submit"
-                disabled={
-                  busyKey === "swap" ||
-                  data.availableEarningsBalance <
-                    swapCount * data.earningsRateKes
-                }
-                className="btn-creator w-full py-2.5 text-xs disabled:opacity-50"
-              >
-                Convert {formatKes(swapCount * data.earningsRateKes)} → +
-                {swapCount} Connects
-              </button>
-            </form>
+                <div className="p-3.5 rounded-xl bg-teal-500/15 border border-teal-400/35 flex items-center justify-between text-xs">
+                  <span className="text-teal-200 font-medium">
+                    Available Earnings
+                  </span>
+                  <span className="font-tech font-bold text-teal-300">
+                    {formatKes(data.availableEarningsBalance)}
+                  </span>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    How many Credits? (Min 10)
+                  </label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={2000}
+                    value={swapCount}
+                    onChange={(e) => setSwapCount(Number(e.target.value))}
+                    className="hud-input font-tech font-bold"
+                  />
+                  <p className="text-[11px] font-tech text-slate-400 mt-1">
+                    Cost from balance:{" "}
+                    {formatKes(swapCount * data.earningsRateKes)}
+                  </p>
+                </div>
+                <button
+                  type="submit"
+                  disabled={
+                    busyKey === "swap" ||
+                    data.availableEarningsBalance <
+                      swapCount * data.earningsRateKes
+                  }
+                  className="btn-creator w-full py-2.5 text-xs disabled:opacity-50"
+                >
+                  Use {formatKes(swapCount * data.earningsRateKes)} → +
+                  {swapCount} Credits
+                </button>
+              </form>
+            </HudCard>
 
-            {/* Standout Profile Boosters */}
-            <div className="lg:col-span-7 editorial-card p-6 bg-white space-y-4">
+            {/* Profile Boosts */}
+            <HudCard theme="violet" className="lg:col-span-7 p-6 space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h2 className="font-editorial text-xl font-semibold">
-                    Standout Profile &amp; Rank Boosters
+                  <h2 className="font-editorial text-xl font-semibold text-white">
+                    Profile Boosts
                   </h2>
-                  <p className="text-xs text-stone-600">
-                    Raise your organic rank score on every bid and win more
-                    client awards.
+                  <p className="text-xs text-slate-400">
+                    Help clients spot you faster and lift your offer position on
+                    Open Jobs.
                   </p>
                 </div>
                 <Link
                   href="/creators-hub/profile"
-                  className="text-xs font-semibold text-[#0f766e] hover:underline"
+                  className="text-xs font-semibold text-teal-300 hover:underline"
                 >
                   Edit Profile ({data.standoutReport.score}%) →
                 </Link>
               </div>
 
               <div className="space-y-3">
-                <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-white/[0.045] border border-white/[0.11] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-sm flex items-center gap-1.5">
-                      <ShieldCheck className="w-4 h-4 text-emerald-600" />
-                      Available Now Live Pulse Badge (7 Days)
+                    <p className="font-semibold text-sm text-white flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-300" />
+                      Available Now Badge (7 Days)
                     </p>
-                    <p className="text-xs text-stone-600 mt-0.5">
-                      Signals instant availability on bid leaderboards + adds +10% Standout Score.
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Shows clients you are ready right now (+10% Profile
+                      Strength).
                     </p>
                   </div>
                   <button
@@ -514,19 +549,20 @@ export default function CreatorConnectsStorePage() {
                     className="btn-ghost px-4 py-2 text-xs font-semibold shrink-0"
                   >
                     {data.boosts.availableNowActive
-                      ? "Extend (+5⚡)"
-                      : `Activate (${data.boostCosts.AVAILABLE_NOW}⚡)`}
+                      ? "Extend (+5 Credits)"
+                      : `Turn On (${data.boostCosts.AVAILABLE_NOW} Credits)`}
                   </button>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-[#faf7f2] border border-[#e6e0d4] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-white/[0.045] border border-white/[0.11] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-sm flex items-center gap-1.5">
-                      <Award className="w-4 h-4 text-[#1e3a8a]" />
-                      Featured Directory Spotlight &amp; Top Rated Tier (7 Days)
+                    <p className="font-semibold text-sm text-white flex items-center gap-1.5">
+                      <Award className="w-4 h-4 text-sky-300" />
+                      Featured Profile Spotlight (7 Days)
                     </p>
-                    <p className="text-xs text-stone-600 mt-0.5">
-                      Adds +20 base rank score across all open bids &amp; spotlights your portfolio.
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Highlights your profile on Find Writers and boosts every
+                      job offer (+20 pts).
                     </p>
                   </div>
                   <button
@@ -536,79 +572,79 @@ export default function CreatorConnectsStorePage() {
                     className="btn-primary px-4 py-2 text-xs shrink-0"
                   >
                     {data.boosts.featuredProfileActive
-                      ? "Extend (+15⚡)"
-                      : `Activate (${data.boostCosts.FEATURED_PROFILE}⚡)`}
+                      ? "Extend (+15 Credits)"
+                      : `Turn On (${data.boostCosts.FEATURED_PROFILE} Credits)`}
                   </button>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-white border border-amber-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 rounded-2xl bg-amber-500/[0.1] border border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <p className="font-semibold text-sm text-amber-950 flex items-center gap-1.5">
-                      <Crown className="w-4 h-4 text-amber-700" />
-                      Creator Plus Elite Pass (30 Days)
+                    <p className="font-semibold text-sm text-amber-200 flex items-center gap-1.5">
+                      <Crown className="w-4 h-4 text-amber-300" />
+                      Writer Plus Pass (30 Days)
                     </p>
-                    <p className="text-xs text-amber-900/80 mt-0.5">
-                      Halves open-brief commission (10% → 5%), unlocks ELITE +40 rank bonus &amp; competitor bid ranges.
+                    <p className="text-xs text-amber-100/85 mt-0.5">
+                      Cuts job fee in half (10% to 5%), gives Top Writer
+                      priority (+40 pts), and lets you see average offer prices.
                     </p>
                   </div>
                   <button
                     type="button"
                     disabled={busyKey === "boost:CREATOR_PLUS"}
                     onClick={() => handleActivateBoost("CREATOR_PLUS")}
-                    className="px-4 py-2 rounded-xl bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800 shrink-0"
+                    className="btn-amber px-4 py-2 text-xs font-semibold shrink-0"
                   >
                     {data.boosts.creatorPlusActive
-                      ? "Extend (+60⚡)"
-                      : `Unlock (${data.boostCosts.CREATOR_PLUS}⚡)`}
+                      ? "Extend (+60 Credits)"
+                      : `Get Pass (${data.boostCosts.CREATOR_PLUS} Credits)`}
                   </button>
                 </div>
               </div>
-            </div>
+            </HudCard>
           </div>
 
-          {/* Connects Ledger */}
-          <div className="editorial-card p-6 bg-white space-y-4">
+          {/* Credit History */}
+          <div className="editorial-card p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-editorial text-xl font-semibold">
-                Connects Ledger
+              <h2 className="font-editorial text-xl font-semibold text-white">
+                Credit History
               </h2>
               <Link
                 href="/bidding"
-                className="text-xs font-semibold text-[#1e3a8a] hover:underline inline-flex items-center gap-1"
+                className="text-xs font-semibold text-cyan-300 hover:underline inline-flex items-center gap-1"
               >
-                Use Connects on Live Briefs
+                Apply on Open Jobs
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
             {data.transactions.length === 0 ? (
-              <p className="text-xs text-stone-500">
-                No Connects activity recorded yet.
-              </p>
+              <p className="text-xs text-slate-400">No credit activity yet.</p>
             ) : (
-              <div className="divide-y divide-[#e6e0d4] text-xs">
+              <div className="divide-y divide-white/[0.08] text-xs">
                 {data.transactions.map((tx) => (
                   <div
                     key={tx.id}
                     className="py-3 flex items-center justify-between gap-3"
                   >
                     <div>
-                      <p className="font-semibold text-[#111827]">
+                      <p className="font-semibold text-white">
                         {tx.description}
                       </p>
-                      <p className="text-stone-500 font-tech text-[11px]">
-                        {tx.type} · {formatShortDate(tx.createdAt)}
+                      <p className="text-slate-400 font-tech text-[11px]">
+                        {formatConnectTxType(tx.type)} ·{" "}
+                        {formatShortDate(tx.createdAt)}
                       </p>
                     </div>
                     <div className="text-right font-tech shrink-0">
                       <p
                         className={`font-bold text-sm ${
-                          tx.amount >= 0 ? "text-[#0f766e]" : "text-rose-700"
+                          tx.amount >= 0 ? "text-teal-300" : "text-rose-300"
                         }`}
                       >
-                        {tx.amount >= 0 ? `+${tx.amount}` : tx.amount} ⚡
+                        {tx.amount >= 0 ? `+${tx.amount}` : tx.amount}
                       </p>
-                      <p className="text-[11px] text-stone-500">
-                        Bal: {tx.balanceAfter}
+                      <p className="text-[11px] text-slate-400">
+                        Left: {tx.balanceAfter}
                       </p>
                     </div>
                   </div>

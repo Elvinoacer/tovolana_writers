@@ -44,13 +44,13 @@ async function main() {
       defaultRevisionLimit: 2,
       proEarlyAccessHours: 24,
       announcementBanner:
-        "Tovolana Writers v1.0: All Creators are vetted exclusively through our 6-criteria writing assessment — zero paperwork barriers, transparent KES pricing, and escrow-protected deadlines.",
+        "Welcome to Tovolana Writers: Every writer passes a 6-point writing test, prices are clear in KES, and your money stays protected until your work is done.",
       academicIntegrityPolicy:
-        "All commissioned research papers, essays, and editorial guides are delivered strictly as original model work, research synthesis, and editing assistance. Creators pledge 100% original human authorship without plagiarism.",
+        "All research papers, essays, and guides are written cleanly as original sample work, research help, and editing support. Writers promise 100% original human writing with zero copying.",
       revisionPolicyText:
-        "Every confirmed booking includes up to the listing's stated revision quota (default 2 rounds) within 7 days of delivery when instructions from the original brief require refinement.",
+        "Every confirmed order includes free edits (2 by default) within 7 days of delivery if anything misses your original instructions.",
       cancellationPolicyText:
-        "Bookings cancelled prior to creator acceptance qualify for a full refund review. Once work is in progress, administrators mediate fair partial or escrow-based resolution based on milestone evidence.",
+        "Orders cancelled before a writer accepts get a full refund check. Once work starts, our Support team helps decide a fair split or refund based on work done so far.",
     },
   });
 
@@ -62,7 +62,7 @@ async function main() {
     existingConfig ??
     (await db.assessmentConfig.create({
       data: {
-        title: "Editorial Rigor, Research Synthesis & Originality Evaluation",
+        title: "6-Point Writing & Research Quality Test",
         promptText:
           "Write a structured, well-reasoned 350-600 word essay analyzing how transparent scoping, source verification, and clear delivery milestones improve trust in digital knowledge marketplaces. Include at least one concrete example and cite at least two analytical sources or perspectives clearly.",
         minWords: 350,
@@ -89,7 +89,7 @@ async function main() {
       slug: "academic-writing",
       name: "Academic Writing",
       description:
-        "Rigorous scholarly literature reviews, capstone guidance, methodology structuring, and academic manuscripts.",
+        "Clear literature reviews, thesis help, research method guides, and well-structured university papers.",
       sortOrder: 1,
       requirementsSchema: [
         { key: "topic", label: "Research Topic / Thesis Question", type: "text", required: true },
@@ -104,7 +104,7 @@ async function main() {
       slug: "essays-and-assignments",
       name: "Essays and Assignments",
       description:
-        "Argumentative, analytical, reflective, and comparative essays crafted with clear thesis structure and formatting.",
+        "Well-structured essays, coursework help, and clear arguments written in your required style.",
       sortOrder: 2,
       requirementsSchema: [
         { key: "topic", label: "Essay Prompt / Question", type: "text", required: true },
@@ -117,7 +117,7 @@ async function main() {
       slug: "research-papers",
       name: "Research Papers",
       description:
-        "Empirical and secondary research reports, systematic reviews, data interpretation, and journal-ready drafts.",
+        "Deep research reports, source reviews, data summaries, and study drafts backed by solid facts.",
       sortOrder: 3,
       requirementsSchema: [
         { key: "topic", label: "Research Focus", type: "text", required: true },
@@ -131,7 +131,7 @@ async function main() {
       slug: "articles-and-blog-writing",
       name: "Articles and Blog Writing",
       description:
-        "SEO-informed thought leadership, long-form editorial journalism, newsletters, and technical explainers.",
+        "Easy-to-read blog posts, SEO articles, newsletters, and clear guides that readers enjoy.",
       sortOrder: 4,
       requirementsSchema: [
         { key: "topic", label: "Headline / Article Angle", type: "text", required: true },
@@ -144,7 +144,7 @@ async function main() {
       slug: "business-writing-and-proposals",
       name: "Business Writing and Proposals",
       description:
-        "Executive grant proposals, investor decks, SOPs, whitepapers, RFP responses, and strategy memos.",
+        "Grant applications, business plans, investor decks, company guides, and clear work proposals.",
       sortOrder: 5,
       requirementsSchema: [
         { key: "topic", label: "Proposal / Document Title", type: "text", required: true },
@@ -157,7 +157,7 @@ async function main() {
       slug: "editing-and-proofreading",
       name: "Editing and Proofreading",
       description:
-        "Line-by-line developmental editing, structural clarity polish, citation verification, and tracked changes.",
+        "Full grammar cleanup, better sentence flow, citation checks, and tracked changes on your draft.",
       sortOrder: 6,
       requirementsSchema: [
         { key: "topic", label: "Manuscript Title & Type", type: "text", required: true },
@@ -170,7 +170,7 @@ async function main() {
       slug: "other-services",
       name: "Other Services",
       description:
-        "Custom speeches, curriculum guides, policy briefs, creative scripts, and bespoke editorial retainers.",
+        "Speeches, course guides, policy notes, scripts, and other custom writing tasks made to fit.",
       sortOrder: 7,
       requirementsSchema: [
         { key: "topic", label: "Service Scope Summary", type: "text", required: true },

@@ -1,10 +1,8 @@
 "use client";
 
 import { CustomerShell } from "@/components/CustomerShell";
-import {
-  CreatorAvatar,
-  EscrowStepVisualizer,
-} from "@/components/ui/EditorialVisuals";
+import { EscrowStepVisualizer } from "@/components/ui/EditorialVisuals";
+import { RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -29,6 +27,7 @@ import {
   formatKes,
   formatShortDate,
 } from "@/components/ui/Badges";
+import { NextStepBanner } from "@/components/ui/FlowGuide";
 
 interface BookingSummary {
   id: string;
@@ -71,11 +70,11 @@ interface NotificationItem {
 }
 
 const FILTER_TABS = [
-  { id: "ALL", label: "All Bookings" },
-  { id: "PENDING_PAYMENT", label: "Pending Payment" },
+  { id: "ALL", label: "All Orders" },
+  { id: "PENDING_PAYMENT", label: "Needs Payment" },
   { id: "ACTIVE", label: "In Progress" },
-  { id: "DELIVERED", label: "Delivered" },
-  { id: "COMPLETED", label: "Completed" },
+  { id: "DELIVERED", label: "Ready to Check" },
+  { id: "COMPLETED", label: "Done" },
 ];
 
 export default function CustomerDashboardPage() {
@@ -134,7 +133,7 @@ export default function CustomerDashboardPage() {
   if (authLoading || loading) {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="editorial-card p-8 animate-pulse text-stone-500 text-sm">
+        <div className="editorial-card p-8 animate-pulse text-slate-400 text-sm">
           Loading your customer workspace...
         </div>
       </main>
@@ -145,26 +144,20 @@ export default function CustomerDashboardPage() {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <ShieldCheck className="w-10 h-10 text-[#1e3a8a] mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to view your Customer Workspace
+          <ShieldCheck className="w-10 h-10 text-sky-400 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to see your orders
           </h1>
-          <p className="text-stone-600 text-sm">
-            Track bookings, escrow payments, revisions, and downloadable
-            deliverables in one structured dashboard.
+          <p className="text-slate-300 text-sm">
+            Check order progress, pay safely, ask for free edits, and download
+            your finished files in one place.
           </p>
           <div className="pt-2 flex justify-center gap-3">
-            <Link
-              href="/auth?next=/dashboard"
-              className="px-5 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-medium hover:bg-[#172554]"
-            >
+            <Link href="/auth?next=/dashboard" className="btn-primary px-5 py-2.5 text-sm">
               Sign In / Create Account
             </Link>
-            <Link
-              href="/explore"
-              className="px-5 py-2.5 rounded-lg border border-[#e6e0d4] bg-white text-sm font-medium text-stone-700 hover:bg-stone-50"
-            >
-              Browse Services
+            <Link href="/explore" className="btn-ghost px-5 py-2.5 text-sm">
+              Find a Writer
             </Link>
           </div>
         </div>
@@ -193,6 +186,9 @@ export default function CustomerDashboardPage() {
     (b) => b.status === "COMPLETED"
   ).length;
 
+  const firstPendingPay = bookings.find((b) => b.status === "PENDING_PAYMENT");
+  const firstDelivered = bookings.find((b) => b.status === "DELIVERED");
+
   const filtered = bookings.filter((b) => {
     if (filter === "ALL") return true;
     if (filter === "ACTIVE") {
@@ -209,8 +205,49 @@ export default function CustomerDashboardPage() {
   return (
     <CustomerShell
       title={`Welcome back, ${user.name.split(" ")[0]}`}
-      subtitle="Escrow milestones, deliverables, and creator messages in one view."
+      subtitle="See your orders, chat with writers, and download finished files."
     >
+      {/* Smart Next-Step Guidance */}
+      {firstPendingPay ? (
+        <NextStepBanner
+          tone="amber"
+          eyebrow="Action needed"
+          now={`You have ${pendingPayCount} order${pendingPayCount > 1 ? "s" : ""} waiting for payment (${firstPendingPay.bookingRef}).`}
+          next="Open the order and complete payment via M-Pesa or Card so your writer can start."
+          goal="Your payment stays safe with us until you check and approve the finished work."
+          actionLabel="Pay Now"
+          actionHref={`/dashboard/bookings/${firstPendingPay.bookingRef}`}
+        />
+      ) : firstDelivered ? (
+        <NextStepBanner
+          tone="teal"
+          eyebrow="Work ready to check"
+          now={`Your writer finished "${firstDelivered.taskTitleSnapshot}" and uploaded your files.`}
+          next="Open the order to download your files. Approve it if you're happy, or ask for a free edit."
+          goal="We only pay the writer after you approve your finished work."
+          actionLabel="Check Finished Work"
+          actionHref={`/dashboard/bookings/${firstDelivered.bookingRef}`}
+        />
+      ) : activeCount > 0 ? (
+        <NextStepBanner
+          tone="blue"
+          eyebrow="In progress"
+          now={`You have ${activeCount} active order${activeCount > 1 ? "s" : ""} being worked on right now.`}
+          next="Open an order anytime to message your writer or share extra instructions."
+          goal="Receive finished work by your deadline and approve when ready."
+        />
+      ) : (
+        <NextStepBanner
+          tone="stone"
+          eyebrow="Ready when you are"
+          now="You do not have any active writing orders right now."
+          next="Browse tested writers for fixed-price help, or post a free job so writers send offers."
+          goal="Get quality writing delivered on time with safe payment protection."
+          actionLabel="Find a Writer"
+          actionHref="/explore"
+        />
+      )}
+
       {/* Quick Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-1.5">
@@ -218,10 +255,10 @@ export default function CustomerDashboardPage() {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
                 filter === tab.id
-                  ? "bg-[#111827] text-white shadow-xs"
-                  : "bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
+                  ? "bg-cyan-400/20 text-cyan-100 border-cyan-400/55"
+                  : "bg-white/[0.045] border-white/[0.11] text-slate-300 hover:bg-white/[0.09] hover:text-white"
               }`}
             >
               {tab.label}
@@ -235,14 +272,14 @@ export default function CustomerDashboardPage() {
             className="btn-ghost px-3.5 py-2 text-xs gap-1.5"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Sync
+            Refresh
           </button>
           <Link
             href="/explore"
             className="btn-primary px-4 py-2 text-xs gap-1.5"
           >
             <PlusCircle className="w-4 h-4" />
-            New Booking
+            Order Writing
           </Link>
         </div>
       </div>
@@ -251,49 +288,49 @@ export default function CustomerDashboardPage() {
       {(!user.phoneVerified || !isPro) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {!isPro && (
-            <div className="editorial-card p-4 bg-gradient-to-r from-amber-50/90 to-white border-amber-200 flex items-center justify-between gap-4">
+            <div className="editorial-card p-4 border-amber-400/35 bg-amber-500/[0.09] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-300 flex items-center justify-center shrink-0">
                   <Crown className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-amber-950">
-                    Cut Service Fees by 50%
+                  <p className="font-semibold text-sm text-white">
+                    Save 50% on Service Fees
                   </p>
-                  <p className="text-xs text-amber-800">
-                    Pro drops fees to 5% + unlocks 48h early access.
+                  <p className="text-xs text-amber-200/90">
+                    Pro cuts your fee to 5% and gives 48h early access to new services.
                   </p>
                 </div>
               </div>
               <Link
                 href="/dashboard/membership"
-                className="shrink-0 px-3.5 py-2 rounded-xl bg-amber-700 text-white text-xs font-semibold hover:bg-amber-800 transition-colors"
+                className="btn-amber shrink-0 px-3.5 py-2 text-xs"
               >
-                Go Pro
+                Try Pro
               </Link>
             </div>
           )}
 
           {!user.phoneVerified && (
-            <div className="editorial-card p-4 bg-blue-50/50 border-blue-200 flex items-center justify-between gap-4">
+            <div className="editorial-card p-4 border-sky-400/35 bg-sky-500/[0.09] flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-blue-100 text-[#1e3a8a] flex items-center justify-center shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/40 text-sky-300 flex items-center justify-center shrink-0">
                   <AlertCircle className="w-4 h-4" />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm text-[#111827]">
-                    Verify M-Pesa Phone
+                  <p className="font-semibold text-sm text-white">
+                    Confirm Your M-Pesa Phone
                   </p>
-                  <p className="text-xs text-stone-600">
-                    Enable instant STK prompts & SMS deadline alerts.
+                  <p className="text-xs text-slate-300">
+                    Get instant M-Pesa prompts and SMS deadline alerts.
                   </p>
                 </div>
               </div>
               <Link
                 href="/auth/verify"
-                className="shrink-0 px-3.5 py-2 rounded-xl border border-blue-300 bg-white text-[#1e3a8a] text-xs font-semibold hover:bg-blue-50 transition-colors"
+                className="btn-ghost shrink-0 px-3.5 py-2 text-xs border-sky-400/40 text-sky-200"
               >
-                Verify OTP
+                Confirm Phone
               </Link>
             </div>
           )}
@@ -303,54 +340,54 @@ export default function CustomerDashboardPage() {
       {/* KPI Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="editorial-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Active Work</span>
-            <BookOpen className="w-4 h-4 text-[#1e3a8a]" />
+          <div className="flex items-center justify-between text-xs font-medium text-slate-400">
+            <span>In Progress</span>
+            <BookOpen className="w-4 h-4 text-sky-300" />
           </div>
-          <p className="text-3xl font-tech font-bold text-[#111827]">
+          <p className="text-3xl font-tech font-bold text-white">
             {activeCount}
           </p>
-          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
-            <div className="h-full bg-[#1e3a8a] rounded-full w-2/3" />
+          <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-sky-400 rounded-full w-2/3" />
           </div>
         </div>
 
         <div className="editorial-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Ready for Review</span>
-            <FileText className="w-4 h-4 text-indigo-700" />
+          <div className="flex items-center justify-between text-xs font-medium text-slate-400">
+            <span>Ready to Check</span>
+            <FileText className="w-4 h-4 text-violet-300" />
           </div>
-          <p className="text-3xl font-tech font-bold text-indigo-900">
+          <p className="text-3xl font-tech font-bold text-violet-300">
             {deliveredCount}
           </p>
-          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
-            <div className="h-full bg-indigo-600 rounded-full w-1/2" />
+          <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-violet-400 rounded-full w-1/2" />
           </div>
         </div>
 
         <div className="editorial-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Awaiting Escrow</span>
-            <Clock className="w-4 h-4 text-amber-700" />
+          <div className="flex items-center justify-between text-xs font-medium text-slate-400">
+            <span>Needs Payment</span>
+            <Clock className="w-4 h-4 text-amber-300" />
           </div>
-          <p className="text-3xl font-tech font-bold text-amber-800">
+          <p className="text-3xl font-tech font-bold text-amber-300">
             {pendingPayCount}
           </p>
-          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
-            <div className="h-full bg-amber-500 rounded-full w-1/3" />
+          <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-amber-400 rounded-full w-1/3" />
           </div>
         </div>
 
         <div className="editorial-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-xs font-medium text-stone-500">
-            <span>Completed</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-700" />
+          <div className="flex items-center justify-between text-xs font-medium text-slate-400">
+            <span>Done</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-300" />
           </div>
-          <p className="text-3xl font-tech font-bold text-emerald-800">
+          <p className="text-3xl font-tech font-bold text-emerald-300">
             {completedCount}
           </p>
-          <div className="h-1 rounded-full bg-stone-100 overflow-hidden">
-            <div className="h-full bg-emerald-600 rounded-full w-full" />
+          <div className="h-1 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-emerald-400 rounded-full w-full" />
           </div>
         </div>
       </div>
@@ -360,20 +397,20 @@ export default function CustomerDashboardPage() {
         <div className="lg:col-span-2 space-y-4">
           {filtered.length === 0 ? (
             <div className="editorial-card p-10 text-center space-y-4">
-              <FileText className="w-10 h-10 text-stone-400 mx-auto" />
+              <FileText className="w-10 h-10 text-slate-400 mx-auto" />
               <div className="space-y-1">
-                <h3 className="font-editorial text-xl font-semibold text-[#111827]">
-                  No bookings here yet
+                <h3 className="font-editorial text-xl font-semibold text-white">
+                  No orders here yet
                 </h3>
-                <p className="text-xs text-stone-600">
-                  Browse fixed-price writing services with protected delivery deadlines.
+                <p className="text-xs text-slate-400">
+                  Pick a tested writer with clear pricing and a guaranteed deadline.
                 </p>
               </div>
               <Link
                 href="/explore"
                 className="btn-primary inline-flex items-center gap-1.5 px-5 py-2.5 text-sm"
               >
-                Explore Services
+                Find a Writer
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -383,55 +420,65 @@ export default function CustomerDashboardPage() {
                 const listingExpired =
                   booking.task.status === "EXPIRED" ||
                   booking.task.status === "ARCHIVED";
+                const latestPayStatus =
+                  booking.payments?.[0]?.status ?? "PENDING";
+                const paymentLabel =
+                  latestPayStatus === "ESCROW_HELD" || latestPayStatus === "PAID"
+                    ? "Paid (held safely)"
+                    : latestPayStatus === "RELEASED"
+                      ? "Paid to writer"
+                      : latestPayStatus === "REFUNDED"
+                        ? "Refunded"
+                        : "Waiting for payment";
 
                 return (
                   <div
                     key={booking.id}
-                    className="editorial-card-interactive p-5 space-y-4 bg-white"
+                    className="editorial-card-interactive p-5 space-y-4"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <CreatorAvatar
+                        <RadarAvatar
                           name={booking.creator.displayName}
-                          username={booking.creator.username}
                           avatarUrl={booking.creator.user?.avatarUrl}
+                          theme="cyan"
                           size="md"
                         />
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-tech text-[11px] px-2 py-0.5 rounded-md bg-[#faf7f2] text-stone-700 border border-[#e6e0d4]">
+                            <span className="font-tech text-[11px] px-2 py-0.5 rounded-md bg-white/[0.06] text-slate-300 border border-white/[0.12]">
                               {booking.bookingRef}
                             </span>
                             <StatusPill status={booking.status} />
-                            <span className="text-[11px] text-stone-500">
+                            <span className="text-[11px] text-slate-400">
                               {formatShortDate(booking.createdAt)}
                             </span>
                           </div>
                           <Link
                             href={`/dashboard/bookings/${booking.bookingRef}`}
-                            className="block font-editorial text-lg font-semibold text-[#111827] hover:text-[#1e3a8a]"
+                            className="block font-editorial text-lg font-semibold text-white hover:text-cyan-300"
                           >
                             {booking.taskTitleSnapshot}
                           </Link>
-                          <p className="text-xs text-stone-600">
+                          <p className="text-xs text-slate-300">
                             <Link
                               href={`/creators/${booking.creator.username}`}
-                              className="font-semibold text-[#0f766e] hover:underline"
+                              className="font-semibold text-teal-300 hover:underline"
                             >
                               {booking.creator.displayName}
                             </Link>
                             {" · "}
-                            Revisions {booking.revisionCount}/{booking.maxRevisions}
+                            Free edits used: {booking.revisionCount}/{booking.maxRevisions}
                           </p>
                         </div>
                       </div>
 
                       <div className="text-left sm:text-right shrink-0">
-                        <p className="font-tech text-lg font-bold text-[#111827]">
+                        <p className="font-tech text-lg font-bold text-cyan-300">
                           {formatKes(booking.totalPayable, booking.currency)}
                         </p>
-                        <p className="text-[11px] font-tech text-stone-500">
-                          Fee {formatKes(booking.serviceFee)}
+                        <p className="text-[11px] font-tech text-slate-400">
+                          Service fee {formatKes(booking.serviceFee)}
                           {booking.proDiscount > 0
                             ? ` (-${formatKes(booking.proDiscount)} Pro)`
                             : ""}
@@ -450,28 +497,24 @@ export default function CustomerDashboardPage() {
                     </div>
 
                     {listingExpired && (
-                      <p className="text-[11px] text-teal-800 bg-teal-50 border border-teal-200 rounded-lg px-3 py-1.5 font-medium">
-                        Public listing expired after confirmation — your booking &amp; deadline remain fully protected.
+                      <p className="text-[11px] text-teal-200 bg-teal-500/15 border border-teal-400/35 rounded-lg px-3 py-1.5 font-medium">
+                        This service closed for new orders later, but your order and deadline are still 100% protected.
                       </p>
                     )}
 
-                    <div className="pt-3 border-t border-[#e6e0d4] flex items-center justify-between gap-3">
-                      <span className="text-[11px] font-tech text-stone-500 uppercase">
-                        Escrow:{" "}
-                        {(booking.payments?.[0]?.status ?? "PENDING").replace(
-                          /_/g,
-                          " "
-                        )}
+                    <div className="pt-3 border-t border-white/[0.1] flex items-center justify-between gap-3">
+                      <span className="text-[11px] font-tech text-slate-400">
+                        Payment: {paymentLabel}
                       </span>
                       <Link
                         href={`/dashboard/bookings/${booking.bookingRef}`}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-semibold text-[#1e3a8a] hover:bg-blue-50 transition-colors"
+                        className="btn-ghost px-3.5 py-1.5 text-xs text-cyan-200"
                       >
                         {booking.status === "PENDING_PAYMENT"
-                          ? "Fund Escrow"
+                          ? "Pay Now"
                           : booking.status === "DELIVERED"
-                            ? "Review Delivery"
-                            : "Open Workspace"}
+                            ? "Check Finished Work"
+                            : "Open Order"}
                         <ArrowRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
@@ -482,24 +525,24 @@ export default function CustomerDashboardPage() {
           )}
         </div>
 
-        {/* Alerts Sidebar */}
+        {/* Updates Sidebar */}
         <aside className="space-y-4">
-          <div className="editorial-card p-5 space-y-3 bg-white">
+          <div className="editorial-card p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-editorial text-base font-semibold flex items-center gap-2">
-                <Bell className="w-4 h-4 text-[#1e3a8a]" />
-                Recent Alerts
+              <h2 className="font-editorial text-base font-semibold text-white flex items-center gap-2">
+                <Bell className="w-4 h-4 text-sky-300" />
+                Recent Updates
               </h2>
               <Link
                 href="/dashboard/settings"
-                className="text-xs font-semibold text-[#1e3a8a] hover:underline"
+                className="text-xs font-semibold text-sky-300 hover:underline"
               >
-                Channels
+                Alert Settings
               </Link>
             </div>
             {notifications.length === 0 ? (
-              <p className="text-xs text-stone-500 py-4 text-center">
-                Receipts, deliveries, and revision updates appear here.
+              <p className="text-xs text-slate-400 py-4 text-center">
+                Payment receipts, finished work alerts, and edit updates show up here.
               </p>
             ) : (
               <div className="space-y-2.5 max-h-96 overflow-y-auto pr-1">
@@ -509,12 +552,12 @@ export default function CustomerDashboardPage() {
                     href={n.linkUrl || "/dashboard"}
                     className={`block p-3 rounded-xl border text-xs transition-colors ${
                       n.readAt
-                        ? "bg-[#faf7f2] border-[#e6e0d4]"
-                        : "bg-blue-50/50 border-blue-200"
+                        ? "bg-white/[0.04] border-white/[0.1]"
+                        : "bg-sky-500/[0.12] border-sky-400/35"
                     }`}
                   >
-                    <p className="font-semibold text-[#111827]">{n.title}</p>
-                    <p className="text-stone-600 mt-0.5 line-clamp-2">
+                    <p className="font-semibold text-white">{n.title}</p>
+                    <p className="text-slate-300 mt-0.5 line-clamp-2">
                       {n.body}
                     </p>
                   </Link>

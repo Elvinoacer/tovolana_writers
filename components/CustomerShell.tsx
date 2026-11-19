@@ -13,14 +13,14 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import { ProBadge } from "@/components/ui/Badges";
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 const CUSTOMER_TABS = [
-  { href: "/dashboard", label: "My Bookings", icon: LayoutDashboard },
-  { href: "/bidding", label: "Live Bidding", icon: Gavel },
-  { href: "/dashboard/membership", label: "Membership", icon: Crown },
-  { href: "/dashboard/settings", label: "Security & Alerts", icon: Settings },
-  { href: "/explore", label: "Browse Services", icon: Compass },
+  { href: "/dashboard", label: "My Orders", icon: LayoutDashboard },
+  { href: "/bidding", label: "Post a Job", icon: Gavel },
+  { href: "/dashboard/membership", label: "Pro Plan", icon: Crown },
+  { href: "/dashboard/settings", label: "Account & Alerts", icon: Settings },
+  { href: "/explore", label: "Find Writers", icon: Compass },
 ];
 
 export function CustomerShell({
@@ -38,8 +38,8 @@ export function CustomerShell({
   if (loading) {
     return (
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading Customer Studio...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading your orders...
         </div>
       </main>
     );
@@ -49,9 +49,9 @@ export function CustomerShell({
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <ShieldCheck className="w-10 h-10 text-[#1e3a8a] mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to access your Customer Workspace
+          <ShieldCheck className="w-10 h-10 text-sky-400 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to see your orders
           </h1>
           <div className="flex justify-center gap-3">
             <Link
@@ -61,7 +61,7 @@ export function CustomerShell({
               Sign In
             </Link>
             <Link href="/explore" className="btn-ghost px-5 py-2.5 text-sm">
-              Explore Services
+              Find Writers
             </Link>
           </div>
         </div>
@@ -75,31 +75,32 @@ export function CustomerShell({
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
-      <div className="editorial-card p-5 sm:p-6 bg-white ink-grid-bg flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="editorial-card p-5 sm:p-6 ink-grid-bg flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-sky-400/20">
         <div className="flex items-center gap-4">
-          <CreatorAvatar
+          <RadarAvatar
             name={user.name}
             avatarUrl={user.avatarUrl}
+            theme="sky"
             size="lg"
           />
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[11px] font-tech uppercase tracking-wider px-2 py-0.5 rounded-full bg-blue-50 text-[#1e3a8a] border border-blue-200 font-semibold">
-                Customer Studio
+              <span className="text-[11px] font-tech uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-400/35 font-semibold">
+                Client Account
               </span>
               {isPro ? (
                 <ProBadge label="PRO ACTIVE" />
               ) : (
-                <span className="text-[11px] font-tech px-2 py-0.5 rounded-full bg-stone-100 text-stone-700 border border-stone-200">
+                <span className="text-[11px] font-tech px-2.5 py-0.5 rounded-full bg-white/[0.06] text-slate-300 border border-white/[0.14]">
                   FREE PLAN
                 </span>
               )}
             </div>
-            <h1 className="font-editorial text-2xl sm:text-3xl font-semibold text-[#111827] mt-1">
+            <h1 className="font-editorial text-2xl sm:text-3xl font-semibold text-white mt-1">
               {title}
             </h1>
             {subtitle && (
-              <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-300 mt-0.5">
                 {subtitle}
               </p>
             )}
@@ -117,10 +118,10 @@ export function CustomerShell({
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all ${
+                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
                   active
-                    ? "bg-[#1e3a8a] text-white shadow-xs"
-                    : "bg-white border border-[#e6e0d4] text-stone-700 hover:bg-stone-50"
+                    ? "bg-sky-500/25 text-sky-100 border-sky-400/55 shadow-[0_0_14px_rgba(56,189,248,0.22)]"
+                    : "bg-white/[0.045] border-white/[0.11] text-slate-300 hover:bg-white/[0.1] hover:text-white"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />

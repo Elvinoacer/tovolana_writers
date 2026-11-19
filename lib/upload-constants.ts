@@ -139,10 +139,10 @@ function normalizeClientMime(rawMime: string): string {
 
 export function validateClientAvatarFile(file: File): string | null {
   if (file.size <= 0) {
-    return "Selected image file cannot be empty.";
+    return "This file is empty. Please pick another photo.";
   }
   if (file.size > MAX_BROWSER_UPLOAD_BYTES) {
-    return `Maximum file size is ${MAX_BROWSER_UPLOAD_LABEL}.`;
+    return `File is too big. Maximum size is ${MAX_BROWSER_UPLOAD_LABEL}.`;
   }
   const ext = getClientExtension(file.name);
   const mime = normalizeClientMime(file.type);
@@ -152,10 +152,10 @@ export function validateClientAvatarFile(file: File): string | null {
     BLOCKED_ACTIVE_EXTENSIONS.has(ext) ||
     BLOCKED_ACTIVE_MIMES.has(mime)
   ) {
-    return "Please choose a JPG, PNG, or WEBP image (max 4 MB).";
+    return "Please choose a JPG, PNG, or WEBP photo (up to 4 MB).";
   }
   if (mime && !allowedMimes.includes(mime)) {
-    return "File extension does not match its image MIME type (JPG, PNG, or WEBP required).";
+    return "This photo's file ending doesn't match its content. Please choose a real JPG, PNG, or WEBP photo.";
   }
   return null;
 }
@@ -167,14 +167,14 @@ export function validateClientPortfolioFile(file: File): {
 } {
   if (file.size <= 0) {
     return {
-      error: "Selected file cannot be empty.",
+      error: "This file is empty. Please pick another file.",
       purpose: null,
       inferredMimeType: null,
     };
   }
   if (file.size > MAX_BROWSER_UPLOAD_BYTES) {
     return {
-      error: `Maximum file size is ${MAX_BROWSER_UPLOAD_LABEL}.`,
+      error: `File is too big. Maximum size is ${MAX_BROWSER_UPLOAD_LABEL}.`,
       purpose: null,
       inferredMimeType: null,
     };
@@ -183,7 +183,7 @@ export function validateClientPortfolioFile(file: File): {
   const mime = normalizeClientMime(file.type);
   if (BLOCKED_ACTIVE_EXTENSIONS.has(ext) || BLOCKED_ACTIVE_MIMES.has(mime)) {
     return {
-      error: "Active or executable file types are not permitted.",
+      error: "This file type isn't allowed for safety.",
       purpose: null,
       inferredMimeType: null,
     };
@@ -192,7 +192,7 @@ export function validateClientPortfolioFile(file: File): {
   if (imageMimes) {
     if (mime && !imageMimes.includes(mime)) {
       return {
-        error: "Image extension does not match its MIME type.",
+        error: "This photo's file ending doesn't match its content.",
         purpose: null,
         inferredMimeType: null,
       };
@@ -207,7 +207,7 @@ export function validateClientPortfolioFile(file: File): {
   if (docMimes) {
     if (mime && !docMimes.includes(mime)) {
       return {
-        error: "Document extension does not match its MIME type.",
+        error: "This document's file ending doesn't match its content.",
         purpose: null,
         inferredMimeType: null,
       };
@@ -220,7 +220,7 @@ export function validateClientPortfolioFile(file: File): {
   }
   return {
     error:
-      "Allowed portfolio attachments: JPG, PNG, WEBP, PDF, DOCX, or TXT (max 4 MB).",
+      "Please upload a JPG, PNG, WEBP, PDF, DOCX, or TXT file (up to 4 MB).",
     purpose: null,
     inferredMimeType: null,
   };
@@ -228,10 +228,10 @@ export function validateClientPortfolioFile(file: File): {
 
 export function validateClientBookingFile(file: File): string | null {
   if (file.size <= 0) {
-    return "Selected file cannot be empty.";
+    return "This file is empty. Please pick another file.";
   }
   if (file.size > MAX_BROWSER_UPLOAD_BYTES) {
-    return `Maximum file size is ${MAX_BROWSER_UPLOAD_LABEL}.`;
+    return `File is too big. Maximum size is ${MAX_BROWSER_UPLOAD_LABEL}.`;
   }
   const ext = getClientExtension(file.name);
   const mime = normalizeClientMime(file.type);
@@ -240,18 +240,18 @@ export function validateClientBookingFile(file: File): string | null {
     BLOCKED_ACTIVE_EXTENSIONS.has(ext) ||
     BLOCKED_ACTIVE_MIMES.has(mime)
   ) {
-    return "This file type is blocked for security reasons. Upload PDF, Office docs, TXT/MD, CSV, ZIP, or raster images.";
+    return "This file type isn't allowed for safety. Upload a PDF, Word, Excel, text, ZIP, or image file.";
   }
   const allowedMimes = BOOKING_MIME_BY_EXT[ext];
   if (!allowedMimes) {
-    return "Unsupported file extension. Upload PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, TXT, MD, CSV, RTF, ZIP, or JPG/PNG/WEBP/AVIF (max 4 MB).";
+    return "Please upload a PDF, Word, Excel, PowerPoint, text, CSV, ZIP, or image file (up to 4 MB).";
   }
   if (
     mime &&
     mime !== "application/octet-stream" &&
     !allowedMimes.includes(mime)
   ) {
-    return "File extension does not match the detected file content type.";
+    return "This file's ending doesn't match its content. Please save it properly and try again.";
   }
   return null;
 }

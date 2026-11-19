@@ -2,6 +2,8 @@
 
 import { CreatorShell } from "@/components/CreatorShell";
 import { ScoreRing } from "@/components/ui/EditorialVisuals";
+import { FlowSteps, NextStepBanner } from "@/components/ui/FlowGuide";
+import { HudCard } from "@/components/ui/AuroraPrimitives";
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
@@ -73,8 +75,8 @@ export default function CreatorStatusPage() {
   if (authLoading || loading) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading Creator vetting breakdown...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading your writing test results...
         </div>
       </main>
     );
@@ -83,17 +85,17 @@ export default function CreatorStatusPage() {
   if (!user) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to check Creator Application Status
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to check your Writer Test Status
           </h1>
           <Link
             href="/auth?next=/creators-hub/status"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+            className="btn-creator inline-flex px-5 py-2.5 text-sm font-semibold"
           >
             Sign In
           </Link>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -101,23 +103,23 @@ export default function CreatorStatusPage() {
   if (!profile) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
-        <div className="editorial-card p-8 text-center space-y-4">
-          <Feather className="w-10 h-10 text-[#0f766e] mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            You haven&apos;t applied to the Creators Hub yet
+        <HudCard theme="cyan" brackets className="p-8 text-center space-y-4">
+          <Feather className="w-10 h-10 text-teal-300 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            You haven&apos;t applied to write yet
           </h1>
-          <p className="text-sm text-stone-600">
-            Create your writer profile and take our instant 6-criteria
-            assessment — no ID or academic certificate uploads required.
+          <p className="text-sm text-slate-300">
+            Create your writer profile and take our short writing test — no ID
+            card or certificates needed.
           </p>
           <Link
             href="/creators-hub/onboarding"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#0f766e] text-white text-sm font-semibold"
+            className="btn-creator inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold"
           >
-            Start Creator Onboarding
+            Apply as a Writer
             <ArrowRight className="w-4 h-4" />
           </Link>
-        </div>
+        </HudCard>
       </main>
     );
   }
@@ -125,12 +127,12 @@ export default function CreatorStatusPage() {
   const latest = attempts[0];
   const criteria = latest
     ? [
-        { label: "Grammar & Mechanics", score: latest.grammarScore },
-        { label: "Coherence & Flow", score: latest.coherenceScore },
-        { label: "Instruction Adherence", score: latest.instructionScore },
-        { label: "Originality & Vocabulary", score: latest.originalityScore },
-        { label: "Professional Tone", score: latest.toneScore },
-        { label: "Research & Depth", score: latest.researchScore },
+        { label: "Clear Grammar & Spelling", score: latest.grammarScore },
+        { label: "Easy to Follow", score: latest.coherenceScore },
+        { label: "Answers the Question", score: latest.instructionScore },
+        { label: "Original Words", score: latest.originalityScore },
+        { label: "Right Tone & Style", score: latest.toneScore },
+        { label: "True Facts & Sources", score: latest.researchScore },
       ]
     : [];
 
@@ -141,28 +143,104 @@ export default function CreatorStatusPage() {
         ? "gold"
         : "rose";
 
+  const bannerTone =
+    profile.applicationStatus === "APPROVED"
+      ? "emerald"
+      : profile.applicationStatus === "UNDER_REVIEW"
+        ? "amber"
+        : "rose";
+
+  const cardTheme =
+    profile.applicationStatus === "APPROVED"
+      ? "emerald"
+      : profile.applicationStatus === "UNDER_REVIEW"
+        ? "amber"
+        : "rose";
+
   return (
     <CreatorShell
       requireApproved={false}
-      title="Creator Assessment Status"
-      subtitle={`@${profile.username} · Automated 6-criteria writing evaluation`}
+      title="Test Status"
+      subtitle={`@${profile.username} · 6-point writing test result`}
     >
       <div className="max-w-4xl space-y-6">
-        <div className="editorial-card p-6 sm:p-8 bg-white space-y-5">
+        <FlowSteps
+          accent="teal"
+          currentStep={profile.applicationStatus === "APPROVED" ? 3 : 2}
+          goalLabel="Goal: Start posting services and receiving M-Pesa payouts"
+          steps={[
+            { label: "1. Writer profile", hint: "Saved" },
+            {
+              label: "2. 45-min writing test",
+              hint: latest ? "Submitted" : "Take test",
+            },
+            {
+              label: "3. Approved & earn",
+              hint:
+                profile.applicationStatus === "APPROVED"
+                  ? "Ready now!"
+                  : "Unlocks on pass",
+            },
+          ]}
+        />
+
+        <NextStepBanner
+          tone={bannerTone}
+          eyebrow="Application status"
+          now={
+            profile.applicationStatus === "APPROVED"
+              ? "Congratulations! You passed the test and your Writer Hub is unlocked."
+              : profile.applicationStatus === "UNDER_REVIEW"
+                ? "Your sample is close to the pass mark, so our team is checking it by hand."
+                : `Your score was ${profile.assessmentScore ?? 0}/100, which is below the pass mark.`
+          }
+          next={
+            profile.applicationStatus === "APPROVED"
+              ? "Add your first writing service or browse Open Jobs to start earning."
+              : profile.applicationStatus === "UNDER_REVIEW"
+                ? "Wait up to 24 hours — we'll notify you as soon as a reviewer decides."
+                : profile.cooldownUntil &&
+                    new Date(profile.cooldownUntil) > new Date()
+                  ? `You can try the test again after ${formatShortDate(profile.cooldownUntil)}.`
+                  : "You can take the writing test again right now."
+          }
+          goal="Join tested writers and earn directly via M-Pesa."
+          actionLabel={
+            profile.applicationStatus === "APPROVED"
+              ? "Add a Service"
+              : profile.applicationStatus === "REJECTED" &&
+                  (!profile.cooldownUntil ||
+                    new Date(profile.cooldownUntil) <= new Date())
+                ? "Try Test Again"
+                : undefined
+          }
+          actionHref={
+            profile.applicationStatus === "APPROVED"
+              ? "/creators-hub/listings/new"
+              : "/creators-hub/assessment/live"
+          }
+        />
+
+        <HudCard
+          theme={cardTheme}
+          brackets
+          microLabel="ASSESSMENT RESULT"
+          className="p-6 sm:p-8 space-y-5"
+        >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-tech text-stone-500">
+                <span className="text-xs font-tech text-slate-400">
                   @{profile.username}
                 </span>
                 <StatusPill status={profile.applicationStatus} />
               </div>
-              <h2 className="text-2xl font-editorial font-semibold">
+              <h2 className="text-2xl font-editorial font-semibold text-white">
                 {profile.applicationStatus === "APPROVED"
-                  ? "Vetted & Ready to Publish"
+                  ? "Approved & Ready to Earn"
                   : profile.applicationStatus === "UNDER_REVIEW"
-                    ? "Queued for Calibration Review"
-                    : "Retake Available"}
+                    ? "Team Checking Your Sample"
+                    : "Try Again When Ready"}
               </h2>
             </div>
 
@@ -171,22 +249,21 @@ export default function CreatorStatusPage() {
                 score={latest.totalScore ?? profile.assessmentScore ?? 0}
                 size={96}
                 strokeWidth={8}
-                sublabel="Composite Score"
+                sublabel="Total Score"
                 tone={statusTone}
               />
             )}
           </div>
 
           {profile.applicationStatus === "APPROVED" && (
-            <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-start gap-2.5 text-sm text-emerald-950">
-                <CheckCircle2 className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-400/35 flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-2.5 text-sm text-emerald-100">
+                <CheckCircle2 className="w-5 h-5 text-emerald-300 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold">
-                    Creators Hub Unlocked
-                  </p>
-                  <p className="text-xs text-emerald-800 mt-0.5">
-                    Create task drafts, accept funded bookings, and withdraw via M-Pesa B2C.
+                  <p className="font-semibold text-white">Writer Hub Unlocked</p>
+                  <p className="text-xs text-emerald-200/90 mt-0.5">
+                    Add your writing services, accept client orders, and
+                    withdraw earnings via M-Pesa.
                   </p>
                 </div>
               </div>
@@ -194,35 +271,36 @@ export default function CreatorStatusPage() {
                 href="/creators-hub"
                 className="btn-creator px-4 py-2 text-xs"
               >
-                Open Studio
+                Open Writer Hub
               </Link>
             </div>
           )}
 
           {profile.applicationStatus === "UNDER_REVIEW" && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 flex items-start gap-2.5 text-xs text-amber-950">
-              <Clock className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+            <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-400/35 flex items-start gap-2.5 text-xs text-amber-100">
+              <Clock className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
               <div>
-                <p className="font-semibold text-sm">
-                  Borderline Score — Admin Calibration Queue
+                <p className="font-semibold text-sm text-white">
+                  Close Score — Team Check in Progress
                 </p>
-                <p className="mt-0.5">
-                  A senior moderator reviews borderline drafts within 24h.
+                <p className="mt-0.5 text-amber-200/90">
+                  A reviewer on our team checks samples in this range within 24
+                  hours.
                 </p>
               </div>
             </div>
           )}
 
           {profile.applicationStatus === "REJECTED" && (
-            <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-between gap-4 flex-wrap text-xs text-rose-900">
+            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-400/35 flex items-center justify-between gap-4 flex-wrap text-xs text-rose-100">
               <div>
-                <p className="font-semibold text-sm">
-                  Below Threshold ({profile.assessmentScore ?? 0}/100)
+                <p className="font-semibold text-sm text-white">
+                  Score Too Low ({profile.assessmentScore ?? 0}/100)
                 </p>
-                <p className="mt-0.5">
+                <p className="mt-0.5 text-rose-200/90">
                   {profile.cooldownUntil
-                    ? `Retake opens ${formatShortDate(profile.cooldownUntil)}.`
-                    : "Retake window is open now."}
+                    ? `You can try again on ${formatShortDate(profile.cooldownUntil)}.`
+                    : "You can try the writing test again now."}
                 </p>
               </div>
               {(!profile.cooldownUntil ||
@@ -232,27 +310,27 @@ export default function CreatorStatusPage() {
                   className="btn-creator px-4 py-2 text-xs gap-1.5"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  Retake Exam
+                  Try Test Again
                 </Link>
               )}
             </div>
           )}
-        </div>
+        </HudCard>
 
         {latest && (
-          <div className="editorial-card p-6 sm:p-8 bg-white space-y-5">
+          <HudCard theme="cyan" className="p-6 sm:p-8 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="font-editorial text-xl font-semibold flex items-center gap-2">
-                <Award className="w-5 h-5 text-[#0f766e]" />
-                6-Criteria Breakdown
+              <h2 className="font-editorial text-xl font-semibold text-white flex items-center gap-2">
+                <Award className="w-5 h-5 text-teal-300" />
+                6-Point Score Breakdown
               </h2>
-              <span className="font-tech text-xl font-bold text-[#0f766e]">
+              <span className="font-tech text-xl font-bold text-teal-300">
                 {latest.totalScore ?? "Pending"}/100
               </span>
             </div>
 
             {latest.reviewNote && (
-              <p className="text-sm text-stone-700 bg-[#faf7f2] p-3.5 rounded-xl border border-[#e6e0d4]">
+              <p className="text-sm text-slate-200 bg-white/[0.045] p-3.5 rounded-xl border border-white/[0.11]">
                 {latest.reviewNote}
               </p>
             )}
@@ -263,23 +341,25 @@ export default function CreatorStatusPage() {
                 return (
                   <div
                     key={c.label}
-                    className="p-3.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] space-y-2"
+                    className="p-3.5 rounded-xl bg-white/[0.045] border border-white/[0.11] space-y-2"
                   >
-                    <div className="flex justify-between text-xs font-semibold">
+                    <div className="flex justify-between text-xs font-semibold text-slate-200">
                       <span>{c.label}</span>
-                      <span className="font-tech text-[#0f766e]">{val}%</span>
+                      <span className="font-tech text-teal-300">{val}%</span>
                     </div>
-                    <div className="h-2 rounded-full bg-stone-200 overflow-hidden">
+                    <div className="h-2 rounded-full bg-white/10 overflow-hidden">
                       <div
-                        className="h-full bg-[#0f766e] rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, Math.max(0, val))}%` }}
+                        className="h-full bg-teal-400 rounded-full transition-all duration-500"
+                        style={{
+                          width: `${Math.min(100, Math.max(0, val))}%`,
+                        }}
                       />
                     </div>
                   </div>
                 );
               })}
             </div>
-          </div>
+          </HudCard>
         )}
       </div>
     </CreatorShell>

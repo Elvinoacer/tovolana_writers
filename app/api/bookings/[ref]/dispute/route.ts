@@ -68,7 +68,7 @@ export async function POST(
             bookingId: booking.id,
             senderId: user.id,
             isSystemMessage: true,
-            body: `Booking cancelled (${body.reason.trim()}).`,
+            body: `Order cancelled (${body.reason.trim()}).`,
           },
         });
         return saved;
@@ -124,7 +124,7 @@ export async function POST(
           bookingId: booking.id,
           senderId: user.id,
           isSystemMessage: true,
-          body: `Dispute opened: ${body.reason.trim()}. Administrator tribunal notified.`,
+          body: `Support case opened: ${body.reason.trim()}. Our Support team has been notified.`,
         },
       });
 
@@ -135,8 +135,8 @@ export async function POST(
         await enqueueNotificationInTx(tx, {
           userId: counterpartyId,
           eventType: "DISPUTE_OPENED",
-          title: `Dispute Opened: ${booking.bookingRef}`,
-          body: `${user.name} opened a dispute ("${body.reason.trim()}"). Administrators will review escrow evidence.`,
+          title: `Support Case Opened: ${booking.bookingRef}`,
+          body: `${user.name} asked Support to step in ("${body.reason.trim()}"). Our Support team will check the order and files.`,
           linkUrl: isCustomer
             ? `/creators-hub/bookings/${booking.bookingRef}`
             : `/dashboard/bookings/${booking.bookingRef}`,

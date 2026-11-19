@@ -1,7 +1,7 @@
 "use client";
 
 import { CustomerShell } from "@/components/CustomerShell";
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -178,9 +178,9 @@ export default function CustomerSettingsPage() {
         throw new Error(j?.error?.message || `Update failed (${res.status}).`);
       }
       await refresh();
-      setNotice("Profile & notification preferences saved.");
+      setNotice("Your details and alert settings were saved.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Save failed.");
+      setError(err instanceof Error ? err.message : "Could not save changes.");
     } finally {
       setSaving(false);
     }
@@ -203,15 +203,15 @@ export default function CustomerSettingsPage() {
       const j = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          j?.error?.message || `Password update failed (${res.status}).`
+          j?.error?.message || `Password change failed (${res.status}).`
         );
       }
       setCurrentPassword("");
       setNewPassword("");
-      setNotice("Account password updated securely.");
+      setNotice("Your password has been changed.");
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : "Password update failed."
+        err instanceof Error ? err.message : "Could not change password."
       );
     } finally {
       setSaving(false);
@@ -221,8 +221,8 @@ export default function CustomerSettingsPage() {
   if (authLoading) {
     return (
       <main className="max-w-4xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading settings...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading your settings...
         </div>
       </main>
     );
@@ -232,13 +232,10 @@ export default function CustomerSettingsPage() {
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to update Account Settings
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to change your settings
           </h1>
-          <Link
-            href="/auth?next=/dashboard/settings"
-            className="inline-flex px-5 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold"
-          >
+          <Link href="/auth?next=/dashboard/settings" className="btn-primary px-5 py-2.5 text-sm">
             Sign In
           </Link>
         </div>
@@ -251,73 +248,75 @@ export default function CustomerSettingsPage() {
 
   return (
     <CustomerShell
-      title="Account & Security"
-      subtitle="Identity verification, connected providers, and alert channels."
+      title="Account & Alerts"
+      subtitle="Update your details, phone number, password, and how we reach you."
     >
       {error && (
-        <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="p-3.5 rounded-xl border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-300" />
           <span>{notice}</span>
         </div>
       )}
 
-      {/* Visual Verification Badges Strip */}
+      {/* Confirmation Status Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="editorial-card p-4 bg-white flex items-center justify-between gap-3">
+        <div className="editorial-card p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-tech uppercase text-stone-500">Email Identity</p>
-            <p className="text-sm font-semibold text-[#111827] mt-0.5">{user.email}</p>
+            <p className="text-[11px] font-tech uppercase text-slate-400">Email</p>
+            <p className="text-sm font-semibold text-white mt-0.5">{user.email}</p>
           </div>
-          <span
-            className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+          <Link
+            href="/auth/verify"
+            className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
               user.emailVerified
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-amber-50 text-amber-800 border border-amber-200"
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/35"
+                : "bg-amber-500/15 text-amber-300 border-amber-400/35 hover:bg-amber-500/25"
             }`}
           >
-            {user.emailVerified ? "Verified" : "Unverified"}
-          </span>
+            {user.emailVerified ? "Confirmed" : "Confirm email →"}
+          </Link>
         </div>
 
-        <div className="editorial-card p-4 bg-white flex items-center justify-between gap-3">
+        <div className="editorial-card p-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-tech uppercase text-stone-500">M-Pesa / SMS OTP</p>
-            <p className="text-sm font-tech font-semibold text-[#111827] mt-0.5">
+            <p className="text-[11px] font-tech uppercase text-slate-400">M-Pesa Phone</p>
+            <p className="text-sm font-tech font-semibold text-white mt-0.5">
               {phone || "No number saved"}
             </p>
           </div>
           <Link
             href="/auth/verify"
-            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+            className={`px-3 py-1 rounded-full text-xs font-semibold border ${
               user.phoneVerified
-                ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
-                : "bg-blue-50 text-[#1e3a8a] border border-blue-200 hover:bg-blue-100"
+                ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/35"
+                : "bg-sky-500/15 text-sky-300 border-sky-400/35 hover:bg-sky-500/25"
             }`}
           >
-            {user.phoneVerified ? "OTP Verified" : "Verify OTP →"}
+            {user.phoneVerified ? "Confirmed" : "Confirm number →"}
           </Link>
         </div>
       </div>
 
-      {/* Profile Avatar Card */}
-      <div className="editorial-card p-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Profile Photo Card */}
+      <div className="editorial-card p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <CreatorAvatar
+          <RadarAvatar
             name={name || user.name}
             avatarUrl={effectiveAvatarUrl}
+            theme="sky"
             size="lg"
           />
           <div className="space-y-1">
-            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2 text-[#111827]">
-              <Camera className="w-4 h-4 text-[#1e3a8a]" />
-              Profile Photo
+            <h2 className="font-editorial text-lg font-semibold flex items-center gap-2 text-white">
+              <Camera className="w-4 h-4 text-sky-300" />
+              Your Photo
             </h2>
-            <p className="text-xs text-stone-500">
+            <p className="text-xs text-slate-400">
               Max {MAX_BROWSER_UPLOAD_LABEL} · JPG, PNG, or WEBP.
             </p>
           </div>
@@ -343,7 +342,7 @@ export default function CustomerSettingsPage() {
               type="button"
               disabled={uploadingAvatar || removingAvatar}
               onClick={handleRemoveAvatar}
-              className="btn-ghost px-3.5 py-2 text-xs text-rose-700 border-rose-200 hover:bg-rose-50 gap-1.5 disabled:opacity-50"
+              className="btn-ghost px-3.5 py-2 text-xs text-rose-300 border-rose-400/35 hover:bg-rose-500/15 gap-1.5 disabled:opacity-50"
             >
               <Trash2 className="w-3.5 h-3.5" />
               {removingAvatar ? "Removing..." : "Remove"}
@@ -354,56 +353,56 @@ export default function CustomerSettingsPage() {
 
       <form
         onSubmit={handleSaveProfile}
-        className="editorial-card p-6 bg-white space-y-5"
+        className="editorial-card p-6 space-y-5"
       >
-        <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-          <UserCog className="w-5 h-5 text-[#1e3a8a]" />
-          Personal Details & Localization
+        <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+          <UserCog className="w-5 h-5 text-sky-300" />
+          Personal Details &amp; Language
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">
+            <label className="block text-xs font-medium text-slate-300 mb-1">
               Full Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+              className="hud-input w-full px-3.5 py-2.5 text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">
-              Email Address ({user.emailVerified ? "Verified" : "Unverified"})
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Email Address ({user.emailVerified ? "Confirmed" : "Not confirmed"})
             </label>
             <input
               type="email"
               disabled
               value={user.email}
-              className="w-full rounded-xl border border-[#e6e0d4] bg-[#faf7f2] px-3.5 py-2.5 text-sm text-stone-600"
+              className="hud-input w-full px-3.5 py-2.5 text-sm opacity-60 cursor-not-allowed"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">
-              Phone Number ({user.phoneVerified ? "OTP Verified" : "Unverified"})
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Phone Number ({user.phoneVerified ? "Confirmed" : "Not confirmed"})
             </label>
             <input
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+254712345678"
-              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+              className="hud-input w-full px-3.5 py-2.5 text-sm font-tech"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-stone-600 mb-1">
-              Preferred Locale
+            <label className="block text-xs font-medium text-slate-300 mb-1">
+              Language &amp; Currency
             </label>
             <select
               value={preferredLocale}
               onChange={(e) => setPreferredLocale(e.target.value)}
-              className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm"
+              className="hud-input w-full px-3.5 py-2.5 text-sm"
             >
               <option value="en-KE">English (Kenya · KES)</option>
               <option value="en-US">English (International)</option>
@@ -412,28 +411,36 @@ export default function CustomerSettingsPage() {
           </div>
         </div>
 
-        <div className="pt-3 border-t border-[#e6e0d4] space-y-3">
-          <h3 className="text-sm font-semibold flex items-center gap-2">
-            <Bell className="w-4 h-4 text-[#1e3a8a]" />
-            Notification Channels
+        <div className="pt-3 border-t border-white/[0.1] space-y-3">
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+            <Bell className="w-4 h-4 text-sky-300" />
+            Where Should We Send Updates?
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            {(["email", "push", "inApp", "sms"] as const).map((k) => (
+            {(
+              [
+                { key: "email", label: "Email" },
+                { key: "push", label: "Phone push" },
+                { key: "inApp", label: "On website" },
+                { key: "sms", label: "Text (SMS)" },
+              ] as const
+            ).map((item) => (
               <label
-                key={k}
+                key={item.key}
                 className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${
-                  prefs[k]
-                    ? "border-[#1e3a8a] bg-blue-50/40 text-[#111827]"
-                    : "border-[#e6e0d4] bg-[#faf7f2] text-stone-600"
+                  prefs[item.key]
+                    ? "border-cyan-400/55 bg-cyan-500/[0.12] text-white"
+                    : "border-white/[0.11] bg-white/[0.04] text-slate-400"
                 }`}
               >
-                <span className="uppercase font-tech font-semibold">{k}</span>
+                <span className="font-semibold">{item.label}</span>
                 <input
                   type="checkbox"
-                  checked={prefs[k]}
+                  checked={prefs[item.key]}
                   onChange={(e) =>
-                    setPrefs((p) => ({ ...p, [k]: e.target.checked }))
+                    setPrefs((p) => ({ ...p, [item.key]: e.target.checked }))
                   }
+                  className="accent-cyan-400"
                 />
               </label>
             ))}
@@ -446,28 +453,30 @@ export default function CustomerSettingsPage() {
             disabled={saving}
             className="btn-primary px-5 py-2.5 text-sm disabled:opacity-50"
           >
-            Save Preferences
+            Save Changes
           </button>
         </div>
       </form>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="editorial-card p-6 bg-white space-y-3">
-          <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-            <ShieldCheck className="w-5 h-5 text-[#0f766e]" />
-            Auth Providers
+        <div className="editorial-card p-6 space-y-3">
+          <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-teal-300" />
+            How You Sign In
           </h2>
           <div className="space-y-2 text-xs">
             {authAccounts.length === 0 ? (
-              <p className="text-stone-500">Email &amp; Password credentials</p>
+              <p className="text-slate-400">Email and password</p>
             ) : (
               authAccounts.map((a) => (
                 <div
                   key={a.provider}
-                  className="px-3.5 py-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] flex items-center justify-between"
+                  className="px-3.5 py-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11] flex items-center justify-between"
                 >
-                  <span className="font-tech font-semibold uppercase">{a.provider}</span>
-                  <span className="text-emerald-700 font-semibold">Linked</span>
+                  <span className="font-tech font-semibold uppercase text-white">
+                    {a.provider}
+                  </span>
+                  <span className="text-emerald-300 font-semibold">Connected</span>
                 </div>
               ))
             )}
@@ -476,18 +485,18 @@ export default function CustomerSettingsPage() {
 
         <form
           onSubmit={handlePasswordUpdate}
-          className="editorial-card p-6 bg-white space-y-3"
+          className="editorial-card p-6 space-y-3"
         >
-          <h2 className="font-editorial text-lg font-semibold flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-[#1e3a8a]" />
-            Update Password
+          <h2 className="font-editorial text-lg font-semibold text-white flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-sky-300" />
+            Change Password
           </h2>
           <input
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Current password (blank if Google-only)"
-            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
+            placeholder="Current password (leave blank if using Google)"
+            className="hud-input w-full px-3.5 py-2 text-xs"
           />
           <input
             type="password"
@@ -495,15 +504,15 @@ export default function CustomerSettingsPage() {
             minLength={8}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="New password (min 8 chars)"
-            className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-xs"
+            placeholder="New password (at least 8 characters)"
+            className="hud-input w-full px-3.5 py-2 text-xs"
           />
           <button
             type="submit"
             disabled={saving}
             className="btn-ghost px-4 py-2 text-xs"
           >
-            Update Password
+            Change Password
           </button>
         </form>
       </div>

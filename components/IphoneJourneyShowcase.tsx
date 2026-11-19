@@ -31,94 +31,84 @@ const JOURNEY_STAGES: JourneyStage[] = [
   {
     id: "book",
     stepNum: "1",
-    shortLabel: "Booked",
-    title: "Escrow locks before work begins",
+    shortLabel: "Order",
+    title: "You pay safely upfront",
     summary:
-      "Clear KES total, included revisions, and delivery deadline locked upfront.",
+      "See the full price, free edits, and due date before paying.",
     photo: "/images/photos/journey-1-book.jpg",
-    photoAlt: "Client reviewing booking details on laptop",
+    photoAlt: "Client reviewing order details on laptop",
     screenType: "booked",
   },
   {
     id: "work",
     stepNum: "2",
-    shortLabel: "Drafting",
-    title: "Vetted writer drafts in studio",
+    shortLabel: "Writing",
+    title: "Your writer gets to work",
     summary:
-      "Track live word milestones and source checks inside your private thread.",
+      "Message your writer and track progress inside your order.",
     photo: "/images/photos/journey-2-work.jpg",
-    photoAlt: "Vetted writers drafting manuscripts in studio",
+    photoAlt: "Tested writers drafting work",
     screenType: "working",
   },
   {
     id: "submit",
     stepNum: "3",
-    shortLabel: "Delivered",
-    title: "Final files land in the private vault",
+    shortLabel: "Check",
+    title: "Download & check your files",
     summary:
-      "Formatted deliverables and originality checks arrive ready for review.",
+      "Review your finished work before the deadline. Ask for free edits if needed.",
     photo: "/images/photos/journey-3-submit.jpg",
-    photoAlt: "Completed manuscript documents under review",
+    photoAlt: "Completed documents ready to check",
     screenType: "submitted",
   },
   {
     id: "accept",
     stepNum: "4",
-    shortLabel: "Approved",
-    title: "Client verifies and releases escrow",
+    shortLabel: "Approve",
+    title: "Approve when you're happy",
     summary:
-      "One-tap sign-off confirms satisfaction and triggers writer settlement.",
+      "One tap marks the order done and releases payment to your writer.",
     photo: "/images/photos/journey-4-accept.jpg",
-    photoAlt: "Satisfied client approving delivered work",
+    photoAlt: "Happy client approving finished work",
     screenType: "accepted",
   },
   {
     id: "mpesa",
     stepNum: "5",
-    shortLabel: "Settled",
-    title: "Instant M-Pesa payout to writer",
+    shortLabel: "Paid",
+    title: "Writer paid on M-Pesa",
     summary:
-      "Approved earnings settle straight to Safaricom M-Pesa with full receipt.",
+      "Your writer receives their earnings straight to M-Pesa.",
     photo: "/images/photos/journey-5-mpesa.jpg",
-    photoAlt: "Mobile phone showing instant payment confirmation",
+    photoAlt: "Mobile phone showing M-Pesa payment received",
     screenType: "mpesa",
   },
 ];
 
-function IosStatusBar({ dark = false }: { dark?: boolean }) {
-  const ink = dark ? "text-white" : "text-[#111827]";
-  const barFill = dark ? "bg-white" : "bg-[#111827]";
-  const batteryBorder = dark ? "border-white/55" : "border-[#111827]/45";
-
+function IosStatusBar() {
   return (
-    <div
-      className={`px-5 pt-2.5 pb-1.5 flex items-center justify-between shrink-0 select-none ${ink}`}
-    >
+    <div className="px-5 pt-2.5 pb-1.5 flex items-center justify-between shrink-0 select-none text-white">
       <span className="text-[11px] font-semibold tracking-tight w-10">
         9:41
       </span>
 
-      {/* Dynamic Island */}
       <div className="w-[68px] h-[18px] rounded-full bg-black flex items-center justify-end pr-2 shadow-inner">
         <span className="w-2 h-2 rounded-full bg-[#111a2e] ring-1 ring-white/10" />
       </div>
 
-      {/* Signal, Wi-Fi & Battery */}
       <div className="flex items-center justify-end gap-1.5 w-12">
         <span className="inline-flex items-end gap-[1.5px] h-2.5">
-          <span className={`w-[2px] h-1 rounded-full ${barFill}`} />
-          <span className={`w-[2px] h-1.5 rounded-full ${barFill}`} />
-          <span className={`w-[2px] h-2 rounded-full ${barFill}`} />
-          <span className={`w-[2px] h-2.5 rounded-full ${barFill}`} />
+          <span className="w-[2px] h-1 rounded-full bg-white" />
+          <span className="w-[2px] h-1.5 rounded-full bg-white" />
+          <span className="w-[2px] h-2 rounded-full bg-white" />
+          <span className="w-[2px] h-2.5 rounded-full bg-white" />
         </span>
         <Wifi className="w-3 h-3" strokeWidth={2.3} />
         <span className="inline-flex items-center">
-          <span
-            className={`w-[17px] h-[9px] rounded-[2.5px] border p-[1.5px] flex items-center ${batteryBorder}`}
-          >
-            <span className={`w-full h-full rounded-[1px] ${barFill}`} />
+          <span className="w-[17px] h-[9px] rounded-[2.5px] border border-white/55 p-[1.5px] flex items-center">
+            <span className="w-full h-full rounded-[1px] bg-white" />
           </span>
-          <span className={`w-[1.5px] h-[4px] rounded-r-xs ml-[1px] ${barFill}`} />
+          <span className="w-[1.5px] h-[4px] rounded-r-xs ml-[1px] bg-white" />
         </span>
       </div>
     </div>
@@ -129,14 +119,14 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
   switch (stage.screenType) {
     case "booked":
       return (
-        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between">
+        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between text-slate-100">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-[#111827]">Booking</span>
-              <span className="font-tech text-stone-500">#TW-8492</span>
+              <span className="font-semibold text-white">Order</span>
+              <span className="font-tech text-cyan-300">#TW-8492</span>
             </div>
 
-            <div className="relative h-24 rounded-2xl overflow-hidden bg-stone-200">
+            <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
               <Image
                 src={stage.photo}
                 alt={stage.photoAlt}
@@ -147,49 +137,49 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
             </div>
 
             <div>
-              <p className="font-editorial text-[14px] font-semibold text-[#111827] leading-snug">
+              <p className="font-editorial text-[14px] font-semibold text-white leading-snug">
                 APA 7th Literature Review
               </p>
-              <p className="text-[11px] text-stone-500 mt-1">
-                4,000 words · 4-day lock
+              <p className="text-[11px] text-slate-400 mt-1">
+                4,000 words · 4 days
               </p>
             </div>
 
-            <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3 space-y-2 text-[11px]">
-              <div className="flex justify-between text-stone-600">
+            <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3 space-y-2 text-[11px]">
+              <div className="flex justify-between text-slate-300">
                 <span>Service</span>
-                <span className="font-tech text-[#111827]">KES 7,500</span>
+                <span className="font-tech text-white">KES 7,500</span>
               </div>
-              <div className="flex justify-between text-stone-600">
+              <div className="flex justify-between text-slate-300">
                 <span>Pro Fee (5%)</span>
-                <span className="font-tech text-[#0f766e]">KES 375</span>
+                <span className="font-tech text-teal-300">KES 375</span>
               </div>
-              <div className="pt-2 border-t border-[#efeae0] flex justify-between font-semibold text-[#111827]">
-                <span>Escrow Held</span>
-                <span className="font-tech text-[#1e3a8a]">KES 7,875</span>
+              <div className="pt-2 border-t border-white/[0.1] flex justify-between font-semibold text-white">
+                <span>Safe Payment Held</span>
+                <span className="font-tech text-cyan-300">KES 7,875</span>
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#111827] text-white py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
-            <Lock className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Escrow Protected</span>
+          <div className="rounded-xl bg-teal-500/20 border border-teal-400/40 text-teal-200 py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
+            <Lock className="w-3.5 h-3.5 text-teal-300" />
+            <span>Money Held Safely</span>
           </div>
         </div>
       );
 
     case "working":
       return (
-        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between">
+        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between text-slate-100">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-[#111827]">Studio Draft</span>
-              <span className="font-tech text-[#0f766e] font-medium">
+              <span className="font-semibold text-white">In Progress</span>
+              <span className="font-tech text-teal-300 font-medium">
                 Day 3 of 4
               </span>
             </div>
 
-            <div className="relative h-24 rounded-2xl overflow-hidden bg-stone-200">
+            <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
               <Image
                 src={stage.photo}
                 alt={stage.photoAlt}
@@ -199,8 +189,8 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
               />
             </div>
 
-            <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3 flex items-center gap-2.5">
-              <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-[#e6e0d4]">
+            <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3 flex items-center gap-2.5">
+              <div className="relative w-8 h-8 rounded-full overflow-hidden shrink-0 ring-1 ring-teal-400/50">
                 <Image
                   src="/images/photos/avatar-1.jpg"
                   alt="Dr. Amina W."
@@ -210,47 +200,47 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
                 />
               </div>
               <div className="min-w-0">
-                <p className="text-[12px] font-semibold text-[#111827] truncate">
+                <p className="text-[12px] font-semibold text-white truncate">
                   Dr. Amina W.
                 </p>
-                <p className="text-[10px] font-tech text-[#0f766e]">
-                  Vetted · 94/100
+                <p className="text-[10px] font-tech text-teal-300">
+                  Tested · 94%
                 </p>
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3 space-y-2">
+            <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3 space-y-2">
               <div className="flex justify-between text-[11px]">
-                <span className="text-stone-600">Progress</span>
-                <span className="font-tech font-bold text-[#111827]">86%</span>
+                <span className="text-slate-300">Progress</span>
+                <span className="font-tech font-bold text-white">86%</span>
               </div>
-              <div className="h-1.5 w-full rounded-full bg-stone-200 overflow-hidden">
-                <div className="h-full w-[86%] rounded-full bg-[#0f766e]" />
+              <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                <div className="aurora-bar-shimmer h-full w-[86%] rounded-full bg-gradient-to-r from-teal-400 to-sky-400" />
               </div>
-              <p className="text-[10px] font-tech text-stone-500">
+              <p className="text-[10px] font-tech text-slate-400">
                 3,450 / 4,000 words
               </p>
             </div>
           </div>
 
-          <p className="text-[11px] text-stone-600 leading-relaxed px-1">
-            &ldquo;Methodology matrix verified across 18 sources.&rdquo;
+          <p className="text-[11px] text-slate-300 leading-relaxed px-1">
+            &ldquo;Finished 18 sources — draft almost ready.&rdquo;
           </p>
         </div>
       );
 
     case "submitted":
       return (
-        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between">
+        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between text-slate-100">
           <div className="space-y-3">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-[#111827]">Private Vault</span>
-              <span className="font-tech text-[#0f766e] font-semibold">
+              <span className="font-semibold text-white">Your Files</span>
+              <span className="font-tech text-emerald-300 font-semibold">
                 9h early
               </span>
             </div>
 
-            <div className="relative h-24 rounded-2xl overflow-hidden bg-stone-200">
+            <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
               <Image
                 src={stage.photo}
                 alt={stage.photoAlt}
@@ -261,28 +251,28 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
             </div>
 
             <div className="space-y-2">
-              <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3 flex items-center justify-between gap-2">
+              <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <FileCheck2 className="w-4 h-4 text-[#1e3a8a] shrink-0" />
+                  <FileCheck2 className="w-4 h-4 text-sky-300 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-[#111827] truncate">
+                    <p className="text-[11px] font-semibold text-white truncate">
                       LitReview_Final.docx
                     </p>
-                    <p className="text-[10px] font-tech text-stone-500">
-                      1.8 MB · Formatted
+                    <p className="text-[10px] font-tech text-slate-400">
+                      1.8 MB · Ready
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3 flex items-center justify-between gap-2">
+              <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
-                  <ShieldCheck className="w-4 h-4 text-[#0f766e] shrink-0" />
+                  <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
                   <div className="min-w-0">
-                    <p className="text-[11px] font-semibold text-[#111827] truncate">
+                    <p className="text-[11px] font-semibold text-white truncate">
                       Originality_Check.pdf
                     </p>
-                    <p className="text-[10px] font-tech text-[#0f766e]">
+                    <p className="text-[10px] font-tech text-emerald-300">
                       99% original
                     </p>
                   </div>
@@ -291,23 +281,23 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#1e3a8a] text-white py-2.5 px-3 text-center text-[11px] font-semibold">
-            Review Deliverables
+          <div className="rounded-xl bg-sky-500/25 border border-sky-400/45 text-sky-100 py-2.5 px-3 text-center text-[11px] font-semibold">
+            Check Finished Work
           </div>
         </div>
       );
 
     case "accepted":
       return (
-        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between">
+        <div className="flex-1 px-3.5 py-2.5 flex flex-col justify-between text-slate-100">
           <div className="space-y-3.5">
             <div className="flex items-center justify-between text-[11px]">
-              <span className="font-semibold text-[#111827]">Sign-Off</span>
-              <span className="font-tech text-stone-500">5.0 / 5.0</span>
+              <span className="font-semibold text-white">All Done</span>
+              <span className="font-tech text-amber-300">5.0 / 5.0</span>
             </div>
 
             <div className="flex flex-col items-center pt-2 space-y-2.5">
-              <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-[#e6e0d4] bg-stone-200">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden ring-2 ring-amber-400/60 bg-slate-800">
                 <Image
                   src={stage.photo}
                   alt={stage.photoAlt}
@@ -320,26 +310,26 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
                 {Array.from({ length: 5 }).map((_, i) => (
                   <Star
                     key={i}
-                    className="w-3.5 h-3.5 text-amber-500 fill-amber-500"
+                    className="w-3.5 h-3.5 text-amber-400 fill-amber-400"
                   />
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white border border-[#e6e0d4] p-3.5 text-center space-y-2">
-              <p className="font-editorial text-[12px] text-[#111827] leading-relaxed">
-                &ldquo;Crisp synthesis and spotless APA 7th citations. Delivered
-                ahead of schedule.&rdquo;
+            <div className="rounded-2xl bg-white/[0.05] border border-white/[0.12] p-3.5 text-center space-y-2">
+              <p className="font-editorial text-[12px] text-white leading-relaxed">
+                &ldquo;Clear writing and clean APA citations. Delivered ahead
+                of time.&rdquo;
               </p>
-              <p className="text-[10px] font-tech text-stone-500">
+              <p className="text-[10px] font-tech text-slate-400">
                 Verified Client · Nairobi
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#0f766e] text-white py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
+          <div className="rounded-xl bg-emerald-500/25 border border-emerald-400/45 text-emerald-200 py-2.5 px-3 flex items-center justify-center gap-1.5 text-[11px] font-semibold">
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Escrow Released</span>
+            <span>Approved &amp; Paid</span>
           </div>
         </div>
       );
@@ -350,10 +340,10 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
           <div className="space-y-3">
             <div className="flex items-center justify-between text-[11px]">
               <span className="font-semibold text-emerald-300">M-Pesa</span>
-              <span className="font-tech text-stone-400">3:18 PM</span>
+              <span className="font-tech text-slate-400">3:18 PM</span>
             </div>
 
-            <div className="relative h-24 rounded-2xl overflow-hidden bg-stone-800">
+            <div className="relative h-24 rounded-2xl overflow-hidden bg-slate-900 border border-white/10">
               <Image
                 src={stage.photo}
                 alt={stage.photoAlt}
@@ -363,13 +353,13 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
               />
             </div>
 
-            <div className="rounded-2xl bg-[#0e2d25] border border-emerald-400/25 p-3.5 space-y-3">
+            <div className="rounded-2xl bg-[#0e2d25] border border-emerald-400/35 p-3.5 space-y-3">
               <div className="flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-emerald-500 text-[#061b17] flex items-center justify-center shrink-0">
+                <span className="w-5 h-5 rounded-full bg-emerald-400 text-[#061b17] flex items-center justify-center shrink-0">
                   <Check className="w-3 h-3" strokeWidth={3} />
                 </span>
                 <span className="text-[11px] font-medium text-emerald-200">
-                  Payout Received
+                  Payment Received
                 </span>
               </div>
 
@@ -377,17 +367,17 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
                 KES 7,500
               </p>
 
-              <div className="pt-2 border-t border-white/10 space-y-1.5 text-[10px] font-tech text-stone-300">
+              <div className="pt-2 border-t border-white/10 space-y-1.5 text-[10px] font-tech text-slate-300">
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Ref</span>
+                  <span className="text-slate-400">Ref</span>
                   <span>SLK9482TQ7</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Source</span>
-                  <span>IntaSend Escrow</span>
+                  <span className="text-slate-400">Source</span>
+                  <span>Tovolana Safe Pay</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-400">Balance</span>
+                  <span className="text-slate-400">Balance</span>
                   <span className="text-emerald-300">KES 42,850</span>
                 </div>
               </div>
@@ -395,14 +385,14 @@ function IphoneScreenContent({ stage }: { stage: JourneyStage }) {
           </div>
 
           <div className="rounded-xl bg-white/10 border border-white/15 py-2.5 px-3 text-center text-[11px] font-medium text-emerald-200">
-            Settled in 4 seconds
+            Sent in seconds
           </div>
         </div>
       );
   }
 }
 
-/** Interactive 5-stage iPhone 16 Pro showcase with mobile horizontal snap carousel. */
+/** Interactive 5-stage iPhone 16 Pro showcase aligned to the dark aurora HUD universe. */
 export function IphoneJourneyShowcase() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -445,7 +435,6 @@ export function IphoneJourneyShowcase() {
     programmaticTimerRef.current = setTimeout(() => {
       isProgrammaticScrollRef.current = false;
     }, 550);
-    // Scroll horizontally inside the carousel without moving vertical page scroll.
     const targetLeft =
       child.offsetLeft - (track.clientWidth - child.offsetWidth) / 2;
     track.scrollTo({ left: Math.max(0, targetLeft), behavior: "smooth" });
@@ -504,17 +493,18 @@ export function IphoneJourneyShowcase() {
   return (
     <section
       ref={sectionRef}
-      className="w-full bg-[#0b111a] text-white py-16 sm:py-22 overflow-hidden"
+      className="w-full border-y border-white/[0.07] bg-white/[0.015] backdrop-blur-xs text-white py-16 sm:py-22 overflow-hidden"
     >
       <div className="max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         {/* Header Row */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="space-y-2.5 max-w-xl">
-            <h2 className="font-editorial text-3xl sm:text-4xl lg:text-[2.65rem] font-semibold tracking-tight leading-[1.08] text-[#faf7f2]">
-              From brief to M-Pesa payout, every step stays transparent.
+            <h2 className="aurora-title font-editorial text-3xl sm:text-4xl lg:text-[2.65rem] font-bold tracking-tight leading-[1.08]">
+              How every order works, step by step
             </h2>
-            <p className="text-sm sm:text-base text-stone-400">
-              Watch how an order moves from escrow checkout to writer settlement.
+            <p className="text-sm sm:text-base text-slate-400">
+              From your first click to finished work and M-Pesa payout — always
+              clear, always safe.
             </p>
           </div>
 
@@ -528,8 +518,8 @@ export function IphoneJourneyShowcase() {
                   onClick={() => selectStage(idx)}
                   className={`px-3.5 py-2 rounded-full text-xs font-medium transition-all border ${
                     active
-                      ? "bg-[#faf7f2] text-[#0b111a] border-[#faf7f2] font-semibold"
-                      : "bg-white/5 text-stone-300 border-white/12 hover:bg-white/12 hover:text-white"
+                      ? "bg-cyan-400 text-slate-950 border-cyan-300 font-bold shadow-[0_0_16px_rgba(45,212,191,0.35)]"
+                      : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:bg-white/[0.12] hover:text-white"
                   }`}
                 >
                   {stage.stepNum}. {stage.shortLabel}
@@ -540,7 +530,7 @@ export function IphoneJourneyShowcase() {
               type="button"
               onClick={() => setAutoPlay((v) => !v)}
               aria-label={autoPlay ? "Pause journey autoplay" : "Play journey"}
-              className="w-9 h-9 rounded-full bg-white/8 border border-white/15 flex items-center justify-center text-stone-200 hover:bg-white/16 transition-colors"
+              className="w-9 h-9 rounded-full bg-white/[0.07] border border-white/[0.15] flex items-center justify-center text-slate-200 hover:bg-white/[0.15] transition-colors"
             >
               {autoPlay ? (
                 <Pause className="w-3.5 h-3.5" />
@@ -551,7 +541,7 @@ export function IphoneJourneyShowcase() {
           </div>
         </div>
 
-        {/* 5 Real-Proportion iPhone 16 Pro Frames: Mobile Horizontal Snap Carousel -> Desktop 5-Column Grid */}
+        {/* 5 Real-Proportion iPhone 16 Pro Frames */}
         <div
           ref={trackRef}
           onScroll={handleTrackScroll}
@@ -559,7 +549,7 @@ export function IphoneJourneyShowcase() {
         >
           {JOURNEY_STAGES.map((stage, idx) => {
             const isActive = idx === activeIdx;
-            const isDarkScreen = stage.screenType === "mpesa";
+            const isMpesaScreen = stage.screenType === "mpesa";
             return (
               <div
                 key={stage.id}
@@ -578,7 +568,6 @@ export function IphoneJourneyShowcase() {
                     : "opacity-75 hover:opacity-100"
                 }`}
               >
-                {/* Metallic Physical Side Hardware Buttons */}
                 <span
                   aria-hidden="true"
                   className="absolute -left-[2.5px] top-[92px] w-[3px] h-5 rounded-l-sm bg-zinc-500/80"
@@ -596,32 +585,33 @@ export function IphoneJourneyShowcase() {
                   className="absolute -right-[2.5px] top-[140px] w-[3px] h-14 rounded-r-sm bg-zinc-500/80"
                 />
 
-                {/* Titanium Chassis */}
                 <div
-                  className={`h-full rounded-[2.85rem] p-[3px] bg-gradient-to-b from-zinc-400/75 via-zinc-700 to-zinc-800 transition-shadow duration-500 ${
+                  className={`relative h-full rounded-[2.85rem] p-[3px] bg-gradient-to-b from-slate-400/65 via-slate-700 to-slate-900 transition-shadow duration-500 ${
                     isActive
-                      ? "ring-2 ring-emerald-400/90 shadow-[0_24px_60px_-14px_rgba(16,185,129,0.35)]"
+                      ? "ring-2 ring-cyan-400/90 shadow-[0_24px_60px_-14px_rgba(45,212,191,0.38)]"
                       : "shadow-2xl"
                   }`}
                 >
-                  {/* Deep Black Glass Bezel */}
-                  <div className="h-full rounded-[2.68rem] p-[7px] bg-[#060709] flex flex-col">
-                    {/* True iOS Viewport */}
+                  {isActive && (
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -inset-3 -z-10 rounded-[3.2rem] opacity-75 blur-xl animate-hud-aurora-a"
+                      style={{
+                        background:
+                          "radial-gradient(ellipse at 50% 45%, rgba(45, 212, 191, 0.34), rgba(56, 189, 248, 0.2) 55%, transparent 78%)",
+                      }}
+                    />
+                  )}
+                  <div className="h-full rounded-[2.68rem] p-[7px] bg-[#04060a] flex flex-col">
                     <div
                       className={`flex-1 rounded-[2.25rem] overflow-hidden flex flex-col ${
-                        isDarkScreen
-                          ? "bg-[#061b17] text-white"
-                          : "bg-[#faf7f2] text-[#111827]"
+                        isMpesaScreen ? "bg-[#061b17]" : "bg-[#070d18]"
                       }`}
                     >
-                      <IosStatusBar dark={isDarkScreen} />
+                      <IosStatusBar />
                       <IphoneScreenContent stage={stage} />
                       <div className="pb-2 pt-1 flex justify-center shrink-0">
-                        <div
-                          className={`w-[88px] h-[4px] rounded-full ${
-                            isDarkScreen ? "bg-white/25" : "bg-stone-900/20"
-                          }`}
-                        />
+                        <div className="w-[88px] h-[4px] rounded-full bg-white/25" />
                       </div>
                     </div>
                   </div>
@@ -632,12 +622,12 @@ export function IphoneJourneyShowcase() {
         </div>
 
         {/* Selected Stage Caption Strip */}
-        <div className="border-t border-white/12 pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="border-t border-white/[0.1] pt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1">
-            <p className="font-editorial text-xl font-semibold text-[#faf7f2]">
+            <p className="font-editorial text-xl font-semibold text-white">
               {currentStage.stepNum}. {currentStage.title}
             </p>
-            <p className="text-sm text-stone-400">{currentStage.summary}</p>
+            <p className="text-sm text-slate-400">{currentStage.summary}</p>
           </div>
 
           <Link
@@ -646,11 +636,11 @@ export function IphoneJourneyShowcase() {
                 ? "/creators-hub/join"
                 : "/explore"
             }
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#faf7f2] text-[#0b111a] text-sm font-semibold hover:bg-emerald-100 transition-colors shrink-0 self-start sm:self-auto"
+            className="btn-primary px-5 py-2.5 text-sm shrink-0 self-start sm:self-auto"
           >
             {currentStage.screenType === "mpesa"
-              ? "Join Creators Hub"
-              : "Explore services"}
+              ? "Become a Writer"
+              : "Find a Writer"}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

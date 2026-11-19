@@ -12,8 +12,9 @@ import {
   isSafeRasterImageMimeOrExt,
 } from "@/lib/upload-constants";
 import { TaskCard } from "@/components/TaskCard";
-import { VettedCreatorBadge } from "@/components/ui/Badges";
-import { CreatorAvatar, ScoreRing } from "@/components/ui/EditorialVisuals";
+import { VettedCreatorBadge, formatCreatorTier } from "@/components/ui/Badges";
+import { ScoreRing } from "@/components/ui/EditorialVisuals";
+import { AuroraHeading, HudCard, RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 export const dynamic = "force-dynamic";
 
@@ -95,8 +96,12 @@ export default async function PublicCreatorProfilePage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 animate-reveal">
-      {/* Editorial Creator Banner */}
-      <div className="editorial-card p-6 sm:p-8 bg-white ink-grid-bg grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      {/* Dark Aurora Creator Banner */}
+      <HudCard
+        theme="cyan"
+        brackets
+        className="p-6 sm:p-8 ink-grid-bg grid grid-cols-1 lg:grid-cols-12 gap-8 items-center"
+      >
         <div className="lg:col-span-7 space-y-4">
           <div className="flex flex-wrap items-center gap-2">
             <VettedCreatorBadge />
@@ -104,96 +109,92 @@ export default async function PublicCreatorProfilePage({
               <span
                 className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                   creator.creatorTier === "ELITE"
-                    ? "bg-amber-50 text-amber-900 border-amber-300"
+                    ? "bg-amber-500/15 text-amber-300 border-amber-400/35"
                     : creator.creatorTier === "TOP_RATED"
-                      ? "bg-blue-50 text-[#1e3a8a] border-blue-200"
-                      : "bg-teal-50 text-[#0f766e] border-teal-200"
+                      ? "bg-sky-500/15 text-sky-300 border-sky-400/35"
+                      : "bg-teal-500/15 text-teal-300 border-teal-400/35"
                 }`}
               >
-                {creator.creatorTier === "ELITE"
-                  ? "Elite Tier"
-                  : creator.creatorTier === "TOP_RATED"
-                    ? "Top Rated"
-                    : "Rising Talent"}
+                {formatCreatorTier(creator.creatorTier)}
               </span>
             )}
             {availableNowActive && (
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-600 text-white">
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                 Available Now
               </span>
             )}
             {featuredSpotlightActive && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#1e3a8a] text-white">
-                Featured Spotlight
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-500/25 text-sky-200 border border-sky-400/45">
+                Featured
               </span>
             )}
             {creator.taglineBadge && (
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#faf7f2] text-stone-800 border border-[#e6e0d4]">
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/[0.06] text-slate-200 border border-white/[0.14]">
                 {creator.taglineBadge}
               </span>
             )}
             <span
               className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
                 creator.isAvailable
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                  : "bg-stone-100 text-stone-700 border-stone-200"
+                  ? "bg-emerald-500/15 text-emerald-300 border-emerald-400/35"
+                  : "bg-white/[0.06] text-slate-300 border-white/[0.14]"
               }`}
             >
-              {creator.isAvailable ? "Accepting Bookings" : "At Capacity"}
+              {creator.isAvailable ? "Taking Orders" : "Busy right now"}
             </span>
           </div>
 
           <div className="flex items-center gap-4">
-            <CreatorAvatar
+            <RadarAvatar
               name={creator.displayName}
-              username={creator.username}
               avatarUrl={creator.user?.avatarUrl}
               available={creator.isAvailable}
+              theme="cyan"
               size="lg"
             />
             <div>
-              <h1 className="font-editorial text-3xl font-semibold text-[#111827]">
+              <AuroraHeading as="h1" className="text-3xl">
                 {creator.displayName}
-              </h1>
-              <p className="text-xs font-tech text-stone-500">
+              </AuroraHeading>
+              <p className="text-xs font-tech text-slate-400">
                 @{creator.username}
               </p>
-              <p className="text-sm font-medium text-[#1e3a8a] mt-0.5">
+              <p className="text-sm font-medium text-sky-300 mt-0.5">
                 {creator.headline}
               </p>
             </div>
           </div>
 
-          <p className="text-sm text-stone-600 leading-relaxed max-w-2xl">
+          <p className="text-sm text-slate-300 leading-relaxed max-w-2xl">
             {creator.bio}
           </p>
 
           <div className="flex flex-wrap gap-2 pt-1 text-xs">
             {creator.educationCredentials && (
-              <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] text-stone-700 font-medium">
+              <span className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.12] text-slate-200 font-medium">
                 {creator.educationCredentials}
               </span>
             )}
             {typeof creator.yearsExperience === "number" &&
               creator.yearsExperience > 0 && (
-                <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] font-tech text-stone-700">
-                  {creator.yearsExperience}+ yrs experience
+                <span className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.12] font-tech text-slate-300">
+                  {creator.yearsExperience}+ years experience
                 </span>
               )}
             {typeof creator.responseTimeMinutes === "number" && (
-              <span className="px-2.5 py-1 rounded-lg bg-[#faf7f2] border border-[#e6e0d4] font-tech text-stone-700">
-                ~{creator.responseTimeMinutes}m avg response
+              <span className="px-2.5 py-1 rounded-lg bg-white/[0.05] border border-white/[0.12] font-tech text-slate-300">
+                Replies in ~{creator.responseTimeMinutes} mins
               </span>
             )}
             {typeof creator.onTimeDeliveryRate === "number" && (
-              <span className="px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-200 font-tech text-emerald-900">
-                {creator.onTimeDeliveryRate}% on-time SLA
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/35 font-tech text-emerald-300">
+                {creator.onTimeDeliveryRate}% on time
               </span>
             )}
             {typeof creator.profileCompletenessScore === "number" && (
-              <span className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 font-tech text-[#1e3a8a]">
-                {creator.profileCompletenessScore}% Standout Score
+              <span className="px-2.5 py-1 rounded-lg bg-sky-500/15 border border-sky-400/35 font-tech text-sky-300">
+                {creator.profileCompletenessScore}% profile strength
               </span>
             )}
             {creator.introVideoUrl && (
@@ -201,27 +202,27 @@ export default async function PublicCreatorProfilePage({
                 href={creator.introVideoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 font-semibold hover:bg-amber-100"
+                className="px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-400/35 text-amber-300 font-semibold hover:bg-amber-500/25"
               >
-                Watch Intro Pitch ↗
+                Watch short intro ↗
               </a>
             )}
           </div>
 
-          <div className="rounded-xl border border-[#1e3a8a]/20 bg-[#faf7f2] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="rounded-xl border border-sky-400/30 bg-sky-500/[0.08] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold text-[#111827]">
-                Need {creator.displayName} on a custom brief?
+              <p className="text-xs font-semibold text-white">
+                Have a custom project for {creator.displayName}?
               </p>
-              <p className="text-xs text-stone-600">
-                Post a brief from a KES 490 First-Page Outline & invite vetted writers to compete.
+              <p className="text-xs text-slate-300">
+                Post your job for free and compare offers — or start with a KES 490 Page 1 trial.
               </p>
             </div>
             <Link
               href="/bidding"
               className="btn-primary px-4 py-2 text-xs whitespace-nowrap text-center"
             >
-              Invite to Bid (From KES 490)
+              Post a Job
             </Link>
           </div>
 
@@ -229,7 +230,7 @@ export default async function PublicCreatorProfilePage({
             {creator.writingCategories.map((cat) => (
               <span
                 key={cat}
-                className="text-xs px-3 py-1 rounded-full bg-[#faf7f2] border border-[#e6e0d4] text-stone-800 font-medium"
+                className="text-xs px-3 py-1 rounded-full bg-white/[0.05] border border-white/[0.12] text-slate-200 font-medium"
               >
                 {cat}
               </span>
@@ -238,12 +239,12 @@ export default async function PublicCreatorProfilePage({
         </div>
 
         {/* Triple Visual Gauge Card */}
-        <div className="lg:col-span-5 grid grid-cols-3 gap-3 bg-[#faf7f2] p-5 rounded-2xl border border-[#e6e0d4] text-center">
+        <div className="lg:col-span-5 grid grid-cols-3 gap-3 bg-white/[0.04] p-5 rounded-2xl border border-white/[0.12] text-center">
           <ScoreRing
             score={creator.assessmentScore ?? 90}
             size={84}
             tone="emerald"
-            sublabel="Rubric Score"
+            sublabel="Test Score"
           />
           <ScoreRing
             score={(creator.ratingAverage / 5) * 100}
@@ -253,23 +254,23 @@ export default async function PublicCreatorProfilePage({
             sublabel="Client Rating"
           />
           <div className="flex flex-col items-center justify-center">
-            <div className="w-[84px] h-[84px] rounded-full border-[7px] border-blue-200 bg-white flex flex-col items-center justify-center">
-              <span className="font-tech text-xl font-bold text-[#1e3a8a]">
+            <div className="w-[84px] h-[84px] rounded-full border-[7px] border-sky-400/40 bg-[#060b14] flex flex-col items-center justify-center">
+              <span className="font-tech text-xl font-bold text-sky-300">
                 {creator.completedBookingsCount}
               </span>
             </div>
-            <span className="text-[11px] font-medium text-stone-600 mt-1">
-              Delivered
+            <span className="text-[11px] font-medium text-slate-400 mt-1">
+              Orders Done
             </span>
           </div>
         </div>
-      </div>
+      </HudCard>
 
       {/* Portfolio Excerpts */}
       {samples.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-editorial text-2xl font-semibold flex items-center gap-2">
-            <Award className="w-5 h-5 text-[#0f766e]" />
+          <h2 className="font-editorial text-2xl font-semibold text-white flex items-center gap-2">
+            <Award className="w-5 h-5 text-teal-300" />
             Writing Samples
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -295,15 +296,15 @@ export default async function PublicCreatorProfilePage({
               return (
                 <div
                   key={idx}
-                  className="editorial-card p-6 bg-white border-l-4 border-l-[#0f766e] space-y-3"
+                  className="editorial-card p-6 border-l-4 border-l-teal-400 space-y-3"
                 >
-                  <span className="inline-block text-[10px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200 font-semibold">
+                  <span className="inline-block text-[10px] font-tech uppercase px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-400/35 font-semibold">
                     {s.category}
                   </span>
-                  <h3 className="font-editorial text-lg font-semibold text-[#111827]">
+                  <h3 className="font-editorial text-lg font-semibold text-white">
                     {s.title}
                   </h3>
-                  <p className="text-xs text-stone-600 leading-relaxed">
+                  <p className="text-xs text-slate-300 leading-relaxed">
                     {s.excerpt}
                   </p>
 
@@ -312,7 +313,7 @@ export default async function PublicCreatorProfilePage({
                       href={safeAttachment}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="block overflow-hidden rounded-xl border border-[#e6e0d4] bg-[#faf7f2]"
+                      className="block overflow-hidden rounded-xl border border-white/[0.12] bg-[#060b14]"
                     >
                       <Image
                         src={safeAttachment}
@@ -332,7 +333,7 @@ export default async function PublicCreatorProfilePage({
                           href={safeAttachment}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] text-xs font-semibold text-[#0f766e] hover:bg-teal-50 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/15 border border-teal-400/35 text-xs font-semibold text-teal-200 hover:bg-teal-500/25 transition-colors"
                         >
                           <FileText className="w-3.5 h-3.5 shrink-0" />
                           <span className="truncate max-w-[220px]">
@@ -349,7 +350,7 @@ export default async function PublicCreatorProfilePage({
                           href={safeExternalUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-[#e6e0d4] text-xs font-medium text-[#1e3a8a] hover:bg-blue-50 transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.05] border border-white/[0.12] text-xs font-medium text-sky-300 hover:bg-sky-500/15 transition-colors"
                         >
                           <span>Reference Link</span>
                           <ExternalLink className="w-3 h-3 shrink-0" />
@@ -366,17 +367,18 @@ export default async function PublicCreatorProfilePage({
 
       {/* Active Services */}
       <section className="space-y-4">
-        <h2 className="font-editorial text-2xl font-semibold">
-          Active Services ({creator.listings.length})
-        </h2>
+        <AuroraHeading as="h2" className="text-2xl">
+          Services ({creator.listings.length})
+        </AuroraHeading>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {creator.listings.map((task) => (
+          {creator.listings.map((task, idx) => (
             <TaskCard
               key={task.id}
               task={task}
               standardFeePct={config?.standardServiceFeePct ?? 10}
               proDiscountPct={config?.proFeeDiscountPct ?? 50}
               userIsPro={userIsPro}
+              index={idx}
             />
           ))}
         </div>
@@ -385,28 +387,28 @@ export default async function PublicCreatorProfilePage({
       {/* Reviews */}
       {creator.reviewsReceived.length > 0 && (
         <section className="space-y-4">
-          <h2 className="font-editorial text-2xl font-semibold">
-            Client Feedback
+          <h2 className="font-editorial text-2xl font-semibold text-white">
+            Client Reviews
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {creator.reviewsReceived.map((rev) => (
               <div key={rev.id} className="editorial-card p-5 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold inline-flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-[#0f766e]" />
+                  <span className="text-xs font-semibold text-white inline-flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-teal-400" />
                     {rev.customer.name}
                   </span>
-                  <span className="inline-flex items-center gap-1 text-xs font-tech text-amber-700 font-bold">
-                    <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                  <span className="inline-flex items-center gap-1 text-xs font-tech text-amber-300 font-bold">
+                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                     {rev.rating}.0
                   </span>
                 </div>
-                <p className="text-xs text-stone-700 leading-relaxed">
+                <p className="text-xs text-slate-300 leading-relaxed">
                   {rev.comment}
                 </p>
                 <Link
                   href={`/tasks/${rev.task.slug}`}
-                  className="text-xs font-medium text-[#1e3a8a] hover:underline block"
+                  className="text-xs font-medium text-sky-300 hover:underline block"
                 >
                   {rev.task.title}
                 </Link>

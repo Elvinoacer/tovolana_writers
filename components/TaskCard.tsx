@@ -1,11 +1,6 @@
-import { formatKes } from "@/components/ui/Badges";
+import { useId } from "react";
+import Link from "next/link";
 import {
-  CreatorAvatar,
-  getCategoryPhotoSrc,
-} from "@/components/ui/EditorialVisuals";
-import { calculateBookingPricing, isFutureTimestamp } from "@/lib/pricing";
-import {
-  ArrowUpRight,
   BadgeCheck,
   Clock,
   Crown,
@@ -14,8 +9,22 @@ import {
   Sparkles,
   Star,
 } from "lucide-react";
-import Image from "next/image";
-import Link from "next/link";
+import { formatKes } from "@/components/ui/Badges";
+import { getCategoryPhotoSrc } from "@/components/ui/EditorialVisuals";
+import {
+  HudActionOrb,
+  HudBadge,
+  HudCard,
+  HudMediaFrame,
+  HudPriceDock,
+  RadarAvatar,
+} from "@/components/ui/AuroraPrimitives";
+import {
+  HUD_ACCENT_HEX,
+  getCardHudTheme,
+  type HudThemeKey,
+} from "@/lib/design-tokens";
+import { calculateBookingPricing, isFutureTimestamp } from "@/lib/pricing";
 
 export interface TaskCardItem {
   id: string;
@@ -52,10 +61,12 @@ export interface TaskCardItem {
 }
 
 /**
- * Luminous Editorial Service Card:
- * - Sweeping top light filament & glowing gradient perimeter on hover
- * - Decluttered single-line hook + inline spec pills for effortless scanning
- * - Supports both standard gallery cards and wide `featured` spotlight layout
+ * Futuristic Aurora HUD Service Card matching ambitious_screen_designs/card1_crop.png..card3_crop.png:
+ * - Living two-tone perimeter aurora wash with high-contrast smoked reading core
+ * - Cascading 3x5 dot-matrix telemetry and swept curved media frame
+ * - Dashed neon HUD tag + circular orbital energy arrow orb
+ * - Dual-pod sculpted translucent footer with traceable S-curve contour lines,
+ *   counter-rotating radar avatar rings, and alternating beveled price dock
  */
 export function TaskCard({
   task,
@@ -63,13 +74,24 @@ export function TaskCard({
   proDiscountPct = 50,
   userIsPro = false,
   featured = false,
+  themeOverride,
+  index,
 }: {
   task: TaskCardItem;
   standardFeePct?: number;
   proDiscountPct?: number;
   userIsPro?: boolean;
   featured?: boolean;
+  themeOverride?: HudThemeKey;
+  index?: number;
 }) {
+  const rawId = useId();
+  const safeId = rawId.replace(/:/g, "");
+  const pocketGradId = `hud-pocket-${safeId}`;
+  const podGradId = `hud-pod-${safeId}`;
+  const traceGradId = `hud-trace-${safeId}`;
+  const railGradId = `hud-rail-${safeId}`;
+
   const pricing = calculateBookingPricing({
     listedPrice: task.basePrice,
     standardServiceFeePct: standardFeePct,
@@ -78,6 +100,9 @@ export function TaskCard({
     userIsPro,
   });
 
+  const theme =
+    themeOverride ?? getCardHudTheme(task.category.slug, index);
+  const palette = HUD_ACCENT_HEX[theme];
   const isProEarlyAccess = isFutureTimestamp(task.proEarlyAccessUntil);
   const photoSrc = getCategoryPhotoSrc(task.category.slug);
   const deliverables = Array.isArray(task.deliverablesSummary)
@@ -86,149 +111,141 @@ export function TaskCard({
   const isQuoteBased = task.pricingType === "QUOTE_BASED";
   const taskHref = `/tasks/${task.slug}`;
 
+  // Dual-pod traced-line geometry tuned cleanly for standard cards vs wide featured spotlight cards
+  const podTopX = featured ? 244 : 204;
+  const podBottomX = featured ? 208 : 166;
+  const shelfStartBottomX = featured ? 210 : 168;
+  const shelfMidX = featured ? 236 : 194;
+  const shelfTopX = featured ? 256 : 212;
+
+  const leftPodPath = `M 8,28 Q 8,14 22,14 H ${podTopX} C ${podTopX - 10},34 ${podBottomX + 10},56 ${podBottomX},74 H 22 Q 8,74 8,60 Z`;
+  const rightPocketPath = `M ${shelfStartBottomX},74 C ${shelfMidX - 12},52 ${shelfMidX + 2},24 ${shelfTopX},5 H 338 Q 354,5 354,21 V 60 Q 354,74 338,74 Z`;
+  const sCurveTracePath = `M 22,74 H ${shelfStartBottomX} C ${shelfMidX - 12},52 ${shelfMidX + 2},24 ${shelfTopX},5 H 338 Q 354,5 354,21 V 60 Q 354,74 338,74`;
+
   return (
-    <article
-      className={`group relative flex h-full flex-col overflow-hidden rounded-[22px] p-[1px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:-translate-y-1.5 ${
-        featured
-          ? "bg-gradient-to-r from-[#1e3a8a]/35 via-[#0f766e]/35 to-[#d97706]/35 shadow-[0_18px_48px_-18px_rgba(30,58,138,0.22)] hover:shadow-[0_24px_60px_-16px_rgba(30,58,138,0.3)] md:flex-row"
-          : "bg-[#e6e0d4] shadow-[0_2px_8px_rgba(17,24,39,0.03),0_12px_30px_-16px_rgba(17,24,39,0.1)] hover:bg-gradient-to-br hover:from-[#1e3a8a]/65 hover:via-[#0f766e]/55 hover:to-[#d97706]/65 hover:shadow-[0_22px_48px_-16px_rgba(30,58,138,0.2)]"
-      }`}
+    <HudCard
+      theme={theme}
+      brackets
+      hideBottomBracket
+      dotMatrix={index !== undefined && index % 3 === 2 ? "right" : "left"}
+      dotMatrixPosition="pocket"
+      phaseIndex={index ?? 0}
+      liveAurora
+      interactive
+      className="group h-full"
     >
-      {/* Inner Card Surface */}
-      <div
-        className={`relative flex h-full w-full flex-col overflow-hidden rounded-[21px] bg-white ${
+      <article
+        className={`relative flex h-full w-full flex-col ${
           featured ? "md:flex-row" : ""
         }`}
       >
-        {/* Sweeping Luminous Top Light Line */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 top-0 z-30 h-[2px] overflow-hidden"
-        >
-          <div className="h-full w-1/2 -translate-x-full bg-gradient-to-r from-transparent via-[#38bdf8] via-[#10b981] to-transparent transition-transform duration-1000 ease-out group-hover:translate-x-[250%]" />
-        </div>
-
         {/* Full-Card Primary Link */}
         <Link
           href={taskHref}
           aria-label={`View ${task.title}`}
-          className="absolute inset-0 z-10 cursor-pointer rounded-[21px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a8a] focus-visible:ring-offset-2"
+          className="absolute inset-0 z-10 cursor-pointer rounded-[20px] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-2 focus-visible:ring-offset-[#060a12]"
         />
 
-        {/* Cover Photograph */}
+        {/* Sculpted Media Viewport */}
         <div
-          className={`relative shrink-0 overflow-hidden bg-[#f2ede3] ${
-            featured
-              ? "aspect-[16/10] w-full md:aspect-auto md:w-[44%]"
-              : "aspect-[16/10] w-full"
+          className={`relative z-20 shrink-0 p-2 pb-0 pointer-events-none ${
+            featured ? "md:w-[44%] md:p-3 md:pr-0" : "w-full"
           }`}
         >
-          <Image
+          <HudMediaFrame
             src={photoSrc}
-            alt=""
-            fill
+            alt={task.category.name}
+            categoryLabel={task.category.name}
+            theme={theme}
+            aspectClass={
+              featured
+                ? "aspect-[16/10] w-full md:h-full md:aspect-auto"
+                : "aspect-[16/9] w-full"
+            }
             sizes={
               featured
                 ? "(max-width: 768px) 100vw, 520px"
                 : "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 400px"
             }
-            className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
-          />
-          <div
-            aria-hidden="true"
-            className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent"
-          />
-
-          {/* Top Floating Badges */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3.5">
-            <span className="inline-flex max-w-full items-center truncate rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold tracking-tight text-[#111827] shadow-xs backdrop-blur-md">
-              {task.category.name}
-            </span>
-
-            <div className="flex items-center gap-1.5">
-              {featured && (
-                <span className="inline-flex items-center gap-1 rounded-full bg-[#111827]/90 px-2.5 py-1 text-[10px] font-tech font-semibold uppercase tracking-wider text-white backdrop-blur-md">
-                  <Sparkles className="h-3 w-3 text-amber-300" />
-                  Spotlight
+            topRightSlot={
+              <>
+                {featured && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-white/25 bg-slate-950/80 px-2.5 py-1 text-[10px] font-tech font-semibold uppercase tracking-wider text-white backdrop-blur-md">
+                    <Sparkles className="h-3 w-3 text-amber-300" />
+                    Spotlight
+                  </span>
+                )}
+                {isProEarlyAccess && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/55 bg-amber-950/80 px-2.5 py-1 text-[11px] font-semibold text-amber-200 backdrop-blur-md">
+                    <Crown className="h-3 w-3 text-amber-300" aria-hidden="true" />
+                    Pro
+                  </span>
+                )}
+              </>
+            }
+            bottomLeftSlot={
+              isQuoteBased ? (
+                <span className="inline-flex items-center rounded-md border border-white/25 bg-slate-950/80 px-2.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-100 backdrop-blur-md">
+                  Custom quote
                 </span>
-              )}
-              {isProEarlyAccess && (
-                <span className="inline-flex items-center gap-1 rounded-full border border-amber-300/90 bg-amber-50/95 px-2.5 py-1 text-[11px] font-semibold text-amber-950 shadow-xs backdrop-blur-md">
-                  <Crown
-                    className="h-3 w-3 text-[#b45309]"
-                    aria-hidden="true"
-                  />
-                  Pro
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Bottom-Left Pricing Mode Pill (Only for Custom Quote) */}
-          {isQuoteBased && (
-            <div className="pointer-events-none absolute bottom-3 left-3.5 z-20">
-              <span className="inline-flex items-center rounded-md border border-white/25 bg-black/55 px-2.5 py-0.5 text-[10px] font-tech font-semibold uppercase tracking-wider text-white backdrop-blur-md">
-                Custom Quote
-              </span>
-            </div>
-          )}
+              ) : undefined
+            }
+          />
         </div>
 
-        {/* Decluttered Content Panel */}
-        <div
-          className={`pointer-events-none relative z-20 flex flex-1 flex-col justify-between bg-white ${
-            featured ? "gap-5 p-6 sm:p-8" : "gap-4 p-5"
-          }`}
-        >
-          <div className="space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <span className="font-tech text-[10px] font-semibold uppercase tracking-widest text-[#0f766e]">
-                {task.serviceType}
-              </span>
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#faf7f2] text-stone-400 transition-all duration-300 group-hover:bg-[#1e3a8a] group-hover:text-white">
-                <ArrowUpRight className="h-3.5 w-3.5" />
-              </span>
+        {/* Main Content + Sculpted Traced Footer Deck */}
+        <div className="pointer-events-none relative z-20 flex flex-1 flex-col justify-between">
+          <div
+            className={`relative space-y-3 ${
+              featured ? "p-5 sm:p-7 sm:pb-4" : "px-4 pt-3.5 pb-4"
+            }`}
+          >
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <HudBadge label={task.serviceType} sparkle />
+                <HudActionOrb theme={theme} />
+              </div>
+
+              <h3
+                className={`font-editorial font-bold tracking-tight text-white transition-all duration-200 group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.22)] line-clamp-2 ${
+                  featured
+                    ? "text-xl leading-snug sm:text-2xl"
+                    : "text-[1.06rem] leading-[1.32]"
+                }`}
+              >
+                {task.title}
+              </h3>
+
+              <p
+                className={`text-[12.5px] leading-relaxed text-slate-200/85 ${
+                  featured ? "line-clamp-2 max-w-2xl" : "line-clamp-1"
+                }`}
+              >
+                {task.shortDescription}
+              </p>
             </div>
 
-            <h3
-              className={`font-editorial font-bold tracking-tight text-[#111827] transition-colors duration-200 group-hover:text-[#1e3a8a] line-clamp-2 ${
-                featured
-                  ? "text-xl leading-snug sm:text-2xl"
-                  : "text-[1.08rem] leading-[1.32]"
-              }`}
-            >
-              {task.title}
-            </h3>
-
-            <p
-              className={`text-[13px] leading-relaxed text-stone-500 ${
-                featured ? "line-clamp-2 max-w-2xl" : "line-clamp-1"
-              }`}
-            >
-              {task.shortDescription}
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {/* Lightweight Inline Micro-Specs (Replaces Heavy 3-Box Table) */}
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4]/80 bg-[#faf7f2] px-2.5 py-1 font-tech text-[11px] font-semibold text-[#111827]">
-                <Clock className="h-3 w-3 text-[#1e3a8a]" aria-hidden="true" />
-                {task.deliveryTurnaroundDays}d delivery
+            {/* Smoked Dark Spec Pills */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.16] bg-[#070d18]/78 px-2.5 py-1 font-tech text-[11px] font-medium text-slate-100 backdrop-blur-md transition-colors group-hover:border-white/25">
+                <Clock className="h-3 w-3 text-sky-300" aria-hidden="true" />
+                {task.deliveryTurnaroundDays}{" "}
+                {task.deliveryTurnaroundDays === 1 ? "day" : "days"}
               </span>
 
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4]/80 bg-[#faf7f2] px-2.5 py-1 font-tech text-[11px] font-semibold text-[#111827]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.16] bg-[#070d18]/78 px-2.5 py-1 font-tech text-[11px] font-medium text-slate-100 backdrop-blur-md transition-colors group-hover:border-white/25">
                 <RotateCcw
-                  className="h-3 w-3 text-[#0f766e]"
+                  className="h-3 w-3 text-teal-300"
                   aria-hidden="true"
                 />
-                {task.maxRevisions}x rev
+                {task.maxRevisions}{" "}
+                {task.maxRevisions === 1 ? "free edit" : "free edits"}
               </span>
 
               {deliverables.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#e6e0d4]/80 bg-[#faf7f2] px-2.5 py-1 font-tech text-[11px] font-semibold text-[#111827]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.16] bg-[#070d18]/78 px-2.5 py-1 font-tech text-[11px] font-medium text-slate-100 backdrop-blur-md transition-colors group-hover:border-white/25">
                   <FileCheck2
-                    className="h-3 w-3 text-[#b45309]"
+                    className="h-3 w-3 text-amber-300"
                     aria-hidden="true"
                   />
                   {deliverables.length}{" "}
@@ -237,55 +254,228 @@ export function TaskCard({
               )}
             </div>
 
-            {/* Creator + Price Footer */}
-            <div className="flex items-center justify-between gap-3 border-t border-[#e6e0d4]/80 pt-3.5">
+            {/* Lower-right corner bracket nestled cleanly above raised footer shelf */}
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 12 12"
+              fill="none"
+              style={{ filter: `drop-shadow(0 0 4px ${palette.glow})` }}
+              className="pointer-events-none absolute right-2.5 bottom-1 h-2.5 w-2.5"
+            >
+              <path
+                d="M10.5 1.5V9.5C10.5 10.05 10.05 10.5 9.5 10.5H1.5"
+                stroke={palette.bright}
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+
+          {/* Sculpted Dual-Pod Traced-Line Translucent Footer Deck */}
+          <footer className="relative mt-auto pt-3.5 px-3.5 pb-3">
+            {/* Soft radial aurora behind right price dock */}
+            <div
+              aria-hidden="true"
+              style={{
+                background: `radial-gradient(ellipse at 82% 58%, ${palette.glow} 0%, transparent 66%)`,
+              }}
+              className="pointer-events-none absolute right-2 bottom-1 h-16 w-40 opacity-35 blur-md transition-opacity duration-300 group-hover:opacity-65"
+            />
+
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 360 80"
+              preserveAspectRatio="none"
+              className="pointer-events-none absolute inset-0 h-full w-full"
+            >
+              <defs>
+                <linearGradient
+                  id={pocketGradId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--hud-footer-pocket-bg)"
+                    stopOpacity="0.95"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor={palette.secondaryGlow}
+                    stopOpacity="0.72"
+                  />
+                </linearGradient>
+
+                <linearGradient
+                  id={podGradId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="100%"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--hud-footer-pod-bg)"
+                    stopOpacity="0.92"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="rgba(16, 30, 38, 0.76)"
+                  />
+                </linearGradient>
+
+                <linearGradient
+                  id={traceGradId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="rgba(255, 255, 255, 0.14)"
+                  />
+                  <stop
+                    offset="46%"
+                    stopColor="var(--hud-footer-line)"
+                  />
+                  <stop
+                    offset="64%"
+                    stopColor="var(--hud-footer-line-bright)"
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--hud-footer-line)"
+                  />
+                </linearGradient>
+
+                <linearGradient
+                  id={railGradId}
+                  x1="0%"
+                  y1="0%"
+                  x2="100%"
+                  y2="0%"
+                >
+                  <stop offset="0%" stopColor="rgba(255,255,255,0.06)" />
+                  <stop offset="45%" stopColor="rgba(255,255,255,0.28)" />
+                  <stop offset="100%" stopColor="rgba(255,255,255,0.08)" />
+                </linearGradient>
+              </defs>
+
+              {/* Layer 1: Raised translucent colored frosted pocket behind price */}
+              <path
+                d={rightPocketPath}
+                fill={`url(#${pocketGradId})`}
+              />
+
+              {/* Layer 2: Left dark smoked translucent writer pod */}
+              <path
+                d={leftPodPath}
+                fill={`url(#${podGradId})`}
+                stroke={`url(#${railGradId})`}
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+
+              {/* Layer 3: Continuous traceable glowing S-curve contour */}
+              <path
+                d={sCurveTracePath}
+                fill="none"
+                stroke={`url(#${traceGradId})`}
+                strokeWidth="1.25"
+                vectorEffect="non-scaling-stroke"
+                className="hud-footer-trace opacity-85 transition-opacity duration-300"
+              />
+
+              {/* Bi-directional traveling neon light beam tracing the S-curve & price shelf */}
+              <path
+                d={sCurveTracePath}
+                pathLength={100}
+                fill="none"
+                stroke={palette.accent}
+                strokeWidth="5"
+                strokeDasharray="18 82"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                style={{ filter: "blur(2.5px)" }}
+                className="animate-hud-scurve opacity-85"
+              />
+              <path
+                d={sCurveTracePath}
+                pathLength={100}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+                strokeDasharray="11 89"
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+                style={{ filter: `drop-shadow(0 0 4px ${palette.bright})` }}
+                className="animate-hud-scurve opacity-95"
+              />
+
+              {/* Crisper specular top highlight along the raised shelf rail */}
+              <path
+                d={`M ${shelfTopX},5 H 336`}
+                fill="none"
+                stroke={palette.bright}
+                strokeOpacity="0.45"
+                strokeWidth="1"
+                vectorEffect="non-scaling-stroke"
+              />
+            </svg>
+
+            <div className="relative z-20 flex items-center justify-between gap-2.5 pt-2.5">
               {task.creator ? (
                 <Link
                   href={`/creators/${task.creator.username}`}
-                  className="pointer-events-auto relative z-30 group/creator flex min-w-0 cursor-pointer items-center gap-2.5 rounded-xl py-0.5 pr-1.5 transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3a8a]"
+                  className="pointer-events-auto relative z-30 group/creator flex min-w-0 max-w-[56%] cursor-pointer items-center gap-2 rounded-xl py-0.5 pr-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
                 >
-                  <CreatorAvatar
+                  <RadarAvatar
                     name={task.creator.displayName}
-                    username={task.creator.username}
                     avatarUrl={task.creator.user?.avatarUrl}
                     available={task.creator.isAvailable ?? true}
+                    theme={theme}
                     size="sm"
                   />
                   <div className="min-w-0">
-                    <span className="block truncate text-[13px] font-semibold text-[#111827] transition-colors group-hover/creator:text-[#1e3a8a]">
+                    <span className="block truncate text-[12.5px] font-semibold text-white group-hover/creator:underline decoration-white/60 underline-offset-2">
                       {task.creator.displayName}
                     </span>
-                    <span className="inline-flex items-center gap-1 font-tech text-[11px] font-semibold text-stone-500">
+                    <span className="inline-flex items-center gap-1 font-tech text-[11px] font-semibold text-slate-100">
                       <Star
                         className="h-3 w-3 fill-amber-400 text-amber-400"
                         aria-hidden="true"
                       />
                       {task.creator.ratingAverage.toFixed(1)}
+                      <Star
+                        className="h-2.5 w-2.5 text-white/25"
+                        aria-hidden="true"
+                      />
                     </span>
                   </div>
                 </Link>
               ) : (
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-stone-600">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-100 max-w-[56%]">
                   <BadgeCheck
-                    className="h-4 w-4 text-[#0f766e]"
+                    className="h-4 w-4 text-teal-300"
                     aria-hidden="true"
                   />
-                  <span>Vetted Writer</span>
+                  <span className="truncate">Tested Writer</span>
                 </div>
               )}
 
-              <div className="shrink-0 text-right">
-                <span className="block text-[10px] font-medium uppercase tracking-wider text-stone-400">
-                  {userIsPro ? "Pro total" : "From"}
-                </span>
-                <span className="font-tech mt-0.5 block text-[16px] font-bold tracking-tight text-[#111827] group-hover:text-[#b45309] transition-colors">
-                  {formatKes(pricing.totalPayable, task.currency)}
-                </span>
-              </div>
+              <HudPriceDock
+                label={userIsPro ? "Pro total" : "From"}
+                price={formatKes(pricing.totalPayable, task.currency)}
+                theme={theme}
+                size="sm"
+              />
             </div>
-          </div>
+          </footer>
         </div>
-      </div>
-    </article>
+      </article>
+    </HudCard>
   );
 }

@@ -1,11 +1,16 @@
 "use client";
 
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { RadarAvatar } from "@/components/ui/AuroraPrimitives";
 
 import React, { useCallback, useEffect, useState } from "react";
 import { Crown, Search, ShieldAlert, UserCheck } from "lucide-react";
 import { AdminShell } from "@/components/AdminShell";
-import { StatusPill } from "@/components/ui/Badges";
+import {
+  StatusPill,
+  formatAdminScope,
+  formatRole,
+  formatStatusLabel,
+} from "@/components/ui/Badges";
 
 interface AdminUserRow {
   id: string;
@@ -71,7 +76,7 @@ export default function AdminUsersPage() {
     });
     const j = await res.json();
     if (!res.ok) {
-      setError(j.error?.message || "Update failed (requires SUPER_ADMIN).");
+      setError(j.error?.message || "Only a Super Admin can change this.");
       return;
     }
     setNotice(label);
@@ -80,71 +85,70 @@ export default function AdminUsersPage() {
 
   return (
     <AdminShell
-      title="User Accounts, Roles & Pro Membership"
-      subtitle="Search customers, vetted creators, and scoped administrators; suspend/reactivate accounts or grant Pro access."
+      title="Users & Roles"
+      subtitle="Search clients, writers, and admins, pause or reopen accounts, or grant Pro access."
       requiredScope="SUPPORT_ADMIN"
     >
       <div className="flex gap-2">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by email or name..."
-            className="w-full rounded-lg border border-[#e6e0d4] bg-white pl-9 pr-3 py-2 text-sm"
+            className="hud-input pl-9 pr-3 py-2"
           />
         </div>
         <button
           onClick={() => loadUsers(query)}
-          className="px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-xs font-semibold"
+          className="btn-primary px-4 py-2 text-xs font-semibold"
         >
           Search
         </button>
       </div>
 
       {error && (
-        <div className="p-3.5 rounded-lg border border-rose-200 bg-rose-50 text-rose-800 text-sm">
+        <div className="p-3.5 rounded-lg border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="p-3.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-800 text-sm">
+        <div className="p-3.5 rounded-lg border border-emerald-400/35 bg-emerald-500/15 text-emerald-200 text-sm">
           {notice}
         </div>
       )}
 
       <div className="editorial-card overflow-x-auto">
         {loading ? (
-          <p className="p-6 text-sm text-stone-500">Loading users...</p>
+          <p className="p-6 text-sm text-slate-400">Loading users...</p>
         ) : (
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#faf7f2] border-b border-[#e6e0d4] text-stone-600">
+            <thead className="bg-white/[0.04] border-b border-white/[0.08] text-slate-400">
               <tr>
                 <th className="p-3.5">Account</th>
-                <th className="p-3.5">Roles & Scopes</th>
+                <th className="p-3.5">Roles &amp; Scopes</th>
                 <th className="p-3.5">Plan</th>
                 <th className="p-3.5">Status</th>
                 <th className="p-3.5">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e6e0d4]">
+            <tbody className="divide-y divide-white/[0.08]">
               {users.map((u) => (
-                <tr key={u.id} className="hover:bg-[#faf7f2]/60 transition-colors">
+                <tr
+                  key={u.id}
+                  className="hover:bg-white/[0.03] transition-colors"
+                >
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <CreatorAvatar
-                        name={u.name}
-                        username={u.creatorProfile?.username}
-                        size="sm"
-                      />
+                      <RadarAvatar name={u.name} size="sm" theme="sky" />
                       <div>
-                        <p className="font-semibold text-[#111827]">{u.name}</p>
-                        <p className="text-stone-500">{u.email}</p>
-                        <p className="font-tech text-[11px] text-stone-400">
-                          {u._count.customerBookings} bookings
+                        <p className="font-semibold text-white">{u.name}</p>
+                        <p className="text-slate-400">{u.email}</p>
+                        <p className="font-tech text-[11px] text-slate-400">
+                          {u._count.customerBookings} orders
                           {u.creatorProfile
-                            ? ` · @${u.creatorProfile.username} (${u.creatorProfile.applicationStatus})`
+                            ? ` · @${u.creatorProfile.username} (${formatStatusLabel(u.creatorProfile.applicationStatus)})`
                             : ""}
                         </p>
                       </div>
@@ -155,30 +159,30 @@ export default function AdminUsersPage() {
                       {u.roles.map((r) => (
                         <span
                           key={r}
-                          className="px-2 py-0.5 rounded-md bg-[#faf7f2] border border-[#e6e0d4] font-tech"
+                          className="px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.12] text-slate-200 font-tech"
                         >
-                          {r}
+                          {formatRole(r)}
                         </span>
                       ))}
                       {u.adminScopes.map((s) => (
                         <span
                           key={s}
-                          className="px-2 py-0.5 rounded-md bg-blue-50 text-[#1e3a8a] border border-blue-200 font-tech"
+                          className="px-2 py-0.5 rounded-md bg-sky-500/15 text-sky-200 border border-sky-400/35 font-tech"
                         >
-                          {s}
+                          {formatAdminScope(s)}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="p-4">
                     <span
-                      className={`px-2.5 py-0.5 rounded-full font-semibold ${
+                      className={`px-2.5 py-0.5 rounded-full font-semibold border ${
                         u.membershipTier === "PRO"
-                          ? "bg-amber-100 text-amber-900"
-                          : "bg-stone-100 text-stone-700"
+                          ? "bg-amber-500/20 text-amber-200 border-amber-400/35"
+                          : "bg-white/[0.07] text-slate-300 border-white/[0.14]"
                       }`}
                     >
-                      {u.membershipTier}
+                      {u.membershipTier === "PRO" ? "Pro" : "Free"}
                     </span>
                   </td>
                   <td className="p-4">
@@ -195,26 +199,26 @@ export default function AdminUsersPage() {
                                 u.status === "SUSPENDED"
                                   ? "ACTIVE"
                                   : "SUSPENDED",
-                              reason: "Admin status adjustment",
+                              reason: "Admin account update",
                             },
-                            `Updated status for ${u.email}`
+                            `Updated account for ${u.email}`
                           )
                         }
                         className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border font-semibold transition-colors ${
                           u.status === "SUSPENDED"
-                            ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50"
-                            : "border-rose-300 text-rose-700 hover:bg-rose-50"
+                            ? "border-emerald-400/35 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                            : "border-rose-400/35 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25"
                         }`}
                       >
                         {u.status === "SUSPENDED" ? (
                           <>
                             <UserCheck className="w-3 h-3" />
-                            Reactivate
+                            Reopen Account
                           </>
                         ) : (
                           <>
                             <ShieldAlert className="w-3 h-3" />
-                            Suspend
+                            Pause Account
                           </>
                         )}
                       </button>
@@ -226,16 +230,19 @@ export default function AdminUsersPage() {
                               userId: u.id,
                               membershipTier:
                                 u.membershipTier === "PRO" ? "FREE" : "PRO",
-                              proDays: u.membershipTier === "PRO" ? undefined : 30,
-                              reason: "Admin membership tier toggle",
+                              proDays:
+                                u.membershipTier === "PRO" ? undefined : 30,
+                              reason: "Admin plan update",
                             },
-                            `Toggled Pro membership for ${u.email}`
+                            `Updated Pro plan for ${u.email}`
                           )
                         }
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 text-amber-900 font-semibold hover:bg-amber-50 transition-colors"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-400/35 bg-amber-500/15 text-amber-200 font-semibold hover:bg-amber-500/25 transition-colors"
                       >
                         <Crown className="w-3 h-3" />
-                        {u.membershipTier === "PRO" ? "Set Free" : "Grant Pro 30d"}
+                        {u.membershipTier === "PRO"
+                          ? "Switch to Free"
+                          : "Give Pro (30d)"}
                       </button>
                     </div>
                   </td>

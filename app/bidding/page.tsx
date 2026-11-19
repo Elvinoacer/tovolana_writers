@@ -20,7 +20,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/components/AuthContext";
 import { formatKes } from "@/components/ui/Badges";
-import { CreatorAvatar } from "@/components/ui/EditorialVisuals";
+import { HUD_THEME_CYCLE } from "@/lib/design-tokens";
+import {
+  AuroraHeading,
+  HudCard,
+  RadarAvatar,
+} from "@/components/ui/AuroraPrimitives";
 
 interface BriefPreviewBid {
   id: string;
@@ -197,113 +202,134 @@ export default function LiveBiddingMarketplacePage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 animate-reveal">
-      {/* Dual-Mode Bidding Hero */}
-      <section className="editorial-card p-6 sm:p-8 bg-gradient-to-br from-[#0f172a] via-[#111827] to-[#0c1b18] text-white border-0 shadow-xl">
+      {/* Dark Aurora HUD Jobs Hero */}
+      <HudCard theme="amber" brackets className="p-6 sm:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-8 space-y-4">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider px-3 py-1 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider px-3 py-1 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/35">
                 <Gavel className="w-3.5 h-3.5" />
-                Live Proposal Auction
+                Open Writing Jobs
               </span>
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-tech uppercase tracking-wider px-3 py-1 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/35">
                 <ShieldCheck className="w-3.5 h-3.5" />
-                KES 490 Outline Tripwire Enabled
+                Try Page 1 for KES 490
               </span>
             </div>
 
-            <h1 className="font-editorial text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.08] text-[#faf7f2]">
-              Post once. Let vetted writers compete for #1.
-            </h1>
+            <AuroraHeading
+              as="h1"
+              className="text-3xl sm:text-5xl leading-[1.08]"
+            >
+              Post your job for free. Tested writers apply.
+            </AuroraHeading>
 
-            <p className="text-sm sm:text-base text-stone-300 max-w-2xl leading-relaxed">
-              Clients receive ranked, rubric-vetted proposals in minutes—and can lock a writer for just{" "}
-              <strong className="text-amber-300">KES 490</strong> first-page outline. Writers see exact live rank positions and promote bids into Top-3 boosted slots using Connects.
+            <p className="text-sm sm:text-base text-slate-300 max-w-2xl leading-relaxed">
+              Share what you need once and compare prices and messages from
+              tested writers. You can start small by ordering{" "}
+              <strong className="text-amber-300">Page 1 for KES 490</strong>{" "}
+              before paying for the whole project.
             </p>
+
+            {/* Clear 3-Step Guide */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs pt-1">
+              <div className="rounded-xl bg-white/[0.05] border border-white/[0.11] px-3 py-2">
+                <p className="font-semibold text-amber-300">1. Post your job</p>
+                <p className="text-slate-300 text-[11px]">Takes 2 minutes, always free</p>
+              </div>
+              <div className="rounded-xl bg-white/[0.05] border border-white/[0.11] px-3 py-2">
+                <p className="font-semibold text-amber-300">2. Compare offers</p>
+                <p className="text-slate-300 text-[11px]">See writer ratings &amp; prices</p>
+              </div>
+              <div className="rounded-xl bg-white/[0.05] border border-white/[0.11] px-3 py-2">
+                <p className="font-semibold text-amber-300">3. Pick &amp; pay safely</p>
+                <p className="text-slate-300 text-[11px]">Start from KES 490 or 25%</p>
+              </div>
+            </div>
 
             <div className="flex flex-wrap items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setShowPostForm((v) => !v)}
-                className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#faf7f2] text-[#111827] text-sm font-semibold hover:bg-amber-100 transition-colors"
+                className="btn-primary px-5 py-3 text-sm"
               >
-                <PlusCircle className="w-4 h-4 text-[#1e3a8a]" />
-                Post Custom Brief (Free)
+                <PlusCircle className="w-4 h-4" />
+                Post a Free Job
               </button>
 
               {isApprovedCreator ? (
                 <Link
                   href="/creators-hub/connects"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500/20 border border-amber-400/40 text-amber-200 text-sm font-semibold hover:bg-amber-500/30 transition-colors"
+                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-amber-500/20 border border-amber-400/45 text-amber-200 text-sm font-semibold hover:bg-amber-500/30 transition-colors"
                 >
                   <Zap className="w-4 h-4 text-amber-300" />
                   <span>
                     {connectsBalance ?? user?.creatorProfile?.connectsBalance ?? 0}{" "}
-                    Connects Available · Top Up
+                    Credits Left · Get More
                   </span>
                 </Link>
               ) : (
                 <Link
                   href="/creators-hub/join"
-                  className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-white/25 bg-white/5 text-white text-sm font-medium hover:bg-white/10 transition-colors"
+                  className="btn-ghost px-5 py-3 text-sm"
                 >
-                  Qualify as a Bidder
+                  Become a Writer
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
             </div>
           </div>
 
-          <div className="lg:col-span-4 grid grid-cols-2 gap-3 bg-white/5 border border-white/10 rounded-2xl p-5">
+          <div className="lg:col-span-4 grid grid-cols-2 gap-3 bg-white/[0.05] border border-white/[0.12] rounded-2xl p-5">
             <div>
-              <p className="text-[11px] font-tech uppercase text-stone-400">
-                Open Briefs
+              <p className="text-[11px] font-tech uppercase text-slate-400">
+                Open Jobs
               </p>
               <p className="font-tech text-3xl font-bold text-white mt-1">
                 {briefs.length}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-tech uppercase text-stone-400">
-                Tripwire Lock
+              <p className="text-[11px] font-tech uppercase text-slate-400">
+                Start Small
               </p>
               <p className="font-tech text-2xl font-bold text-amber-300 mt-1">
                 KES 490
               </p>
             </div>
-            <div className="col-span-2 pt-2 border-t border-white/10 text-xs text-stone-300 flex items-center justify-between">
-              <span>Top-3 Boosted Slots</span>
+            <div className="col-span-2 pt-2 border-t border-white/[0.1] text-xs text-slate-300 flex items-center justify-between">
+              <span>Safe Payment</span>
               <span className="font-tech text-emerald-300 font-semibold">
-                Live Rank Auction
+                Writer paid on approval
               </span>
             </div>
           </div>
         </div>
-      </section>
+      </HudCard>
 
-      {/* Post Brief Drawer */}
+      {/* Post a Job Drawer */}
       {showPostForm && (
-        <section className="editorial-card p-6 sm:p-8 bg-white border-2 border-[#1e3a8a]/30 space-y-5 animate-reveal">
+        <HudCard theme="cyan" brackets className="p-6 sm:p-8 space-y-5 animate-reveal">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-editorial text-2xl font-semibold text-[#111827]">
-                Post a Custom Brief for Competitive Bids
+              <h2 className="font-editorial text-2xl font-semibold text-white">
+                Post a Writing Job (Free)
               </h2>
-              <p className="text-xs text-stone-600 mt-0.5">
-                Free to publish. Compare ranked writers, sample hooks, and lock with a KES 490 outline or 25% deposit.
+              <p className="text-xs text-slate-300 mt-0.5">
+                Free to post. Compare offers from writers and start with Page 1 for KES 490 or a 25% deposit.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setShowPostForm(false)}
-              className="p-2 rounded-xl border border-[#e6e0d4] text-stone-500 hover:text-[#111827]"
+              className="p-2 rounded-xl border border-white/[0.14] bg-white/[0.06] text-slate-300 hover:text-white"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
           {formError && (
-            <div className="p-3.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-xs">
+            <div className="p-3.5 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-xs">
               {formError}
             </div>
           )}
@@ -311,8 +337,8 @@ export default function LiveBiddingMarketplacePage() {
           <form onSubmit={handlePostBrief} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-xs font-semibold mb-1">
-                  Brief Title
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Job Title
                 </label>
                 <input
                   type="text"
@@ -322,20 +348,20 @@ export default function LiveBiddingMarketplacePage() {
                   onChange={(e) =>
                     setNewBrief((p) => ({ ...p, title: e.target.value }))
                   }
-                  placeholder="e.g. Systematic Literature Review on Mobile Credit Risk in East Africa"
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2.5 text-sm"
+                  placeholder="e.g. Research paper on mobile money growth in Kenya"
+                  className="hud-input w-full px-3.5 py-2.5 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Discipline
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Category
                 </label>
                 <select
                   value={newBrief.categoryId}
                   onChange={(e) =>
                     setNewBrief((p) => ({ ...p, categoryId: e.target.value }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2.5 text-sm bg-white"
+                  className="hud-input w-full px-3.5 py-2.5 text-sm"
                 >
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -347,8 +373,8 @@ export default function LiveBiddingMarketplacePage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold mb-1">
-                Detailed Brief &amp; Rubric Requirements
+              <label className="block text-xs font-semibold text-slate-200 mb-1">
+                What do you need written?
               </label>
               <textarea
                 rows={4}
@@ -358,15 +384,15 @@ export default function LiveBiddingMarketplacePage() {
                 onChange={(e) =>
                   setNewBrief((p) => ({ ...p, description: e.target.value }))
                 }
-                placeholder="Describe thesis goal, required scholarly/industry sources, structure, and deliverable expectations..."
-                className="w-full rounded-xl border border-[#e6e0d4] px-3.5 py-2.5 text-sm"
+                placeholder="Share your main topic, sections to include, style or tone, and any notes writers should know..."
+                className="hud-input w-full px-3.5 py-2.5 text-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Level
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Type / Level
                 </label>
                 <input
                   type="text"
@@ -377,11 +403,11 @@ export default function LiveBiddingMarketplacePage() {
                       academicLevel: e.target.value,
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3 py-2 text-xs"
+                  className="hud-input w-full px-3 py-2 text-xs"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
                   Words
                 </label>
                 <input
@@ -394,12 +420,12 @@ export default function LiveBiddingMarketplacePage() {
                       wordCount: Number(e.target.value),
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3 py-2 text-xs font-tech"
+                  className="hud-input w-full px-3 py-2 text-xs font-tech"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Min Budget (KES)
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Lowest Budget (KES)
                 </label>
                 <input
                   type="number"
@@ -411,12 +437,12 @@ export default function LiveBiddingMarketplacePage() {
                       budgetMin: Number(e.target.value),
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3 py-2 text-xs font-tech"
+                  className="hud-input w-full px-3 py-2 text-xs font-tech"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Max Budget (KES)
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Highest Budget (KES)
                 </label>
                 <input
                   type="number"
@@ -428,12 +454,12 @@ export default function LiveBiddingMarketplacePage() {
                       budgetMax: Number(e.target.value),
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3 py-2 text-xs font-tech"
+                  className="hud-input w-full px-3 py-2 text-xs font-tech"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold mb-1">
-                  Turnaround (Days)
+                <label className="block text-xs font-semibold text-slate-200 mb-1">
+                  Days to Finish
                 </label>
                 <input
                   type="number"
@@ -446,49 +472,50 @@ export default function LiveBiddingMarketplacePage() {
                       deadlineDays: Number(e.target.value),
                     }))
                   }
-                  className="w-full rounded-xl border border-[#e6e0d4] px-3 py-2 text-xs font-tech"
+                  className="hud-input w-full px-3 py-2 text-xs font-tech"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.045] border border-white/[0.12] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newBrief.isUrgent}
                   onChange={(e) =>
                     setNewBrief((p) => ({ ...p, isUrgent: e.target.checked }))
                   }
+                  className="accent-rose-400"
                 />
-                <span className="font-semibold text-rose-800">
-                  Urgent Priority Alert
-                </span>
+                <span className="font-semibold text-rose-300">Urgent job</span>
               </label>
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.045] border border-white/[0.12] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newBrief.isSealed}
                   onChange={(e) =>
                     setNewBrief((p) => ({ ...p, isSealed: e.target.checked }))
                   }
+                  className="accent-cyan-400"
                 />
-                <span className="font-semibold text-stone-800">
-                  Sealed Proposals (No Undercutting)
+                <span className="font-semibold text-slate-200">
+                  Hide writer prices from others
                 </span>
               </label>
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-[#faf7f2] border border-[#e6e0d4] cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.045] border border-white/[0.12] cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newBrief.ndaRequired}
                   onChange={(e) =>
                     setNewBrief((p) => ({ ...p, ndaRequired: e.target.checked }))
                   }
+                  className="accent-cyan-400"
                 />
-                <span className="font-semibold text-stone-800">
-                  Strict NDA Protection
+                <span className="font-semibold text-slate-200">
+                  Keep project private (NDA)
                 </span>
               </label>
-              <label className="flex items-center gap-2 p-3 rounded-xl bg-amber-50/70 border border-amber-200 cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-amber-500/15 border border-amber-400/35 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={newBrief.allowTripwireOutline}
@@ -498,9 +525,10 @@ export default function LiveBiddingMarketplacePage() {
                       allowTripwireOutline: e.target.checked,
                     }))
                   }
+                  className="accent-amber-400"
                 />
-                <span className="font-semibold text-amber-950">
-                  Allow KES 490 Outline Start
+                <span className="font-semibold text-amber-200">
+                  Allow KES 490 Page-1 start
                 </span>
               </label>
             </div>
@@ -518,34 +546,34 @@ export default function LiveBiddingMarketplacePage() {
                 disabled={creating}
                 className="btn-primary px-6 py-2.5 text-sm"
               >
-                {creating ? "Publishing Brief..." : "Publish Brief to Auction"}
+                {creating ? "Posting Job..." : "Post Job Now"}
               </button>
             </div>
           </form>
-        </section>
+        </HudCard>
       )}
 
       {/* Search & Category Filter Strip */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
           <button
             onClick={() => setCategoryFilter("all")}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
               categoryFilter === "all"
-                ? "bg-[#111827] text-white border-[#111827]"
-                : "bg-white text-stone-700 border-[#e6e0d4]"
+                ? "bg-cyan-400/20 text-cyan-100 border-cyan-400/60"
+                : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:text-white"
             }`}
           >
-            All Disciplines
+            All Categories
           </button>
           {categories.map((cat) => (
             <button
               key={cat.id}
               onClick={() => setCategoryFilter(cat.slug)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border transition-all ${
                 categoryFilter === cat.slug
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
-                  : "bg-white text-stone-700 border-[#e6e0d4]"
+                  ? "bg-sky-500/25 text-sky-100 border-sky-400/60"
+                  : "bg-white/[0.05] text-slate-300 border-white/[0.12] hover:text-white"
               }`}
             >
               {cat.name}
@@ -559,148 +587,149 @@ export default function LiveBiddingMarketplacePage() {
               onClick={() => setMineOnly((v) => !v)}
               className={`px-3 py-2 rounded-xl text-xs font-semibold border whitespace-nowrap ${
                 mineOnly
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a]"
-                  : "bg-white text-stone-700 border-[#e6e0d4]"
+                  ? "bg-sky-500/25 text-sky-100 border-sky-400/55"
+                  : "bg-white/[0.05] text-slate-300 border-white/[0.12]"
               }`}
             >
-              My Posted Briefs
+              My Jobs
             </button>
           )}
           <div className="relative">
-            <Search className="w-3.5 h-3.5 text-stone-400 absolute left-3 top-2.5" />
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQ}
               onChange={(e) => setSearchQ(e.target.value)}
-              placeholder="Filter briefs..."
-              className="pl-8 pr-3 py-1.5 text-xs rounded-xl border border-[#e6e0d4] bg-white"
+              placeholder="Search jobs..."
+              className="hud-input pl-8 pr-3 py-1.5 text-xs"
             />
           </div>
         </div>
       </div>
 
-      {/* Briefs List */}
+      {/* Jobs List */}
       {loading ? (
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading live bidding briefs and proposal ranks...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading open jobs and offers...
         </div>
       ) : briefs.length === 0 ? (
-        <div className="editorial-card p-12 text-center space-y-3 bg-white">
-          <Gavel className="w-10 h-10 text-stone-400 mx-auto" />
-          <h3 className="font-editorial text-xl font-semibold">
-            No open briefs match your filter
+        <div className="editorial-card p-12 text-center space-y-3">
+          <Gavel className="w-10 h-10 text-slate-400 mx-auto" />
+          <h3 className="font-editorial text-xl font-semibold text-white">
+            No open jobs match your search
           </h3>
           <button
             onClick={() => setShowPostForm(true)}
             className="btn-primary px-5 py-2.5 text-sm"
           >
-            Post the First Brief
+            Post a Job
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {briefs.map((brief) => (
-            <article
+          {briefs.map((brief, idx) => (
+            <HudCard
               key={brief.id}
-              className="editorial-card-interactive p-6 bg-white flex flex-col justify-between space-y-5"
+              theme={HUD_THEME_CYCLE[idx % HUD_THEME_CYCLE.length]}
+              brackets
+              interactive
+              className="p-6 flex flex-col justify-between space-y-5"
             >
               <div className="space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="font-tech text-[11px] px-2 py-0.5 rounded-md bg-[#faf7f2] border border-[#e6e0d4] text-stone-700">
+                    <span className="font-tech text-[11px] px-2 py-0.5 rounded-md bg-white/[0.06] border border-white/[0.12] text-slate-300">
                       {brief.briefRef}
                     </span>
-                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-50 text-[#0f766e] border border-teal-200">
+                    <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-teal-500/15 text-teal-300 border border-teal-400/35">
                       {brief.category.name}
                     </span>
                     {brief.isUrgent && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-tech uppercase font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-tech uppercase font-bold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-300 border border-rose-400/35">
                         <Flame className="w-3 h-3" />
                         Urgent
                       </span>
                     )}
                     {brief.isSealed && (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-tech uppercase font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-800 border border-stone-300">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-tech uppercase font-bold px-2 py-0.5 rounded-full bg-white/[0.08] text-slate-200 border border-white/[0.16]">
                         <Lock className="w-3 h-3" />
-                        Sealed
+                        Private Prices
                       </span>
                     )}
                   </div>
 
-                  <span className="inline-flex items-center gap-1 text-xs font-tech font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full">
-                    <Zap className="w-3 h-3 text-amber-600" />
-                    {brief.requiredConnects} Connects
+                  <span className="inline-flex items-center gap-1 text-xs font-tech font-bold text-amber-300 bg-amber-500/15 border border-amber-400/35 px-2.5 py-0.5 rounded-full">
+                    <Zap className="w-3 h-3 text-amber-300" />
+                    {brief.requiredConnects} Credits
                   </span>
                 </div>
 
                 <Link
                   href={`/bidding/${brief.id}`}
-                  className="block font-editorial text-xl font-semibold text-[#111827] hover:text-[#1e3a8a] leading-snug"
+                  className="block font-editorial text-xl font-semibold text-white hover:text-cyan-300 leading-snug transition-colors"
                 >
                   {brief.title}
                 </Link>
 
-                <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-300 line-clamp-2 leading-relaxed">
                   {brief.description}
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 pt-1 text-xs">
-                  <div className="p-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                    <span className="text-[10px] font-tech uppercase text-stone-500 block">
-                      Client Budget
+                  <div className="p-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11]">
+                    <span className="text-[10px] font-tech uppercase text-slate-400 block">
+                      Budget
                     </span>
-                    <span className="font-tech font-bold text-[#111827]">
+                    <span className="font-tech font-bold text-cyan-300">
                       {formatKes(brief.budgetMin)} – {formatKes(brief.budgetMax)}
                     </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                    <span className="text-[10px] font-tech uppercase text-stone-500 block">
-                      Scope &amp; Style
+                  <div className="p-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11]">
+                    <span className="text-[10px] font-tech uppercase text-slate-400 block">
+                      Length &amp; Style
                     </span>
-                    <span className="font-tech font-semibold text-[#111827]">
+                    <span className="font-tech font-semibold text-white">
                       {brief.wordCount.toLocaleString()}w · {brief.citationStyle}
                     </span>
                   </div>
-                  <div className="p-2.5 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                    <span className="text-[10px] font-tech uppercase text-stone-500 block">
-                      Deadline
+                  <div className="p-2.5 rounded-xl bg-white/[0.045] border border-white/[0.11]">
+                    <span className="text-[10px] font-tech uppercase text-slate-400 block">
+                      Time Allowed
                     </span>
-                    <span className="font-tech font-semibold text-[#111827] inline-flex items-center gap-1">
-                      <Clock className="w-3 h-3 text-[#1e3a8a]" />
+                    <span className="font-tech font-semibold text-white inline-flex items-center gap-1">
+                      <Clock className="w-3 h-3 text-sky-300" />
                       {brief.deadlineDays} days
                     </span>
                   </div>
                 </div>
 
-                {/* My Live Rank Banner */}
                 {brief.myBid && (
-                  <div className="p-3 rounded-xl bg-gradient-to-r from-amber-50 to-emerald-50 border border-amber-300 flex items-center justify-between gap-2 text-xs">
+                  <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-400/40 flex items-center justify-between gap-2 text-xs">
                     <div className="flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-amber-700" />
-                      <span className="font-semibold text-[#111827]">
-                        Your Live Rank:{" "}
-                        <strong className="font-tech text-amber-900">
+                      <TrendingUp className="w-4 h-4 text-amber-300" />
+                      <span className="font-semibold text-white">
+                        Your offer position:{" "}
+                        <strong className="font-tech text-amber-300">
                           #{brief.myBid.rankPosition} of {brief.myBid.totalBidders}
                         </strong>
                       </span>
                     </div>
                     {brief.myBid.rankPosition > 1 ? (
-                      <span className="font-tech text-[11px] font-semibold text-[#1e3a8a]">
-                        +{brief.myBid.connectsNeededForRank1}⚡ for #1
+                      <span className="font-tech text-[11px] font-semibold text-sky-300">
+                        +{brief.myBid.connectsNeededForRank1} Credits for #1
                       </span>
                     ) : (
-                      <span className="font-tech text-[11px] font-bold text-emerald-700">
-                        Leading #1 Slot
+                      <span className="font-tech text-[11px] font-bold text-emerald-300">
+                        Top #1 Spot
                       </span>
                     )}
                   </div>
                 )}
 
-                {/* Top Ranked Bidders Preview */}
                 {brief.topPreview.length > 0 && (
                   <div className="space-y-1.5 pt-1">
-                    <p className="text-[10px] font-tech uppercase tracking-wider text-stone-500">
-                      Current Top Ranked Proposals ({brief.bidCount} total)
+                    <p className="text-[10px] font-tech uppercase tracking-wider text-slate-400">
+                      Current Offers ({brief.bidCount} total)
                     </p>
                     <div className="space-y-1.5">
                       {brief.topPreview.map((tb) => (
@@ -708,36 +737,37 @@ export default function LiveBiddingMarketplacePage() {
                           key={tb.id}
                           className={`px-3 py-2 rounded-xl border flex items-center justify-between gap-2 text-xs ${
                             tb.isTopBoostedSlot || tb.isFeatured
-                              ? "bg-amber-50/60 border-amber-200"
-                              : "bg-[#faf7f2] border-[#e6e0d4]"
+                              ? "bg-amber-500/15 border-amber-400/35"
+                              : "bg-white/[0.04] border-white/[0.1]"
                           }`}
                         >
                           <div className="flex items-center gap-2 min-w-0">
-                            <span className="font-tech font-bold text-[11px] px-1.5 py-0.5 rounded bg-[#111827] text-white shrink-0">
+                            <span className="font-tech font-bold text-[11px] px-1.5 py-0.5 rounded bg-white/15 text-white shrink-0">
                               #{tb.rankPosition}
                             </span>
-                            <CreatorAvatar
+                            <RadarAvatar
                               name={tb.creator.displayName}
                               avatarUrl={tb.creator.avatarUrl}
                               available={tb.creator.availableNow}
+                              theme={tb.isTopBoostedSlot || tb.isFeatured ? "amber" : "cyan"}
                               size="sm"
                             />
-                            <span className="font-semibold truncate">
+                            <span className="font-semibold text-white truncate">
                               {tb.creator.displayName}
                             </span>
                             {tb.creator.creatorTier === "ELITE" && (
-                              <Crown className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                              <Crown className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                             )}
                             {tb.isTopBoostedSlot && (
-                              <span className="text-[10px] font-tech px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 font-semibold shrink-0">
-                                Boosted +{tb.boostConnects}⚡
+                              <span className="text-[10px] font-tech px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-200 font-semibold shrink-0">
+                                Boosted +{tb.boostConnects}
                               </span>
                             )}
                           </div>
-                          <span className="font-tech font-bold text-[#111827] shrink-0">
+                          <span className="font-tech font-bold text-cyan-300 shrink-0">
                             {tb.proposedPrice !== null
                               ? formatKes(tb.proposedPrice)
-                              : "Sealed"}
+                              : "Hidden"}
                           </span>
                         </div>
                       ))}
@@ -746,11 +776,11 @@ export default function LiveBiddingMarketplacePage() {
                 )}
               </div>
 
-              <div className="pt-3 border-t border-[#e6e0d4] flex items-center justify-between gap-3">
-                <div className="text-[11px] text-stone-500 flex items-center gap-2">
-                  <Award className="w-3.5 h-3.5 text-[#0f766e]" />
+              <div className="pt-3 border-t border-white/[0.1] flex items-center justify-between gap-3">
+                <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                  <Award className="w-3.5 h-3.5 text-teal-300" />
                   <span>
-                    {brief.bidCount} proposal{brief.bidCount === 1 ? "" : "s"}
+                    {brief.bidCount} offer{brief.bidCount === 1 ? "" : "s"}
                     {brief.bidStats.avgBid
                       ? ` · Avg ${formatKes(brief.bidStats.avgBid)}`
                       : ""}
@@ -761,14 +791,14 @@ export default function LiveBiddingMarketplacePage() {
                   className="btn-primary px-4 py-2 text-xs gap-1.5"
                 >
                   {brief.myBid
-                    ? "Boost Rank / Edit"
+                    ? "Boost or Edit Offer"
                     : isApprovedCreator
-                      ? "Place Ranked Bid"
-                      : "View Proposals"}
+                      ? "Send an Offer"
+                      : "See Offers"}
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
-            </article>
+            </HudCard>
           ))}
         </div>
       )}

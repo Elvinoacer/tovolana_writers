@@ -320,12 +320,18 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
         data: { status: nextStatus },
       });
 
+      const channelLabel = freshTx.channel === "MPESA_STK" ? "M-Pesa" : "Card";
+      const statusHint =
+        nextStatus === "PAID_AWAITING_ACCEPTANCE"
+          ? "Waiting for writer to accept."
+          : "Your writer can start now.";
+
       await tx.bookingMessage.create({
         data: {
           bookingId: booking.id,
           senderId: booking.customerId,
           isSystemMessage: true,
-          body: `Payment confirmed via ${freshTx.channel} (${freshTx.currency} ${freshTx.amount.toLocaleString()}). Booking moved to ${nextStatus.replace(/_/g, " ")}.`,
+          body: `Payment confirmed via ${channelLabel} (${freshTx.currency} ${freshTx.amount.toLocaleString()}). ${statusHint}`,
         },
       });
 
@@ -348,8 +354,8 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
           await enqueueNotificationInTx(tx, {
             userId: booking.creator.userId,
             eventType: "NEW_BOOKING_PAID",
-            title: `New Paid Booking: ${booking.bookingRef}`,
-            body: `${booking.customer.name} confirmed "${booking.taskTitleSnapshot}". Delivery deadline: ${booking.agreedDeliveryDeadline.toDateString()}.`,
+            title: `New Paid Order: ${booking.bookingRef}`,
+            body: `${booking.customer.name} paid for "${booking.taskTitleSnapshot}". Due ${booking.agreedDeliveryDeadline.toDateString()}.`,
             linkUrl: `/creators-hub/bookings/${booking.bookingRef}`,
             payload: { bookingRef: booking.bookingRef },
           });
@@ -359,8 +365,8 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
       await enqueueNotificationInTx(tx, {
         userId: booking.customerId,
         eventType: "PAYMENT_CONFIRMED",
-        title: `Payment Confirmed: ${booking.bookingRef}`,
-        body: `Your payment of ${booking.currency} ${booking.totalPayable.toLocaleString()} is secured in escrow.`,
+        title: `Payment Received: ${booking.bookingRef}`,
+        body: `Your payment of ${booking.currency} ${booking.totalPayable.toLocaleString()} is held safely until you approve the finished work.`,
         linkUrl: `/dashboard/bookings/${booking.bookingRef}`,
         payload: { bookingRef: booking.bookingRef },
       });
@@ -395,7 +401,7 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
         userId: sub.userId,
         eventType: "PRO_ACTIVATED",
         title: "Welcome to Tovolana Pro",
-        body: `Your Pro membership is active through ${periodEnd.toDateString()}, unlocking reduced service fees and early listing access.`,
+        body: `Your Pro plan is active until ${periodEnd.toDateString()}. You now save 50% on service fees and get early access to new services.`,
         linkUrl: "/dashboard/membership",
         payload: { subscriptionId: sub.id },
       });
@@ -434,7 +440,7 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
             type: "BUNDLE_PURCHASE",
             amount: connectsToCredit,
             balanceAfter: updatedCreator.connectsBalance,
-            description: `Purchased ${matchedBundle?.name ?? "Connects Pack"} (+${connectsToCredit} Connects) via ${freshTx.channel}`,
+            description: `Bought ${matchedBundle?.name ?? "Bid Credits Pack"} (+${connectsToCredit} credits) via ${freshTx.channel === "MPESA_STK" ? "M-Pesa" : "Card"}`,
             bundleCode: matchedBundle?.id ?? null,
             paymentTransactionId: freshTx.id,
           },
@@ -443,8 +449,8 @@ export async function processIntaSendWebhook(payload: IntaSendWebhookPayload) {
         await enqueueNotificationInTx(tx, {
           userId: freshTx.userId,
           eventType: "CONNECTS_CREDITED",
-          title: `+${connectsToCredit} Connects Credited`,
-          body: `Your ${matchedBundle?.name ?? "Connects bundle"} is live. New balance: ${updatedCreator.connectsBalance} Connects.`,
+          title: `+${connectsToCredit} Bid Credits Added`,
+          body: `Your ${matchedBundle?.name ?? "credit pack"} is ready. New balance: ${updatedCreator.connectsBalance} credits.`,
           linkUrl: "/creators-hub/connects",
           payload: {
             connectsCredited: connectsToCredit,

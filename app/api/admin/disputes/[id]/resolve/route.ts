@@ -115,7 +115,7 @@ export async function POST(
           bookingId: booking.id,
           senderId: admin.id,
           isSystemMessage: true,
-          body: `Dispute Resolved (${body.outcome}): ${body.resolutionNote.trim()}`,
+          body: `Support Case Closed (${body.outcome.replace(/_/g, " ")}): ${body.resolutionNote.trim()}`,
         },
       });
 
@@ -133,7 +133,7 @@ export async function POST(
       await enqueueNotificationInTx(tx, {
         userId: booking.customerId,
         eventType: "DISPUTE_RESOLVED",
-        title: `Dispute Resolved: ${booking.bookingRef}`,
+        title: `Support Case Closed: ${booking.bookingRef}`,
         body: body.resolutionNote.trim(),
         linkUrl: `/dashboard/bookings/${booking.bookingRef}`,
       });
@@ -141,7 +141,7 @@ export async function POST(
         await enqueueNotificationInTx(tx, {
           userId: booking.creator.userId,
           eventType: "DISPUTE_RESOLVED",
-          title: `Dispute Resolved: ${booking.bookingRef}`,
+          title: `Support Case Closed: ${booking.bookingRef}`,
           body: body.resolutionNote.trim(),
           linkUrl: `/creators-hub/bookings/${booking.bookingRef}`,
         });

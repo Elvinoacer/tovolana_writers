@@ -103,7 +103,7 @@ export async function POST(
           bookingId: booking.id,
           senderId: user.id,
           isSystemMessage: true,
-          body: `Booking marked COMPLETED by customer. Escrow funds (${booking.currency} ${booking.creatorNetAmount.toLocaleString()}) released to Creator available balance.`,
+          body: `Order marked COMPLETE by client. ${booking.currency} ${booking.creatorNetAmount.toLocaleString()} added to your available balance.`,
         },
       });
 
@@ -111,8 +111,8 @@ export async function POST(
         await enqueueNotificationInTx(tx, {
           userId: booking.creator.userId,
           eventType: "BOOKING_COMPLETED_ESCROW_RELEASED",
-          title: `Booking Completed: ${booking.bookingRef}`,
-          body: `Escrow cleared! ${booking.currency} ${booking.creatorNetAmount.toLocaleString()} is now available for payout.`,
+          title: `Order Completed: ${booking.bookingRef}`,
+          body: `You earned ${booking.currency} ${booking.creatorNetAmount.toLocaleString()}! Ready to withdraw to M-Pesa.`,
           linkUrl: `/creators-hub/earnings`,
         });
       }

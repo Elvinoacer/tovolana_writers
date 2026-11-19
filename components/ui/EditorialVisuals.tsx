@@ -27,60 +27,60 @@ interface DisciplineVisualConfig {
 
 const DISCIPLINE_THEMES: Record<string, DisciplineVisualConfig> = {
   "academic-writing": {
-    gradient: "from-[#1e3a8a]/80 via-[#1d4ed8]/55 to-[#0f172a]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#93c5fd",
+    gradient: "from-[#1e3a8a]/80 via-[#312e81]/55 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-violet-400/35",
+    accentText: "text-violet-200",
+    patternStroke: "#c084fc",
     photoSrc: "/images/photos/cat-academic.jpg",
-    tag: "Scholarly Monograph",
+    tag: "Academic",
   },
   "essays-and-assignments": {
-    gradient: "from-[#0f766e]/75 via-[#0d9488]/45 to-[#092927]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#5eead4",
+    gradient: "from-[#065f46]/75 via-[#047857]/45 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-emerald-400/35",
+    accentText: "text-emerald-200",
+    patternStroke: "#34d399",
     photoSrc: "/images/photos/cat-essays.jpg",
-    tag: "Structured Rhetoric",
+    tag: "Essays",
   },
   "research-papers": {
-    gradient: "from-[#312e81]/80 via-[#4338ca]/50 to-[#0b1120]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#a5b4fc",
+    gradient: "from-[#0e7490]/80 via-[#0f766e]/50 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-cyan-400/35",
+    accentText: "text-cyan-200",
+    patternStroke: "#2dd4bf",
     photoSrc: "/images/photos/cat-research.jpg",
-    tag: "Empirical Inquiry",
+    tag: "Research",
   },
   "articles-and-blog-writing": {
-    gradient: "from-[#92400e]/75 via-[#b45309]/45 to-[#1c1917]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#fde68a",
+    gradient: "from-[#92400e]/75 via-[#b45309]/45 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-amber-400/35",
+    accentText: "text-amber-200",
+    patternStroke: "#fbbf24",
     photoSrc: "/images/photos/cat-articles.jpg",
-    tag: "Editorial Voice",
+    tag: "Articles",
   },
   "business-writing-and-proposals": {
-    gradient: "from-[#0f172a]/80 via-[#1e293b]/55 to-[#0b1120]/92",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#7dd3fc",
+    gradient: "from-[#075985]/80 via-[#1e3a8a]/55 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-sky-400/35",
+    accentText: "text-sky-200",
+    patternStroke: "#38bdf8",
     photoSrc: "/images/photos/cat-business.jpg",
-    tag: "Executive Strategy",
+    tag: "Business",
   },
   "editing-and-proofreading": {
-    gradient: "from-[#881337]/75 via-[#be123c]/45 to-[#1c0810]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#fda4af",
+    gradient: "from-[#881337]/75 via-[#be123c]/45 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-rose-400/35",
+    accentText: "text-rose-200",
+    patternStroke: "#fb7185",
     photoSrc: "/images/photos/cat-editing.jpg",
-    tag: "Precision Polish",
+    tag: "Editing",
   },
   "other-services": {
-    gradient: "from-[#1e293b]/75 via-[#334155]/45 to-[#0f172a]/90",
-    accentBg: "bg-black/45 border border-white/20",
-    accentText: "text-white",
-    patternStroke: "#cbd5e1",
+    gradient: "from-[#1e293b]/75 via-[#0f172a]/55 to-[#060a12]/92",
+    accentBg: "bg-slate-950/65 border border-white/25",
+    accentText: "text-slate-100",
+    patternStroke: "#94a3b8",
     photoSrc: "/images/photos/cat-other.jpg",
-    tag: "Bespoke Craft",
+    tag: "Other",
   },
 };
 
@@ -122,9 +122,8 @@ export function CategoryCoverArt({
 
   return (
     <div
-      className={`relative overflow-hidden bg-[#111827] ${heightClass} p-4 flex flex-col justify-between select-none`}
+      className={`relative overflow-hidden bg-[#060a12] ${heightClass} p-4 flex flex-col justify-between select-none`}
     >
-      {/* Real Discipline Photograph */}
       <Image
         src={theme.photoSrc}
         alt={`${name} writing studio photography`}
@@ -133,7 +132,6 @@ export function CategoryCoverArt({
         className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
       />
 
-      {/* Directional Legibility & High-Contrast Scrim */}
       <div
         aria-hidden="true"
         className={`absolute inset-0 bg-gradient-to-t ${theme.gradient}`}
@@ -158,11 +156,11 @@ export function CategoryCoverArt({
 }
 
 const AVATAR_BG_TONES = [
-  "bg-[#1e293b]",
-  "bg-[#1e3a8a]",
-  "bg-[#0f766e]",
-  "bg-[#312e81]",
-  "bg-[#7c2d12]",
+  "bg-[#0d9488]",
+  "bg-[#4f46e5]",
+  "bg-[#0284c7]",
+  "bg-[#7c3aed]",
+  "bg-[#b45309]",
 ];
 
 function getMonogramInitials(name: string): string {
@@ -211,7 +209,7 @@ export function CreatorAvatar({
   return (
     <div className="relative inline-flex shrink-0">
       <div
-        className={`${dims} relative overflow-hidden ${bgTone} shadow-sm ring-2 ring-white flex items-center justify-center`}
+        className={`${dims} relative overflow-hidden ${bgTone} shadow-sm ring-2 ring-white/25 flex items-center justify-center`}
       >
         {hasAvatarImage ? (
           <Image
@@ -233,9 +231,11 @@ export function CreatorAvatar({
       </div>
       {available !== undefined && (
         <span
-          title={available ? "Accepting Bookings" : "At Capacity"}
-          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
-            available ? "bg-emerald-500" : "bg-stone-400"
+          title={available ? "Available" : "Busy right now"}
+          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-[#060a12] ${
+            available
+              ? "bg-emerald-400 shadow-[0_0_8px_#34d399]"
+              : "bg-slate-500"
           }`}
         />
       )}
@@ -267,12 +267,12 @@ export function ScoreRing({
 
   const strokeColor =
     tone === "blue"
-      ? "#1e3a8a"
+      ? "#38bdf8"
       : tone === "gold"
-        ? "#b45309"
+        ? "#fbbf24"
         : tone === "rose"
-          ? "#be123c"
-          : "#0f766e";
+          ? "#fb7185"
+          : "#2dd4bf";
 
   return (
     <div className="inline-flex flex-col items-center gap-1">
@@ -286,7 +286,7 @@ export function ScoreRing({
             cy={size / 2}
             r={r}
             fill="none"
-            stroke="#e6e0d4"
+            stroke="rgba(255, 255, 255, 0.12)"
             strokeWidth={strokeWidth}
           />
           <circle
@@ -302,13 +302,13 @@ export function ScoreRing({
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="font-tech text-sm font-bold text-[#111827] leading-none">
+          <span className="font-tech text-sm font-bold text-white leading-none">
             {label ?? `${Math.round(score)}${max === 100 ? "%" : ""}`}
           </span>
         </div>
       </div>
       {sublabel && (
-        <span className="text-[11px] font-medium text-stone-600 text-center leading-tight">
+        <span className="text-[11px] font-medium text-slate-400 text-center leading-tight">
           {sublabel}
         </span>
       )}
@@ -317,11 +317,11 @@ export function ScoreRing({
 }
 
 const PIPELINE_STEPS = [
-  { label: "Booked", short: "Booked" },
-  { label: "Escrow", short: "Escrow" },
-  { label: "In Progress", short: "Active" },
-  { label: "Delivered", short: "Delivered" },
-  { label: "Settled", short: "Done" },
+  { label: "Ordered", short: "Ordered" },
+  { label: "Paid", short: "Paid" },
+  { label: "Writing", short: "Writing" },
+  { label: "Check work", short: "Review" },
+  { label: "Done", short: "Done" },
 ];
 
 export function getEscrowStepIndex(status: string): number {
@@ -349,6 +349,27 @@ export function EscrowStepVisualizer({
   status: string;
   compact?: boolean;
 }) {
+  if (status === "CANCELLED" || status === "REFUNDED" || status === "DISPUTED") {
+    const label =
+      status === "CANCELLED"
+        ? "Order cancelled — no further steps."
+        : status === "REFUNDED"
+          ? "Order refunded to client."
+          : "Payment paused — our support team is reviewing this order.";
+    const tone =
+      status === "DISPUTED"
+        ? "bg-rose-500/15 border-rose-400/35 text-rose-200"
+        : status === "REFUNDED"
+          ? "bg-purple-500/15 border-purple-400/35 text-purple-200"
+          : "bg-white/[0.06] border-white/[0.14] text-slate-300";
+
+    return (
+      <div className={`w-full rounded-xl border px-3 py-2 text-xs font-medium ${tone}`}>
+        {label}
+      </div>
+    );
+  }
+
   const activeStep = getEscrowStepIndex(status);
 
   return (
@@ -363,10 +384,10 @@ export function EscrowStepVisualizer({
                 <div
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-tech font-bold border transition-all ${
                     done
-                      ? "bg-[#0f766e] border-[#0f766e] text-white"
+                      ? "bg-emerald-500 border-emerald-400 text-slate-950"
                       : current
-                        ? "bg-[#1e3a8a] border-[#1e3a8a] text-white ring-4 ring-blue-100"
-                        : "bg-[#faf7f2] border-[#e6e0d4] text-stone-400"
+                        ? "bg-sky-400 border-sky-300 text-slate-950 ring-4 ring-sky-400/20"
+                        : "bg-white/[0.05] border-white/[0.15] text-slate-400"
                   }`}
                 >
                   {done ? <Check className="w-3.5 h-3.5" /> : idx + 1}
@@ -374,7 +395,7 @@ export function EscrowStepVisualizer({
                 {!compact && (
                   <span
                     className={`text-[10px] font-medium truncate ${
-                      done || current ? "text-[#111827]" : "text-stone-400"
+                      done || current ? "text-white" : "text-slate-400"
                     }`}
                   >
                     {step.short}
@@ -384,7 +405,7 @@ export function EscrowStepVisualizer({
               {idx < PIPELINE_STEPS.length - 1 && (
                 <div
                   className={`flex-1 h-0.5 rounded-full ${
-                    idx < activeStep ? "bg-[#0f766e]" : "bg-[#e6e0d4]"
+                    idx < activeStep ? "bg-emerald-400" : "bg-white/[0.12]"
                   }`}
                 />
               )}
@@ -407,11 +428,11 @@ export function HeroManuscriptShowcase({
 }) {
   return (
     <div className="relative animate-reveal stagger-2">
-      <div className="editorial-card overflow-hidden bg-white p-2 sm:p-3">
-        <div className="relative rounded-2xl overflow-hidden bg-[#faf7f2] aspect-[4/3]">
+      <div className="editorial-card overflow-hidden p-2 sm:p-3">
+        <div className="relative rounded-2xl overflow-hidden bg-[#071019] aspect-[4/3]">
           <Image
             src="/images/photos/hero-nature-desk.jpg"
-            alt="Tovolana Writers vetted editorial workspace with laptop and planning notes"
+            alt="Tovolana Writers workspace with laptop and notes"
             fill
             sizes="(max-width: 768px) 100vw, 600px"
             priority
@@ -419,56 +440,54 @@ export function HeroManuscriptShowcase({
           />
         </div>
 
-        {/* Visual Live Telemetry Strip */}
         <div className="grid grid-cols-3 gap-2 pt-2.5">
-          <div className="rounded-xl bg-[#faf7f2] border border-[#e6e0d4] px-3 py-2.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200 flex items-center justify-center text-[#0f766e] shrink-0">
+          <div className="rounded-xl bg-white/[0.045] border border-white/[0.11] px-3 py-2.5 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-teal-500/15 border border-teal-400/35 flex items-center justify-center text-teal-300 shrink-0">
               <Award className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <p className="font-tech text-base font-bold text-[#111827] leading-none">
+              <p className="font-tech text-base font-bold text-white leading-none">
                 {creatorsCount}
               </p>
-              <p className="text-[11px] text-stone-500 truncate mt-1">
-                Vetted Writers
+              <p className="text-[11px] text-slate-400 truncate mt-1">
+                Tested Writers
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#faf7f2] border border-[#e6e0d4] px-3 py-2.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center text-[#1e3a8a] shrink-0">
+          <div className="rounded-xl bg-white/[0.045] border border-white/[0.11] px-3 py-2.5 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-sky-500/15 border border-sky-400/35 flex items-center justify-center text-sky-300 shrink-0">
               <Sparkles className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <p className="font-tech text-base font-bold text-[#111827] leading-none">
+              <p className="font-tech text-base font-bold text-white leading-none">
                 {publishedCount}
               </p>
-              <p className="text-[11px] text-stone-500 truncate mt-1">
-                Active Services
+              <p className="text-[11px] text-slate-400 truncate mt-1">
+                Ready Services
               </p>
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#faf7f2] border border-[#e6e0d4] px-3 py-2.5 flex items-center gap-2.5">
-            <span className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-[#b45309] shrink-0">
+          <div className="rounded-xl bg-white/[0.045] border border-white/[0.11] px-3 py-2.5 flex items-center gap-2.5">
+            <span className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-400/35 flex items-center justify-center text-amber-300 shrink-0">
               <Lock className="w-4 h-4" />
             </span>
             <div className="min-w-0">
-              <p className="font-tech text-base font-bold text-[#111827] leading-none">
+              <p className="font-tech text-base font-bold text-white leading-none">
                 {bookingsCount}
               </p>
-              <p className="text-[11px] text-stone-500 truncate mt-1">
-                Escrow Orders
+              <p className="text-[11px] text-slate-400 truncate mt-1">
+                Protected Orders
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Subtle Floating Guarantee Pill */}
-      <div className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#111827] text-white text-xs font-medium shadow-lg absolute -bottom-3 left-5 animate-float-subtle">
+      <div className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-[#0a1220]/90 border border-teal-400/35 text-white text-xs font-medium shadow-lg backdrop-blur-md absolute -bottom-3 left-5 animate-float-subtle">
         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-        <span>Valid Until ≠ Delivery Deadline Guaranteed</span>
+        <span>Your payment stays safe until you approve</span>
       </div>
     </div>
   );

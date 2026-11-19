@@ -382,7 +382,7 @@ export async function POST(
           type: "BID_FEATURED_UPGRADE",
           amount: -featuredCost,
           balanceAfter: runningBalance,
-          description: `Featured Gold Pitch upgrade on ${brief.briefRef}`,
+          description: `Top Featured Pick upgrade on ${brief.briefRef}`,
           bidId: createdBid.id,
         });
       }
@@ -392,8 +392,8 @@ export async function POST(
       await enqueueNotificationInTx(tx, {
         userId: brief.customerId,
         eventType: "NEW_BID_RECEIVED",
-        title: `New Proposal on ${brief.briefRef}`,
-        body: `${creator.displayName} submitted a KES ${body.proposedPrice.toLocaleString()} proposal (${body.deliveryDays}d).`,
+        title: `New Writer Offer on ${brief.briefRef}`,
+        body: `${creator.displayName} offered to write this for KES ${body.proposedPrice.toLocaleString()} (${body.deliveryDays}d).`,
         linkUrl: `/bidding/${brief.id}`,
         payload: { briefId: brief.id, bidId: createdBid.id },
       });

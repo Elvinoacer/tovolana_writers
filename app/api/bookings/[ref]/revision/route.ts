@@ -98,7 +98,7 @@ export async function POST(
           bookingId: booking.id,
           senderId: user.id,
           isSystemMessage: true,
-          body: `Revision #${nextCount} of ${booking.maxRevisions} requested: ${body.reason.trim()}`,
+          body: `Free edit #${nextCount} of ${booking.maxRevisions} requested: ${body.reason.trim()}`,
         },
       });
 
@@ -106,8 +106,8 @@ export async function POST(
         await enqueueNotificationInTx(tx, {
           userId: booking.creator.userId,
           eventType: "REVISION_REQUESTED",
-          title: `Revision #${nextCount} Requested: ${booking.bookingRef}`,
-          body: `Customer requested updates on "${booking.taskTitleSnapshot}".`,
+          title: `Free Edit #${nextCount} Requested: ${booking.bookingRef}`,
+          body: `Client asked for changes on "${booking.taskTitleSnapshot}".`,
           linkUrl: `/creators-hub/bookings/${booking.bookingRef}`,
         });
       }

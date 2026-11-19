@@ -57,43 +57,43 @@ export interface CheckoutAddOnConfig {
 export const CLIENT_CHECKOUT_ADDONS: CheckoutAddOnConfig[] = [
   {
     id: "originality_report",
-    label: "Originality & AI-Free Authenticity Report",
+    label: "Originality & No-AI Check",
     description:
-      "Official similarity & human-authorship verification PDF bundled with final delivery.",
+      "Includes a PDF report confirming your work is original and written by a human.",
     pricingKind: "FLAT",
     value: 450,
-    badge: "Most Selected",
+    badge: "Most Popular",
   },
   {
     id: "executive_summary",
-    label: "1-Page Executive Summary & Key Takeaways",
+    label: "1-Page Quick Summary",
     description:
-      "Distilled board-ready brief highlighting core arguments, data points, and citations.",
+      "A short 1-page summary of the main points and takeaways.",
     pricingKind: "FLAT",
     value: 850,
   },
   {
     id: "nda_sealed",
-    label: "Strict NDA & Sealed Confidential Workspace",
+    label: "Extra Privacy (NDA)",
     description:
-      "Locks non-disclosure terms and keeps project files & briefs excluded from samples.",
+      "Keeps your project strictly private and never used as a sample.",
     pricingKind: "FLAT",
     value: 600,
   },
   {
     id: "elite_writer",
-    label: "Top 5% Elite Writer Guarantee",
+    label: "Top 5% Writer Upgrade",
     description:
-      "Routes priority quality review and assigns top-decile rubric & rating specialists.",
+      "Assigns one of our highest-rated writers with an extra quality check.",
     pricingKind: "PERCENTAGE",
     value: 15,
     badge: "Top Rated",
   },
   {
     id: "priority_rush",
-    label: "Priority Express Rush Turnaround",
+    label: "Express Fast Delivery",
     description:
-      "Halves standard delivery turnaround window with urgent milestone SLA alerts.",
+      "Cuts the normal delivery time in half with priority updates.",
     pricingKind: "PERCENTAGE",
     value: 20,
     badge: "Fastest",
@@ -282,7 +282,7 @@ export const CONNECTS_BUNDLES: ConnectsBundle[] = [
     bonusConnects: 0,
     totalConnects: 20,
     priceKes: 400,
-    tagline: "Test 3–5 targeted bids & activate 1 availability pulse.",
+    tagline: "Apply to 3–5 client jobs and turn on 1 Available badge.",
   },
   {
     id: "growth",
@@ -292,26 +292,26 @@ export const CONNECTS_BUNDLES: ConnectsBundle[] = [
     totalConnects: 65,
     priceKes: 1000,
     badge: "Most Popular",
-    tagline: "Win #1 boosted slots across high-budget briefs + Sealed bids.",
+    tagline: "Apply to bigger jobs, boost offers to #1, and hide your price from rivals.",
   },
   {
     id: "studio",
-    name: "Studio Pro Pack",
+    name: "Writer Pro Pack",
     baseConnects: 150,
     bonusConnects: 25,
     totalConnects: 175,
     priceKes: 2200,
     badge: "Best Value",
-    tagline: "Covers Creator Plus Pass (60⚡) + Featured Spotlight + 20 bids.",
+    tagline: "Enough for Writer Plus Pass (60 credits), Featured Profile, and 20 job offers.",
   },
   {
     id: "agency",
-    name: "Agency Power Pack",
+    name: "Team Power Pack",
     baseConnects: 400,
     bonusConnects: 80,
     totalConnects: 480,
     priceKes: 5000,
-    tagline: "Dominate Top-3 auction placements all month at KES 10.4/Connect.",
+    tagline: "Stay near the top on client jobs all month at KES 10.4 per credit.",
   },
 ];
 
@@ -464,68 +464,68 @@ export function computeCreatorProfileStandoutScore(
   const breakdown: StandoutBreakdownItem[] = [
     {
       key: "avatar",
-      label: "Professional Studio Portrait",
+      label: "Profile photo",
       completed: Boolean(profile.avatarUrl?.trim()),
       points: 10,
-      impactHint: "+24% profile click-through on bidding cards",
+      impactHint: "Helps clients recognize and trust you on job lists",
     },
     {
       key: "bio_headline",
-      label: "Detailed Editorial Bio & Headline",
+      label: "Headline & about you",
       completed:
         Boolean(profile.headline && profile.headline.trim().length >= 15) &&
         Boolean(profile.bio && profile.bio.trim().length >= 60),
       points: 15,
-      impactHint: "Clarifies niche expertise for high-ticket clients",
+      impactHint: "Tells clients clearly what kind of writing you do best",
     },
     {
       key: "tagline_badge",
-      label: "Signature Tagline Badge",
+      label: "Short highlight badge",
       completed: Boolean(profile.taglineBadge && profile.taglineBadge.trim().length >= 5),
       points: 10,
-      impactHint: "Highlighted directly next to your bid rank",
+      impactHint: "Shows right next to your name when clients compare writers",
     },
     {
       key: "credentials",
-      label: "Domain & Academic Credentials",
+      label: "Education & skills",
       completed: Boolean(
         profile.educationCredentials &&
           profile.educationCredentials.trim().length >= 5
       ),
       points: 15,
-      impactHint: "Justifies premium KES rates & Top-Writer upgrades",
+      impactHint: "Helps clients feel confident paying your full price",
     },
     {
       key: "portfolio_samples",
-      label: "2+ Portfolio Excerpts with File Attachment",
+      label: "2+ writing samples with a file",
       completed: samples.length >= 2 && hasAttachment,
       points: 20,
-      impactHint: "Proof of craft converts hesitant first-time buyers",
+      impactHint: "Real samples help new clients pick you faster",
     },
     {
       key: "intro_video",
-      label: "Intro Pitch Video or Audio Link",
+      label: "Short intro video link",
       completed: Boolean(profile.introVideoUrl && profile.introVideoUrl.trim().length >= 8),
       points: 10,
-      impactHint: "2.3x higher shortlisting rate on B2B & thesis briefs",
+      impactHint: "A quick 1-minute intro video builds strong client trust",
     },
     {
       key: "sla",
-      label: "Fast Response SLA (≤ 30 mins) & Experience",
+      label: "Fast reply time (30 mins or less)",
       completed:
         (profile.responseTimeMinutes ?? 60) <= 30 &&
         (profile.yearsExperience ?? 0) >= 2,
       points: 10,
-      impactHint: "Signals readiness for urgent deadlines",
+      impactHint: "Shows clients you respond quickly on urgent jobs",
     },
     {
       key: "active_boost",
-      label: "Active Standout Boost (Available Now / Featured)",
+      label: "Active profile boost",
       completed:
         isFutureTimestamp(profile.availableNowBadgeUntil) ||
         isFutureTimestamp(profile.featuredProfileUntil),
       points: 10,
-      impactHint: "Adds +10 to +20 organic lift in bid rank auctions",
+      impactHint: "Helps your offers appear higher on open jobs",
     },
   ];
 
@@ -536,10 +536,10 @@ export function computeCreatorProfileStandoutScore(
 
   const tierRecommendation =
     score >= 85
-      ? "Standout Authority — Ready to dominate #1 boosted slots"
+      ? "Great profile — ready to win top jobs"
       : score >= 60
-        ? "Strong Profile — Add credentials or intro pitch to hit 85%+"
-        : "Starter Profile — Complete missing proof items to win 2x more bids";
+        ? "Good profile — add skills or a short intro video to reach 85%+"
+        : "Add a few more details below to get more clients";
 
   return { score, tierRecommendation, breakdown };
 }

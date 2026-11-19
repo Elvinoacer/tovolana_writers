@@ -1,9 +1,12 @@
 "use client";
 
+import { CategoryCoverArt } from "@/components/ui/EditorialVisuals";
 import {
-  CategoryCoverArt,
-  CreatorAvatar,
-} from "@/components/ui/EditorialVisuals";
+  AuroraHeading,
+  HudCard,
+  HudPriceDock,
+  RadarAvatar,
+} from "@/components/ui/AuroraPrimitives";
 
 import React, { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -13,6 +16,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
   Clock,
   CreditCard,
   Crown,
@@ -29,6 +33,8 @@ import {
   VettedCreatorBadge,
   formatKes,
 } from "@/components/ui/Badges";
+import { FlowSteps } from "@/components/ui/FlowGuide";
+import { CLIENT_CHECKOUT_ADDONS, calculateAddOnsTotal } from "@/lib/pricing";
 import {
   MAX_BROWSER_UPLOAD_LABEL,
   validateClientBookingFile,
@@ -85,44 +91,44 @@ interface PricingTier {
 const DEFAULT_FIELDS: RequirementField[] = [
   {
     key: "topic",
-    label: "Topic / Working Title",
+    label: "What is your topic or title?",
     type: "text",
     required: true,
-    placeholder: "e.g. Digital Payment Adoption Among Kenyan SMEs",
+    placeholder: "e.g. Mobile Money Growth in Kenya",
   },
   {
     key: "level",
-    label: "Academic or Professional Level",
+    label: "Type of writing",
     type: "select",
     required: true,
     options: [
-      "Undergraduate",
-      "Postgraduate / Masters",
-      "Executive / Business",
-      "Technical / Publication",
+      "College / Undergraduate",
+      "Master's / Research",
+      "Business / Work",
+      "Blog / Website Article",
     ],
   },
   {
     key: "wordCount",
-    label: "Target Word Count / Scope",
+    label: "How many words or pages?",
     type: "number",
     required: true,
     placeholder: "e.g. 2000",
   },
   {
     key: "referencingStyle",
-    label: "Referencing / Formatting Standard",
+    label: "Formatting or citation style (optional)",
     type: "select",
     required: false,
-    options: ["APA 7th Edition", "MLA", "Harvard", "Chicago", "Corporate / None"],
+    options: ["APA 7", "MLA", "Harvard", "Chicago", "No special style"],
   },
   {
     key: "instructions",
-    label: "Detailed Instructions & Specific Sources",
+    label: "Tell the writer what you need",
     type: "textarea",
     required: true,
     placeholder:
-      "Describe the exact goals, rubric criteria, tone, and required structure.",
+      "Share your main points, sections to include, tone, and any sources or notes.",
   },
 ];
 
@@ -186,6 +192,7 @@ export default function BookTaskPage({
     "FULL_ESCROW" | "MILESTONE_SPLIT" | "TRIPWIRE_OUTLINE"
   >(() => readInitialBookingQuery().mode);
   const rushSelected = selectedAddOns.includes("priority_rush");
+  const [showExtras, setShowExtras] = useState(false);
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
   const [briefFile, setBriefFile] = useState<File | null>(null);
   const briefInputRef = useRef<HTMLInputElement | null>(null);
@@ -251,72 +258,9 @@ export default function BookTaskPage({
 
   const activeTier = userIsPro ? proPricing : freePricing;
 
-  const CLIENT_CHECKOUT_ADDONS_UI = [
-    {
-      id: "originality_report",
-      label: "Originality & AI-Free Authenticity Report",
-      description:
-        "Official similarity & human-authorship verification PDF bundled with final delivery.",
-      pricingKind: "FLAT" as const,
-      value: 450,
-      badge: "Most Selected",
-    },
-    {
-      id: "executive_summary",
-      label: "1-Page Executive Summary & Key Takeaways",
-      description:
-        "Distilled board-ready brief highlighting core arguments, data points, and citations.",
-      pricingKind: "FLAT" as const,
-      value: 850,
-    },
-    {
-      id: "nda_sealed",
-      label: "Strict NDA & Sealed Confidential Workspace",
-      description:
-        "Locks non-disclosure terms and keeps project files & briefs excluded from samples.",
-      pricingKind: "FLAT" as const,
-      value: 600,
-    },
-    {
-      id: "elite_writer",
-      label: "Top 5% Elite Writer Guarantee",
-      description:
-        "Routes priority quality review and assigns top-decile rubric & rating specialists.",
-      pricingKind: "PERCENTAGE" as const,
-      value: 15,
-      badge: "Top Rated",
-    },
-    {
-      id: "priority_rush",
-      label: "Priority Express Rush Turnaround",
-      description:
-        "Halves standard delivery turnaround window with urgent milestone SLA alerts.",
-      pricingKind: "PERCENTAGE" as const,
-      value: 20,
-      badge: "Fastest",
-    },
-  ];
-
-  const itemizedAddOns = task
-    ? selectedAddOns
-        .map((id) => {
-          const cfg = CLIENT_CHECKOUT_ADDONS_UI.find((item) => item.id === id);
-          if (!cfg) return null;
-          const amount =
-            cfg.pricingKind === "FLAT"
-              ? cfg.value
-              : Math.round(task.basePrice * (cfg.value / 100) * 100) / 100;
-          return { id: cfg.id, label: cfg.label, amount };
-        })
-        .filter((x): x is { id: string; label: string; amount: number } =>
-          Boolean(x)
-        )
-    : [];
-
-  const addOnsTotal =
-    Math.round(
-      itemizedAddOns.reduce((sum, item) => sum + item.amount, 0) * 100
-    ) / 100;
+  const { itemized: itemizedAddOns, addOnsTotal } = task
+    ? calculateAddOnsTotal(task.basePrice, selectedAddOns)
+    : { itemized: [], addOnsTotal: 0 };
   const fullOrderTotal =
     Math.round(((activeTier?.totalPayable ?? 0) + addOnsTotal) * 100) / 100;
   const proFullOrderTotal =
@@ -471,8 +415,8 @@ export default function BookTaskPage({
   if (loading || authLoading) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-12">
-        <div className="editorial-card p-8 animate-pulse text-sm text-stone-500">
-          Loading service details and transparent fee ledger...
+        <div className="editorial-card p-8 animate-pulse text-sm text-slate-400">
+          Loading service details and prices...
         </div>
       </main>
     );
@@ -482,16 +426,13 @@ export default function BookTaskPage({
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 text-center space-y-4">
-          <AlertTriangle className="w-10 h-10 text-amber-600 mx-auto" />
-          <h1 className="text-2xl font-editorial font-semibold">
-            Service Unavailable
+          <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Service Not Found
           </h1>
-          <p className="text-sm text-stone-600">{error || "Listing not found."}</p>
-          <Link
-            href="/explore"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a8a] text-white text-sm font-medium"
-          >
-            Back to Explore
+          <p className="text-sm text-slate-300">{error || "We could not find that writing service."}</p>
+          <Link href="/explore" className="btn-primary px-5 py-2.5 text-sm">
+            Find Another Writer
           </Link>
         </div>
       </main>
@@ -502,29 +443,26 @@ export default function BookTaskPage({
     return (
       <main className="max-w-3xl mx-auto px-4 py-16">
         <div className="editorial-card p-8 space-y-5">
-          <div className="flex items-center gap-2 text-xs text-stone-500">
-            <Lock className="w-4 h-4 text-[#1e3a8a]" />
-            <span>AUTHENTICATION REQUIRED TO BOOK</span>
+          <div className="flex items-center gap-2 text-xs text-sky-300 font-tech">
+            <Lock className="w-4 h-4" />
+            <span>SIGN IN NEEDED</span>
           </div>
-          <h1 className="text-2xl font-editorial font-semibold">
-            Sign in to book “{task.title}”
+          <h1 className="text-2xl font-editorial font-semibold text-white">
+            Sign in to order &ldquo;{task.title}&rdquo;
           </h1>
-          <p className="text-sm text-stone-600">
-            After signing in or registering (Free or Pro — both can book
-            services), you will be returned straight to this booking wizard.
+          <p className="text-sm text-slate-300">
+            Sign in or create a free account, and we&apos;ll bring you right back
+            here to finish your order.
           </p>
           <div className="flex flex-wrap gap-3">
             <Link
               href={`/auth?next=${encodeURIComponent(`/book/${task.slug}`)}`}
-              className="px-5 py-2.5 rounded-lg bg-[#1e3a8a] text-white text-sm font-semibold hover:bg-[#172554]"
+              className="btn-primary px-5 py-2.5 text-sm"
             >
-              Continue to Sign In / Quick Join
+              Sign In / Create Account
             </Link>
-            <Link
-              href={`/tasks/${task.slug}`}
-              className="px-5 py-2.5 rounded-lg border border-[#e6e0d4] bg-white text-sm font-medium text-stone-700"
-            >
-              Back to Service Brief
+            <Link href={`/tasks/${task.slug}`} className="btn-ghost px-5 py-2.5 text-sm">
+              Back to Service
             </Link>
           </div>
         </div>
@@ -538,55 +476,44 @@ export default function BookTaskPage({
 
   return (
     <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 animate-reveal">
-      <div className="editorial-card p-4 sm:px-6 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <Link
           href={`/tasks/${task.slug}`}
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#111827]"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-cyan-300"
         >
           <ArrowLeft className="w-4 h-4" />
-          Back to service brief
+          Back to service
         </Link>
-        <div className="flex items-center gap-2 text-xs font-semibold flex-wrap">
-          {[1, 2, 3].map((num) => (
-            <span
-              key={num}
-              className={`px-3 py-1 rounded-full border transition-all ${
-                step === num
-                  ? "bg-[#1e3a8a] text-white border-[#1e3a8a] shadow-xs"
-                  : step > num
-                    ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                    : "bg-[#faf7f2] text-stone-500 border-[#e6e0d4]"
-              }`}
-            >
-              {num}.{" "}
-              {num === 1
-                ? "Requirements"
-                : num === 2
-                  ? "Review & Policy"
-                  : "IntaSend Escrow"}
-            </span>
-          ))}
-        </div>
       </div>
 
+      <FlowSteps
+        currentStep={step}
+        goalLabel="Goal: Safe order placed & writer starts right away"
+        steps={[
+          { label: "1. Your Instructions", hint: "Topic, length & extras" },
+          { label: "2. Check Details", hint: "Confirm dates & rules" },
+          { label: "3. Pay Safely", hint: "M-Pesa or Card" },
+        ]}
+      />
+
       {error && (
-        <div className="p-4 rounded-xl border border-rose-200 bg-rose-50 text-rose-800 text-sm flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+        <div className="p-4 rounded-xl border border-rose-400/35 bg-rose-500/15 text-rose-200 text-sm flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-rose-300" />
           <span>{error}</span>
         </div>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-6">
-          {/* Step 1: Requirements */}
+          {/* Step 1: Instructions */}
           {step === 1 && (
-            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+            <div className="editorial-card p-6 sm:p-8 space-y-6">
               <div>
-                <h1 className="text-2xl font-editorial font-semibold">
-                  Step 1 · Assignment Requirements
-                </h1>
-                <p className="text-xs text-stone-600 mt-1">
-                  Brief {task.creator.displayName} accurately upfront.
+                <AuroraHeading as="h1" className="text-2xl">
+                  Step 1 · Share What You Need
+                </AuroraHeading>
+                <p className="text-xs text-slate-300 mt-1">
+                  Tell {task.creator.displayName} about your project so they can get it right the first time.
                 </p>
               </div>
 
@@ -599,10 +526,10 @@ export default function BookTaskPage({
 
                   return (
                     <div key={key} className="space-y-1.5">
-                      <label className="block text-sm font-medium text-[#111827]">
+                      <label className="block text-sm font-medium text-slate-200">
                         {label}
                         {field.required && (
-                          <span className="text-rose-600 ml-1">*</span>
+                          <span className="text-rose-400 ml-1">*</span>
                         )}
                       </label>
                       {field.type === "textarea" ? (
@@ -616,7 +543,7 @@ export default function BookTaskPage({
                             }))
                           }
                           placeholder={field.placeholder || ""}
-                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="hud-input w-full px-3.5 py-2.5 text-sm"
                         />
                       ) : field.type === "select" && field.options ? (
                         <select
@@ -627,7 +554,7 @@ export default function BookTaskPage({
                               [key]: e.target.value,
                             }))
                           }
-                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="hud-input w-full px-3.5 py-2.5 text-sm"
                         >
                           <option value="">Select an option...</option>
                           {field.options.map((opt) => (
@@ -647,7 +574,7 @@ export default function BookTaskPage({
                             }))
                           }
                           placeholder={field.placeholder || ""}
-                          className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]/25"
+                          className="hud-input w-full px-3.5 py-2.5 text-sm"
                         />
                       )}
                     </div>
@@ -656,31 +583,31 @@ export default function BookTaskPage({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
                   <div>
-                    <label className="block text-sm font-medium text-[#111827] mb-1">
-                      Preferred Delivery Date
+                    <label className="block text-sm font-medium text-slate-200 mb-1">
+                      When do you need it?
                     </label>
                     <input
                       type="date"
                       value={requestedDeadline}
                       onChange={(e) => setRequestedDeadline(e.target.value)}
-                      className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2 text-sm"
+                      className="hud-input w-full px-3.5 py-2 text-sm"
                     />
-                    <p className="text-[11px] text-stone-500 mt-1">
-                      Standard: {task.deliveryTurnaroundDays} days.
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Normal delivery: {task.deliveryTurnaroundDays} days.
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-[#111827] mb-1">
-                      Brief File (Optional)
+                    <label className="block text-sm font-medium text-slate-200 mb-1">
+                      Attach a file (optional)
                     </label>
                     <div className="flex items-center gap-2">
-                      <label className="flex-1 min-w-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-stone-300 bg-[#faf7f2] text-xs text-stone-700 cursor-pointer hover:bg-stone-100">
-                        <Upload className="w-4 h-4 text-[#1e3a8a] shrink-0" />
+                      <label className="flex-1 min-w-0 flex items-center gap-2 px-3.5 py-2.5 rounded-xl border border-dashed border-white/25 bg-white/[0.04] text-xs text-slate-200 cursor-pointer hover:bg-white/[0.08]">
+                        <Upload className="w-4 h-4 text-cyan-300 shrink-0" />
                         <span className="truncate">
                           {briefFile
                             ? briefFile.name
-                            : "Attach rubric, outline, or PDF"}
+                            : "Attach notes, outline, or PDF"}
                         </span>
                         <input
                           ref={briefInputRef}
@@ -716,113 +643,133 @@ export default function BookTaskPage({
                               briefInputRef.current.value = "";
                             }
                           }}
-                          aria-label="Remove selected brief file"
-                          className="p-2 rounded-xl border border-[#e6e0d4] bg-white text-stone-500 hover:text-rose-700"
+                          aria-label="Remove attached file"
+                          className="p-2 rounded-xl border border-white/[0.14] bg-white/[0.06] text-slate-300 hover:text-rose-300"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-stone-500 mt-1">
-                      Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, DOCX, TXT, MD, CSV, ZIP, or images.
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Max {MAX_BROWSER_UPLOAD_LABEL} · PDF, Word, text, spreadsheets, ZIP, or photos.
                     </p>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#1e3a8a]">
-                      Optional Value Add-Ons
-                    </p>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Bundle verified quality guarantees &amp; turnaround accelerators into your escrow order.
-                    </p>
-                  </div>
-                  <div className="space-y-2.5">
-                    {CLIENT_CHECKOUT_ADDONS_UI.map((addon) => {
-                      const checked = selectedAddOns.includes(addon.id);
-                      const addonCost =
-                        addon.pricingKind === "FLAT"
-                          ? addon.value
-                          : Math.round(
-                              task.basePrice * (addon.value / 100) * 100
-                            ) / 100;
-                      return (
-                        <label
-                          key={addon.id}
-                          className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
-                            checked
-                              ? "border-[#1e3a8a] bg-blue-50/40"
-                              : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              setSelectedAddOns((prev) =>
-                                e.target.checked
-                                  ? [...prev, addon.id]
-                                  : prev.filter((x) => x !== addon.id)
-                              );
-                            }}
-                            className="mt-1"
-                          />
-                          <div className="flex-1 text-xs">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="font-semibold text-[#111827] flex items-center gap-1.5">
-                                {addon.label}
-                                {addon.badge && (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-900">
-                                    {addon.badge}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="font-tech font-semibold text-[#1e3a8a]">
-                                +{formatKes(addonCost, task.currency)}
-                              </span>
+                {/* Collapsible Optional Extras */}
+                <div className="rounded-xl border border-white/[0.12] bg-white/[0.04] p-4 space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowExtras((prev) => !prev)}
+                    className="w-full flex items-center justify-between gap-2 text-left"
+                  >
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">
+                        Optional Extras{" "}
+                        {selectedAddOns.length > 0 && (
+                          <span className="text-slate-300 normal-case font-tech">
+                            ({selectedAddOns.length} selected · +{formatKes(addOnsTotal, task.currency)})
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Add faster delivery, extra privacy, or a no-AI check if you need them.
+                      </p>
+                    </div>
+                    <ChevronDown
+                      className={`w-4 h-4 text-slate-300 shrink-0 transition-transform ${
+                        showExtras ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {showExtras && (
+                    <div className="space-y-2.5 pt-2 border-t border-white/[0.1]">
+                      {CLIENT_CHECKOUT_ADDONS.map((addon) => {
+                        const checked = selectedAddOns.includes(addon.id);
+                        const addonCost =
+                          addon.pricingKind === "FLAT"
+                            ? addon.value
+                            : Math.round(
+                                task.basePrice * (addon.value / 100) * 100
+                              ) / 100;
+                        return (
+                          <label
+                            key={addon.id}
+                            className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer transition-colors ${
+                              checked
+                                ? "border-sky-400/50 bg-sky-500/[0.12]"
+                                : "border-white/[0.11] bg-white/[0.03] hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={(e) => {
+                                setSelectedAddOns((prev) =>
+                                  e.target.checked
+                                    ? [...prev, addon.id]
+                                    : prev.filter((x) => x !== addon.id)
+                                );
+                              }}
+                              className="mt-1 accent-cyan-400"
+                            />
+                            <div className="flex-1 text-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-semibold text-white flex items-center gap-1.5">
+                                  {addon.label}
+                                  {addon.badge && (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-400/35">
+                                      {addon.badge}
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="font-tech font-semibold text-cyan-300">
+                                  +{formatKes(addonCost, task.currency)}
+                                </span>
+                              </div>
+                              <p className="text-slate-300 mt-0.5">
+                                {addon.description}
+                              </p>
                             </div>
-                            <p className="text-stone-600 mt-0.5">
-                              {addon.description}
-                            </p>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-3 pt-2">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#0f766e]">
-                      Escrow Commitment Plan
+                    <p className="text-xs font-semibold uppercase tracking-wider text-teal-300">
+                      How would you like to pay?
                     </p>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Start with a low-risk KES 490 outline or lock 25% deposit — balance settles only after milestone review.
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Pick full payment, 25% deposit now, or try Page 1 first for KES 490.
                     </p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
                     {[
                       {
                         mode: "FULL_ESCROW" as const,
-                        title: "Full Escrow",
+                        title: "Pay Full Amount",
                         tag: "100% Today",
                         amount: fullOrderTotal,
-                        desc: "Full escrow funding upfront with zero split balance remaining.",
+                        desc: "Pay the full price now. We hold it safely until you approve finished work.",
                       },
                       {
                         mode: "MILESTONE_SPLIT" as const,
-                        title: "25% Deposit Lock",
+                        title: "Pay 25% Deposit Now",
                         tag: "Flexible",
                         amount: Math.round(fullOrderTotal * 0.25 * 100) / 100,
-                        desc: "Reserve creator slot with 25% today; 75% unlocked at draft delivery.",
+                        desc: "Pay 25% to book your writer. Pay the rest once the first draft arrives.",
                       },
                       {
                         mode: "TRIPWIRE_OUTLINE" as const,
-                        title: "First-Page Outline",
+                        title: "Try Page 1 First",
                         tag: "KES 490 Start",
                         amount: 490,
-                        desc: "Audit quality first with an outline + opening page before funding full project.",
+                        desc: "Get the outline and Page 1 first for KES 490 before paying for the whole project.",
                       },
                     ].map((plan) => {
                       const active = checkoutMode === plan.mode;
@@ -831,22 +778,22 @@ export default function BookTaskPage({
                           key={plan.mode}
                           type="button"
                           onClick={() => setCheckoutMode(plan.mode)}
-                          className={`text-left p-3.5 rounded-xl border transition-colors ${
+                          className={`text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
                             active
-                              ? "border-[#0f766e] bg-teal-50/60"
-                              : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+                              ? "border-teal-400/60 bg-teal-500/[0.14] ring-1 ring-teal-400/35"
+                              : "border-white/[0.11] bg-white/[0.04] hover:bg-white/[0.08]"
                           }`}
                         >
                           <div className="flex items-center justify-between gap-1 text-[11px] font-semibold">
-                            <span className="text-[#111827]">{plan.title}</span>
-                            <span className="px-2 py-0.5 rounded-full bg-white border border-[#e6e0d4] text-[#0f766e]">
+                            <span className="text-white">{plan.title}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-white/[0.08] border border-white/[0.14] text-teal-300">
                               {plan.tag}
                             </span>
                           </div>
-                          <p className="font-tech text-base font-bold text-[#1e3a8a] mt-1">
+                          <p className="font-tech text-base font-bold text-cyan-300 mt-1">
                             {formatKes(plan.amount, task.currency)}
                           </p>
-                          <p className="text-[11px] text-stone-600 mt-1 leading-snug">
+                          <p className="text-[11px] text-slate-300 mt-1 leading-snug">
                             {plan.desc}
                           </p>
                         </button>
@@ -877,69 +824,92 @@ export default function BookTaskPage({
                   }}
                   className="btn-primary px-6 py-2.5 text-sm gap-2"
                 >
-                  Review Scope &amp; Policy
+                  Next: Check Order &amp; Rules
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 2: Transparent Confirmation */}
+          {/* Step 2: Check Your Order & Rules */}
           {step === 2 && (
-            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+            <div className="editorial-card p-6 sm:p-8 space-y-6">
               <div>
-                <h1 className="text-2xl font-editorial font-semibold">
-                  Step 2 · Confirm Deadlines &amp; Escrow Policy
-                </h1>
-                <p className="text-xs text-stone-600 mt-1">
-                  Verify locked terms before generating your booking reference.
+                <AuroraHeading as="h1" className="text-2xl">
+                  Step 2 · Check Your Order &amp; Rules
+                </AuroraHeading>
+                <p className="text-xs text-slate-300 mt-1">
+                  Make sure everything looks right before we create your order.
                 </p>
               </div>
 
-              <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4 text-xs text-blue-950 space-y-1">
-                <p className="font-semibold flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-[#1e3a8a]" />
-                  Independent Delivery Deadline Guarantee
+              <div className="p-4 rounded-xl bg-white/[0.045] border border-white/[0.12] space-y-2 text-xs">
+                <p className="font-semibold text-white">Your Instructions</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {requirementFields.map((field, idx) => {
+                    const key = field.key || field.name || `field_${idx}`;
+                    const value = responses[key];
+                    if (!value) return null;
+                    return (
+                      <div key={key}>
+                        <span className="text-slate-400">{field.label || key}: </span>
+                        <span className="font-medium text-white">{value}</span>
+                      </div>
+                    );
+                  })}
+                  {briefFile && (
+                    <div>
+                      <span className="text-slate-400">Attached file: </span>
+                      <span className="font-medium text-white">{briefFile.name}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-sky-400/35 bg-sky-500/[0.1] p-4 text-xs text-sky-200 space-y-1">
+                <p className="font-semibold text-white flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-sky-300" />
+                  Guaranteed Delivery Date
                 </p>
                 <p>
-                  Target Delivery:{" "}
-                  <strong>
+                  Due by:{" "}
+                  <strong className="text-white">
                     {requestedDeadline
                       ? requestedDeadline
-                      : `${rushSelected ? Math.max(1, Math.ceil(task.deliveryTurnaroundDays / 2)) : task.deliveryTurnaroundDays} days from payment`}
+                      : `${rushSelected ? Math.max(1, Math.ceil(task.deliveryTurnaroundDays / 2)) : task.deliveryTurnaroundDays} days after you pay`}
                   </strong>
-                  . Protected even if the public listing expires later.
+                  . Your order stays safe even if this listing closes later.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                  <p className="font-semibold text-[#111827]">Revision Policy</p>
-                  <p className="text-xs text-stone-600 mt-1">
-                    {task.revisionPolicy} ({task.maxRevisions} rounds included)
+                <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.11]">
+                  <p className="font-semibold text-white">Free Edits Rule</p>
+                  <p className="text-xs text-slate-300 mt-1">
+                    {task.revisionPolicy} ({task.maxRevisions} free edits included)
                   </p>
                 </div>
-                <div className="p-4 rounded-xl bg-[#faf7f2] border border-[#e6e0d4]">
-                  <p className="font-semibold text-[#111827]">
-                    Cancellation Policy
+                <div className="p-4 rounded-xl bg-white/[0.04] border border-white/[0.11]">
+                  <p className="font-semibold text-white">
+                    Cancellations &amp; Refunds
                   </p>
-                  <p className="text-xs text-stone-600 mt-1">
+                  <p className="text-xs text-slate-300 mt-1">
                     {task.cancellationPolicy}
                   </p>
                 </div>
               </div>
 
-              <label className="flex items-start gap-3 text-xs text-stone-700 cursor-pointer">
+              <label className="flex items-start gap-3 text-xs text-slate-200 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={acceptedPolicies}
                   onChange={(e) => setAcceptedPolicies(e.target.checked)}
-                  className="mt-0.5"
+                  className="mt-0.5 accent-cyan-400"
                 />
                 <span>
-                  I confirm deliverables, turnaround, total payable (
-                  <strong>{formatKes(computedTotal, task.currency)}</strong>), and
-                  escrow terms.
+                  I agree to the price (
+                  <strong className="text-cyan-300">{formatKes(computedTotal, task.currency)}</strong>),
+                  delivery date, and safe-payment rules.
                 </span>
               </label>
 
@@ -948,40 +918,41 @@ export default function BookTaskPage({
                   onClick={() => setStep(1)}
                   className="btn-ghost px-4 py-2 text-sm"
                 >
-                  Edit Requirements
+                  Back to Edit
                 </button>
                 <button
                   disabled={!acceptedPolicies || submitting}
                   onClick={handleCreateBooking}
                   className="btn-primary px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
                 >
-                  {submitting
-                    ? "Locking Booking..."
-                    : "Confirm & Proceed to Escrow"}
+                  {submitting ? "Creating Order..." : "Confirm & Pay"}
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 3: IntaSend Escrow Checkout */}
+          {/* Step 3: Safe Payment */}
           {step === 3 && createdBooking && (
-            <div className="editorial-card p-6 sm:p-8 bg-white space-y-6">
+            <div className="editorial-card p-6 sm:p-8 space-y-6">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <span className="font-tech text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold">
-                    Ref: {createdBooking.bookingRef}
+                  <span className="font-tech text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-400/35 font-semibold">
+                    Order Ref: {createdBooking.bookingRef}
                   </span>
-                  <h1 className="text-2xl font-editorial font-semibold mt-2">
-                    Step 3 · Fund IntaSend Escrow
-                  </h1>
+                  <AuroraHeading as="h1" className="text-2xl mt-2">
+                    Step 3 · Pay Safely
+                  </AuroraHeading>
                 </div>
-                <p className="font-tech text-2xl font-bold text-[#1e3a8a]">
-                  {formatKes(
+                <HudPriceDock
+                  label="Pay now"
+                  price={formatKes(
                     createdBooking.totalPayable,
                     createdBooking.currency
                   )}
-                </p>
+                  theme="cyan"
+                  size="md"
+                />
               </div>
 
               {!checkoutInfo ? (
@@ -990,41 +961,41 @@ export default function BookTaskPage({
                     <button
                       type="button"
                       onClick={() => setChannel("MPESA_STK")}
-                      className={`p-4 rounded-2xl border text-left transition-all ${
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                         channel === "MPESA_STK"
-                          ? "border-[#1e3a8a] bg-blue-50/50 ring-2 ring-[#1e3a8a]/20"
-                          : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+                          ? "border-teal-400/60 bg-teal-500/[0.14] ring-1 ring-teal-400/35"
+                          : "border-white/[0.11] bg-white/[0.04] hover:bg-white/[0.08]"
                       }`}
                     >
-                      <Smartphone className="w-5 h-5 text-emerald-700 mb-2" />
-                      <p className="font-semibold text-sm">M-Pesa STK Push</p>
-                      <p className="text-xs text-stone-600 mt-0.5">
-                        Instant KES prompt on Safaricom.
+                      <Smartphone className="w-5 h-5 text-emerald-300 mb-2" />
+                      <p className="font-semibold text-sm text-white">M-Pesa</p>
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Pay right from your Safaricom phone.
                       </p>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => setChannel("CARD")}
-                      className={`p-4 rounded-2xl border text-left transition-all ${
+                      className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                         channel === "CARD"
-                          ? "border-[#1e3a8a] bg-blue-50/50 ring-2 ring-[#1e3a8a]/20"
-                          : "border-[#e6e0d4] bg-[#faf7f2] hover:bg-white"
+                          ? "border-sky-400/60 bg-sky-500/[0.14] ring-1 ring-sky-400/35"
+                          : "border-white/[0.11] bg-white/[0.04] hover:bg-white/[0.08]"
                       }`}
                     >
-                      <CreditCard className="w-5 h-5 text-[#1e3a8a] mb-2" />
-                      <p className="font-semibold text-sm">
+                      <CreditCard className="w-5 h-5 text-sky-300 mb-2" />
+                      <p className="font-semibold text-sm text-white">
                         Visa / Mastercard
                       </p>
-                      <p className="text-xs text-stone-600 mt-0.5">
-                        Hosted 3DS card checkout.
+                      <p className="text-xs text-slate-300 mt-0.5">
+                        Pay safely with your bank card.
                       </p>
                     </button>
                   </div>
 
                   {channel === "MPESA_STK" && (
                     <div>
-                      <label className="block text-sm font-medium mb-1">
+                      <label className="block text-sm font-medium text-slate-200 mb-1">
                         M-Pesa Phone Number
                       </label>
                       <input
@@ -1032,7 +1003,7 @@ export default function BookTaskPage({
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         placeholder="+254712345678"
-                        className="w-full rounded-xl border border-[#e6e0d4] bg-white px-3.5 py-2.5 text-sm font-tech"
+                        className="hud-input w-full px-3.5 py-2.5 text-sm font-tech"
                       />
                     </div>
                   )}
@@ -1040,9 +1011,9 @@ export default function BookTaskPage({
                   <div className="flex items-center justify-between pt-2">
                     <Link
                       href={`/dashboard/bookings/${createdBooking.bookingRef}`}
-                      className="text-xs text-stone-600 hover:underline"
+                      className="text-xs text-slate-400 hover:text-cyan-300 hover:underline"
                     >
-                      Pay later from workspace
+                      Pay later from My Orders
                     </Link>
                     <button
                       disabled={submitting}
@@ -1050,25 +1021,25 @@ export default function BookTaskPage({
                       className="btn-primary px-6 py-2.5 text-sm gap-2 disabled:opacity-50"
                     >
                       {submitting
-                        ? "Connecting to IntaSend..."
+                        ? "Starting Payment..."
                         : channel === "MPESA_STK"
-                          ? "Send M-Pesa STK Push"
-                          : "Open Card Checkout"}
+                          ? "Send M-Pesa Prompt"
+                          : "Pay by Card"}
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 space-y-4">
+                <div className="rounded-2xl border border-amber-400/35 bg-amber-500/[0.1] p-5 space-y-4">
                   <div className="flex items-start gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-amber-800 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-5 h-5 text-amber-300 shrink-0 mt-0.5" />
                     <div className="text-sm">
-                      <p className="font-semibold text-amber-950">
-                        Payment Request Initiated ({checkoutInfo.mode || "SANDBOX"})
+                      <p className="font-semibold text-white">
+                        Payment Request Sent ({checkoutInfo.mode === "LIVE" ? "Live" : "Test Mode"})
                       </p>
-                      <p className="text-xs text-amber-900 mt-1">
+                      <p className="text-xs text-amber-200 mt-1">
                         Ref:{" "}
-                        <code className="font-tech bg-white px-1.5 py-0.5 rounded border border-amber-200">
+                        <code className="font-tech bg-white/[0.08] px-1.5 py-0.5 rounded border border-amber-400/35 text-amber-100">
                           {checkoutInfo.transaction?.apiRef}
                         </code>
                       </p>
@@ -1080,31 +1051,31 @@ export default function BookTaskPage({
                       href={checkoutInfo.checkoutUrl}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-amber-300 text-xs font-semibold text-amber-950"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/[0.1] border border-amber-400/40 text-xs font-semibold text-amber-200"
                     >
-                      Open Hosted Checkout
+                      Open Payment Page
                       <ArrowRight className="w-3.5 h-3.5" />
                     </a>
                   )}
 
-                  <div className="pt-3 border-t border-amber-200 space-y-2.5">
-                    <p className="text-xs font-semibold text-stone-800">
-                      IntaSend Sandbox Simulation Controls
+                  <div className="pt-3 border-t border-amber-400/25 space-y-2.5">
+                    <p className="text-xs font-semibold text-slate-200">
+                      Test Mode (Demo only)
                     </p>
                     <div className="flex flex-wrap gap-2.5">
                       <button
                         disabled={submitting}
                         onClick={() => handleSimulateSandboxWebhook("COMPLETE")}
-                        className="px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-semibold hover:bg-emerald-800 disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl bg-emerald-500 text-slate-950 text-xs font-bold hover:bg-emerald-400 disabled:opacity-50"
                       >
-                        Simulate Successful Payment
+                        Mark Payment Complete (Demo)
                       </button>
                       <button
                         disabled={submitting}
                         onClick={() => handleSimulateSandboxWebhook("FAILED")}
-                        className="px-4 py-2 rounded-xl border border-rose-300 bg-white text-rose-700 text-xs font-semibold hover:bg-rose-50 disabled:opacity-50"
+                        className="px-4 py-2 rounded-xl border border-rose-400/40 bg-rose-500/15 text-rose-200 text-xs font-semibold hover:bg-rose-500/25 disabled:opacity-50"
                       >
-                        Simulate Failed Payment
+                        Simulate Failed Payment (Demo)
                       </button>
                     </div>
                   </div>
@@ -1114,9 +1085,9 @@ export default function BookTaskPage({
           )}
         </div>
 
-        {/* Sticky Visual Order Ledger */}
+        {/* Sticky HUD Order Summary */}
         <aside className="space-y-4">
-          <div className="editorial-card overflow-hidden bg-white sticky top-24">
+          <HudCard theme="cyan" brackets className="overflow-hidden sticky top-24">
             <CategoryCoverArt
               slug={categorySlugGuess}
               name={task.category.name}
@@ -1125,20 +1096,20 @@ export default function BookTaskPage({
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <CreatorAvatar
+                  <RadarAvatar
                     name={task.creator.displayName}
-                    username={task.creator.username}
                     avatarUrl={task.creator.user?.avatarUrl}
+                    theme="cyan"
                     size="sm"
                   />
-                  <span className="text-xs font-semibold text-[#111827]">
+                  <span className="text-xs font-semibold text-white">
                     {task.creator.displayName}
                   </span>
                 </div>
                 {userIsPro && <ProBadge label="Pro 50% Off" />}
               </div>
 
-              <h2 className="font-editorial text-lg font-semibold leading-snug">
+              <h2 className="font-editorial text-lg font-semibold leading-snug text-white">
                 {task.title}
               </h2>
 
@@ -1150,24 +1121,24 @@ export default function BookTaskPage({
                 />
               </div>
 
-              <div className="border-t border-b border-[#e6e0d4] py-3 space-y-2 text-sm">
+              <div className="border-t border-b border-white/[0.1] py-3 space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-stone-600">Service Price</span>
-                  <span className="font-tech font-medium">
+                  <span className="text-slate-400">Service Price</span>
+                  <span className="font-tech font-medium text-white">
                     {formatKes(task.basePrice, task.currency)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-stone-600">
-                    Fee ({activeTier?.effectiveFeePct ?? 10}%)
+                  <span className="text-slate-400">
+                    Service Fee ({activeTier?.effectiveFeePct ?? 10}%)
                   </span>
-                  <span className="font-tech font-medium">
+                  <span className="font-tech font-medium text-white">
                     {formatKes(activeTier?.serviceFee ?? 0, task.currency)}
                   </span>
                 </div>
                 {activeTier && activeTier.proDiscount > 0 && (
-                  <div className="flex justify-between text-amber-800 text-xs">
-                    <span>Pro Savings</span>
+                  <div className="flex justify-between text-amber-300 text-xs">
+                    <span>Pro Discount</span>
                     <span className="font-tech">
                       -{formatKes(activeTier.proDiscount, task.currency)}
                     </span>
@@ -1176,7 +1147,7 @@ export default function BookTaskPage({
                 {itemizedAddOns.map((addon) => (
                   <div
                     key={addon.id}
-                    className="flex justify-between gap-2 text-xs text-blue-900"
+                    className="flex justify-between gap-2 text-xs text-sky-300"
                   >
                     <span className="line-clamp-1">{addon.label}</span>
                     <span className="font-tech shrink-0">
@@ -1186,14 +1157,14 @@ export default function BookTaskPage({
                 ))}
                 {checkoutMode !== "FULL_ESCROW" && (
                   <>
-                    <div className="flex justify-between text-xs text-stone-500 pt-1 border-t border-dashed border-[#e6e0d4]">
-                      <span>Full Order Value</span>
-                      <span className="font-tech">
+                    <div className="flex justify-between text-xs text-slate-400 pt-1 border-t border-dashed border-white/[0.12]">
+                      <span>Full Order Price</span>
+                      <span className="font-tech text-slate-200">
                         {formatKes(fullOrderTotal, task.currency)}
                       </span>
                     </div>
-                    <div className="flex justify-between text-xs text-[#0f766e]">
-                      <span>Remaining After Milestone</span>
+                    <div className="flex justify-between text-xs text-teal-300">
+                      <span>Pay Later After First Draft</span>
                       <span className="font-tech font-medium">
                         {formatKes(remainingBalance, task.currency)}
                       </span>
@@ -1202,48 +1173,51 @@ export default function BookTaskPage({
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-[#111827]">
+              <div className="flex items-center justify-between gap-3">
+                <span className="font-semibold text-sm text-white">
                   {checkoutMode === "FULL_ESCROW"
-                    ? "Total Payable"
+                    ? "Total Due Now"
                     : checkoutMode === "MILESTONE_SPLIT"
-                      ? "25% Deposit Due Now"
-                      : "Outline Trial Due Now"}
+                      ? "25% Deposit"
+                      : "Page-1 Trial"}
                 </span>
-                <span className="font-tech text-2xl font-bold text-[#1e3a8a]">
-                  {formatKes(computedTotal, task.currency)}
-                </span>
+                <HudPriceDock
+                  label="Due now"
+                  price={formatKes(computedTotal, task.currency)}
+                  theme="cyan"
+                  size="sm"
+                />
               </div>
 
               {!userIsPro && freePricing && proPricing && (
-                <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
-                  <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-700" />
+                <div className="p-3 rounded-xl bg-amber-500/15 border border-amber-400/35 text-xs text-amber-200 flex items-start gap-2">
+                  <Crown className="w-4 h-4 shrink-0 mt-0.5 text-amber-300" />
                   <span>
-                    Pro pays{" "}
-                    <strong className="font-tech">
+                    With Pro, full price is{" "}
+                    <strong className="font-tech text-white">
                       {formatKes(proFullOrderTotal, task.currency)}
-                    </strong>{" "}
-                    full order.{" "}
-                    <Link href="/membership" className="underline font-semibold">
-                      Compare Pro
+                    </strong>
+                    .{" "}
+                    <Link href="/membership" className="underline font-semibold text-amber-300">
+                      See Pro Plan
                     </Link>
                   </span>
                 </div>
               )}
 
-              <div className="text-xs text-stone-600 space-y-1.5 pt-2">
-                <p className="font-semibold text-[#111827] flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-[#0f766e]" />
-                  Deliverables
+              <div className="text-xs text-slate-300 space-y-1.5 pt-2">
+                <p className="font-semibold text-white flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-teal-300" />
+                  What you get
                 </p>
-                <ul className="list-disc pl-4 space-y-1">
+                <ul className="list-disc pl-4 space-y-1 text-slate-300">
                   {task.deliverablesSummary.map((d, i) => (
                     <li key={i}>{d}</li>
                   ))}
                 </ul>
               </div>
             </div>
-          </div>
+          </HudCard>
         </aside>
       </div>
     </main>
